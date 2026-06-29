@@ -212,6 +212,8 @@ body.print-preview{overflow:hidden}
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 4 10 7 4-8 1-8-1z"></path></svg></span><span><b>Pintar area</b><span>Toca varios puntos del mapa para formar la zona que quieres colorear.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar colonia</b><span>Coloca texto en el mapa. Usa / para separar el nombre en dos renglones.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores y textos del territorio actual.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg></span><span><b>Exportar respaldo</b><span>Descarga un archivo con colores, textos y territorios agregados.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg></span><span><b>Importar respaldo</b><span>Carga un archivo de respaldo para recuperar el trabajo en otra pagina o equipo.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg></span><span><b>Deshacer</b><span>Regresa el ultimo punto o cambio guardado si necesitas corregir.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></span><span><b>Borrar</b><span>Elimina colores o textos del territorio que estas editando.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg></span><span><b>PDF</b><span>Prepara la hoja del croquis para imprimir o guardar.</span></span></div>
@@ -306,6 +308,15 @@ body.print-preview{overflow:hidden}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg>
     Eliminar territorio
   </button>
+  <button class="btn ghost" id="btn-backup-export" type="button" title="Exportar respaldo" aria-label="Exportar respaldo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>
+    Exportar respaldo
+  </button>
+  <button class="btn ghost" id="btn-backup-import" type="button" title="Importar respaldo" aria-label="Importar respaldo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
+    Importar respaldo
+  </button>
+  <input id="backup-file-input" type="file" accept="application/json,.json" hidden>
 </div>
 
 <div class="map-wrap">
@@ -512,6 +523,9 @@ const blockQuadButton = $('btn-block-quad');
 const colorDrawButton = $('btn-color-draw');
 const textAddButton = $('btn-text-add');
 const saveChangesButton = $('btn-save-changes');
+const backupExportButton = $('btn-backup-export');
+const backupImportButton = $('btn-backup-import');
+const backupFileInput = $('backup-file-input');
 const colorUndoButton = $('btn-color-undo');
 const colorClearButton = $('btn-color-clear');
 const FRAME_SCALE_STORAGE_KEY = 'croquis-territory-frame-scale-v1';
@@ -522,6 +536,7 @@ const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
 const CUSTOM_TERRITORIES_STORAGE_KEY = 'croquis-custom-territories-v1';
 const HIDDEN_TERRITORIES_STORAGE_KEY = 'croquis-hidden-territories-v1';
+const BACKUP_FILE_VERSION = 1;
 const UNDO_HISTORY_LIMIT = 80;
 const FRAME_SCALE_MIN = 55;
 const FRAME_SCALE_MAX = 180;
@@ -2238,6 +2253,141 @@ function saveAllChanges(){
   updateColorControls(LOCS[currentIndex]);
 }
 
+function safeObject(value){
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function safeArray(value){
+  return Array.isArray(value) ? value : [];
+}
+
+function backupFileName(){
+  const date = new Date().toISOString().slice(0, 10);
+  return 'croquis-territorios-respaldo-' + date + '.json';
+}
+
+function buildBackupPayload(){
+  return {
+    type:'croquis-territorios-backup',
+    version:BACKUP_FILE_VERSION,
+    exportedAt:new Date().toISOString(),
+    pageUrl:location.href,
+    data:{
+      colorAreas:safeObject(colorAreaSettings),
+      textLabels:safeObject(textLabelSettings),
+      frameScales:safeObject(frameScaleSettings),
+      customTerritories:loadCustomTerritorySettings(),
+      hiddenTerritories:loadHiddenTerritorySettings()
+    }
+  };
+}
+
+function exportBackup(){
+  if((colorDrawMode || blockQuadMode) && draftPoints.length > 0 && draftPoints.length < 3){
+    setStatus('Termina el area con al menos 3 puntos o cancela antes de exportar el respaldo.', 'warn');
+    return;
+  }
+  saveAllChanges();
+  const payload = buildBackupPayload();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = backupFileName();
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 800);
+  setStatus('Respaldo exportado. Guarda ese archivo para recuperar colores y textos despues.', 'warn');
+}
+
+function getBackupData(payload){
+  if(!payload || typeof payload !== 'object') return null;
+  const data = payload.data && typeof payload.data === 'object' ? payload.data : payload;
+  return {
+    colorAreas:safeObject(data.colorAreas || data[COLOR_AREAS_STORAGE_KEY]),
+    textLabels:safeObject(data.textLabels || data[TEXT_LABELS_STORAGE_KEY]),
+    frameScales:safeObject(data.frameScales || data[FRAME_SCALE_STORAGE_KEY]),
+    customTerritories:safeArray(data.customTerritories || data[CUSTOM_TERRITORIES_STORAGE_KEY]).map(normalizeCustomTerritory).filter(Boolean),
+    hiddenTerritories:safeArray(data.hiddenTerritories || data[HIDDEN_TERRITORIES_STORAGE_KEY]).map(String)
+  };
+}
+
+function refreshAfterBackupImport(previousNum){
+  applyCustomTerritories();
+  populateSelect();
+  if(!LOCS.length) return;
+  const nextIndex = LOCS.findIndex(loc => String(loc.num) === String(previousNum));
+  if(map){
+    goTo(nextIndex >= 0 ? nextIndex : 0, true);
+  }else{
+    currentIndex = nextIndex >= 0 ? nextIndex : 0;
+    locSel.value = String(currentIndex);
+    updateInfo(LOCS[currentIndex]);
+  }
+}
+
+function importBackupPayload(payload){
+  const data = getBackupData(payload);
+  if(!data){
+    setStatus('El archivo no parece ser un respaldo valido.', 'error');
+    return false;
+  }
+  const previousNum = LOCS[currentIndex]?.num;
+  colorAreaSettings = data.colorAreas;
+  textLabelSettings = data.textLabels;
+  frameScaleSettings = data.frameScales;
+  undoHistory = [];
+  const colorsSaved = saveColorAreaSettings();
+  const textsSaved = saveTextLabelSettings();
+  const framesSaved = saveFrameScaleSettings();
+  const customSaved = saveCustomTerritorySettings(data.customTerritories);
+  const hiddenSaved = saveHiddenTerritorySettings(data.hiddenTerritories);
+  saveUndoHistory();
+  if(!(colorsSaved && textsSaved && framesSaved && customSaved && hiddenSaved)){
+    setStatus('No se pudo importar todo el respaldo. Revisa espacio o permisos del navegador.', 'error');
+    return false;
+  }
+  selectedAreaIndex = null;
+  selectedTextIndex = null;
+  draftPoints = [];
+  setColorDrawMode(false);
+  setBlockQuadMode(false, false);
+  setTextAddMode(false, false);
+  setContourEditMode(false, false);
+  setTerritoryAddMode(false, false);
+  refreshAfterBackupImport(previousNum);
+  setStatus('Respaldo importado. Tus colores, textos y territorios quedaron cargados.', 'warn');
+  return true;
+}
+
+function readBackupFile(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('No se pudo leer el archivo.'));
+    reader.readAsText(file);
+  });
+}
+
+async function handleBackupFileSelected(event){
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if(!file) return;
+  try{
+    const text = await readBackupFile(file);
+    const payload = JSON.parse(text);
+    importBackupPayload(payload);
+  }catch(err){
+    console.error('No se pudo importar el respaldo.', err);
+    setStatus('No se pudo leer el respaldo. Asegurate de elegir el archivo .json correcto.', 'error');
+  }
+}
+
+function chooseBackupFile(){
+  backupFileInput?.click();
+}
+
 function undoDraftColorPoint(){
   if(contourEditMode && selectedAreaIndex != null){
     const loc = LOCS[currentIndex];
@@ -3725,6 +3875,9 @@ textAddButton.addEventListener('click', () => {
   }
 });
 saveChangesButton.addEventListener('click', saveAllChanges);
+backupExportButton?.addEventListener('click', exportBackup);
+backupImportButton?.addEventListener('click', chooseBackupFile);
+backupFileInput?.addEventListener('change', handleBackupFileSelected);
 colorUndoButton.addEventListener('click', undoDraftColorPoint);
 colorClearButton.addEventListener('click', clearColorAreasForCurrent);
 $('btn-prev').addEventListener('click', () => navigate(-1));
