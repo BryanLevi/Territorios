@@ -194,7 +194,7 @@ body.print-preview{overflow:hidden}
       <span class="welcome-kicker">Acceso al generador</span>
       <h2 id="welcome-title">Bienvenido al croquis de territorios</h2>
       <div class="welcome-credit">Creada por Bryan Levi</div>
-      <p>Esta pagina ayuda a revisar cada localidad, colorear las zonas del territorio, agregar nombres de colonias y generar el PDF final para imprimir o guardar.</p>
+      <p>Esta pagina ayuda a revisar cada localidad, colorear las zonas del territorio, agregar textos y generar el PDF final para imprimir o guardar.</p>
       <div class="welcome-steps" aria-label="Pasos principales">
         <div class="welcome-step"><b>1</b><span>Elige la localidad y revisa el mapa base con calles, avenidas y datos visuales.</span></div>
         <div class="welcome-step"><b>2</b><span>Selecciona color, pinta las areas necesarias y guarda los cambios antes de pasar al siguiente territorio.</span></div>
@@ -210,7 +210,7 @@ body.print-preview{overflow:hidden}
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar pintada o texto</b><span>Selecciona una zona o un texto que ya habias marcado para modificarlo.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10l4 7-4 7H7l-4-7z"></path><path d="M7 5v14"></path><path d="M17 5v14"></path></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 4 10 7 4-8 1-8-1z"></path></svg></span><span><b>Pintar area</b><span>Toca varios puntos del mapa para formar la zona que quieres colorear.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar colonia</b><span>Coloca texto en el mapa. Usa / para separar el nombre en dos renglones.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separarlo en dos renglones.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores y textos del territorio actual.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg></span><span><b>Exportar respaldo</b><span>Descarga un archivo con colores, textos y territorios agregados.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg></span><span><b>Importar respaldo</b><span>Carga un archivo de respaldo para recuperar el trabajo en otra pagina o equipo.</span></span></div>
@@ -258,8 +258,8 @@ body.print-preview{overflow:hidden}
       <input class="color-swatch" id="fill-color" type="color" value="#ff8200" disabled title="Color de relleno" aria-label="Color de relleno">
       <input id="fill-opacity" type="range" min="10" max="85" step="5" value="35" disabled title="Transparencia" aria-label="Transparencia">
       <output class="opacity-value" id="fill-opacity-value" for="fill-opacity">35%</output>
-      <input class="text-input" id="text-value" type="text" value="" placeholder="Colonia" disabled title="Nombre de colonia. Usa / para separar renglones" aria-label="Nombre de colonia">
-      <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de colonia" aria-label="Tamaño de colonia">
+      <input class="text-input" id="text-value" type="text" value="" placeholder="Texto" disabled title="Texto. Usa / para separar renglones" aria-label="Texto">
+      <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de texto" aria-label="Tamaño de texto">
       <output class="text-size-value" id="text-size-value" for="text-size">22</output>
       <button class="icon-btn" id="btn-color-edit" type="button" disabled title="Editar pintada o texto" aria-label="Editar pintada o texto">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
@@ -270,7 +270,7 @@ body.print-preview{overflow:hidden}
       <button class="icon-btn" id="btn-color-draw" type="button" disabled title="Seleccionar area con color" aria-label="Seleccionar area con color">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 4 10 7 4-8 1-8-1z"></path></svg>
       </button>
-      <button class="icon-btn" id="btn-text-add" type="button" disabled title="Agregar colonia" aria-label="Agregar colonia">
+      <button class="icon-btn" id="btn-text-add" type="button" disabled title="Agregar texto" aria-label="Agregar texto">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg>
       </button>
       <button class="icon-btn" id="btn-save-changes" type="button" disabled title="Guardar cambios" aria-label="Guardar cambios">
@@ -1697,8 +1697,8 @@ function setTextAddMode(active, showMessage = true){
   document.querySelector('.map-wrap')?.classList.toggle('is-text-placing', textAddMode);
   if(showMessage){
     if(textAddMode){
-      setStatus('Colonia: escribe el nombre y toca el mapa donde debe quedar fijo.', 'warn');
-    }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Colonia:')){
+      setStatus('Texto: escribe el contenido y toca el mapa donde debe quedar fijo.', 'warn');
+    }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Texto:')){
       setStatus('', '');
     }
   }
@@ -1736,7 +1736,7 @@ function selectTextLabel(index){
   updateTextSizeValue();
   renderColorAreas(loc);
   renderTextLabels(loc);
-  setStatus('Colonia seleccionada. Edita el campo Colonia o el tamaño; usa la basura o Supr para borrarla.', 'warn');
+  setStatus('Texto seleccionado. Edita el campo Texto o el tamaño; usa la basura o Supr para borrarlo.', 'warn');
   updateColorControls(loc);
 }
 
@@ -2425,7 +2425,7 @@ function clearColorAreasForCurrent(){
     selectedTextIndex = null;
     setTextLabelsForLoc(loc, labels);
     renderTextLabels(loc);
-    setStatus('Colonia borrada.', 'warn');
+    setStatus('Texto borrado.', 'warn');
   }else{
     pushUndoSnapshot('clear-all', loc);
     setContourEditMode(false, false);
@@ -2505,7 +2505,7 @@ function addTextLabelForCurrent(latlng){
   const text = formatColonyLabelText(textInput?.value);
   if(!text || !text.trim()){
     textInput?.focus();
-    setStatus('Escribe el nombre de la colonia y vuelve a tocar T.', 'warn');
+    setStatus('Escribe el texto y vuelve a tocar T.', 'warn');
     return;
   }
   const labels = getTextLabelsForLoc(loc).slice();
@@ -2535,7 +2535,7 @@ function editSelectedTextLabel(){
   const next = formatColonyLabelText(textInput?.value);
   if(!next.trim()){
     textInput?.focus();
-    setStatus('El nombre de la colonia no puede quedar vacio. Usa la basura si quieres borrar la etiqueta.', 'warn');
+    setStatus('El texto no puede quedar vacio. Usa la basura si quieres borrar la etiqueta.', 'warn');
     return;
   }else{
     labels[selectedTextIndex] = { ...label, text:next, color:'#243129', size:getTextLabelSize(), type:'colonia' };
