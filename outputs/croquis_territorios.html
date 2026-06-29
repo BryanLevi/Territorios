@@ -1,0 +1,3791 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Croquis de territorio realizado por Bryan Levi</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://tile.openstreetmap.org">
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:"Segoe UI",Arial,sans-serif;background:#f3f6f4;color:#17251c;display:flex;flex-direction:column;overflow:hidden}
+html,body,.print-sheet,.print-paper,#print-map{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+button,select{font:inherit}
+.bar{flex:0 0 auto;min-height:62px;background:#fff;border-bottom:1px solid #d9e1dc;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(20,40,28,.08);z-index:20}
+.brand{display:flex;flex-direction:column;gap:1px;min-width:190px}
+.brand strong{font-size:15px;color:#183d25}
+.brand span{font-size:11px;color:#64766b}
+.field{display:flex;align-items:center;gap:7px}
+.field label{font-size:11px;font-weight:700;text-transform:uppercase;color:#607068;letter-spacing:.04em}
+select{height:38px;border:1px solid #c9d5ce;border-radius:8px;background:#fff;color:#17251c;padding:0 10px;min-width:190px;max-width:320px}
+select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
+.grow{flex:1;min-width:230px}
+.frame-field{min-width:220px}
+.frame-control{height:38px;display:flex;align-items:center;gap:8px;width:220px}
+.frame-control input[type=range]{flex:1;min-width:0;accent-color:#1f7a47}
+.frame-value{width:43px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
+.color-field{min-width:860px}
+.color-control{height:38px;display:flex;align-items:center;gap:7px;width:860px}
+.color-swatch{width:38px;height:38px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;padding:3px;cursor:pointer}
+.color-control input[type=range]{width:86px;accent-color:#1f7a47}
+.text-input{height:38px;width:150px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;color:#17251c;padding:0 9px;font-size:13px;font-weight:700}
+.text-input:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
+.text-size-slider{width:72px;accent-color:#1f7a47}
+.text-size-value{width:24px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
+.opacity-value{width:34px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
+.icon-btn{width:38px;height:38px;border:1px solid #cfe0d6;border-radius:8px;background:#eef4f0;color:#1d5331;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s,filter .15s}
+.icon-btn svg{width:17px;height:17px}
+.icon-btn.active{background:#1f7a47;color:#fff;border-color:#1f7a47}
+.icon-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.04)}
+.icon-btn:disabled{cursor:not-allowed;opacity:.45;transform:none}
+.btn{height:38px;border:0;border-radius:8px;padding:0 13px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;white-space:nowrap;transition:transform .15s,filter .15s,background .15s}
+.btn svg{width:16px;height:16px;flex:0 0 auto}
+.btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.04)}
+.btn:disabled{cursor:not-allowed;opacity:.48;transform:none}
+.btn.primary{background:#1f7a47;color:#fff}
+.btn.secondary{background:#1f5f8a;color:#fff}
+.btn.info{background:#1769aa;color:#fff}
+.btn.danger{background:#b63b32;color:#fff}
+.btn.ghost{background:#eef4f0;color:#1d5331;border:1px solid #cfe0d6}
+.map-wrap{position:relative;flex:1;min-height:0;background:#dbe4df}
+#map{position:absolute;inset:0;width:100%;height:100%}
+.map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container{cursor:crosshair}
+.map-wrap.is-contour-editing .leaflet-container{cursor:default}
+.color-area-path{mix-blend-mode:multiply;filter:saturate(1.08) contrast(1.02)}
+.color-area-path.is-selected{filter:saturate(1.16) contrast(1.04)}
+.territory-road-pane,.leaflet-territoryroad-pane{display:none!important}
+.territory-restore-pane,.leaflet-territoryrestore-pane{mix-blend-mode:multiply;pointer-events:none}
+.territory-restore-pane .leaflet-tile,.leaflet-territoryrestore-pane .leaflet-tile{filter:none!important}
+.territory-label-pane{mix-blend-mode:normal}
+.territory-label-pane .leaflet-tile,.leaflet-territorylabel-pane .leaflet-tile{filter:grayscale(1) brightness(.52) contrast(1.38) saturate(0)!important;opacity:1!important}
+.print-sheet .leaflet-tile{image-rendering:auto!important}
+.print-sheet .territory-restore-pane{display:block!important;mix-blend-mode:multiply}
+.print-sheet .territory-restore-pane .leaflet-tile{display:block!important;filter:none!important}
+.print-sheet .territory-road-pane .leaflet-tile{display:none!important}
+.print-sheet .territory-label-pane{mix-blend-mode:normal}
+.print-sheet .territory-label-pane .leaflet-tile{filter:grayscale(1) contrast(1.45) brightness(.52) saturate(0)!important;opacity:1!important}
+.print-vector-road-label{background:transparent!important;border:0!important;box-shadow:none!important;pointer-events:none}
+.print-vector-road-label span{position:absolute;left:0;top:0;display:inline-block;transform:translate(-50%,-50%) rotate(var(--road-label-angle,0deg));transform-origin:center;white-space:nowrap;background:transparent!important;color:#17251c!important;font-family:"Arial Narrow","Segoe UI",Arial,sans-serif;font-weight:800;line-height:1;padding:0 1px;text-shadow:0 0 1.4px rgba(255,255,255,.96),0 0 2.6px rgba(255,255,255,.86)!important}
+.territory-text-label{color:#243129!important}
+.print-sheet .territory-text-label{color:#243129!important;text-shadow:0 1px 0 rgba(255,255,255,.9)!important}
+.contour-handle,.contour-midpoint{border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.28)}
+.contour-handle{width:15px;height:15px;background:#fff;border:3px solid #1f7a47}
+.contour-midpoint{width:12px;height:12px;background:#1f7a47;border:2px solid #fff;opacity:.9}
+.territory-text-label{background:rgba(255,255,255,.94);border:1.5px solid rgba(21,54,33,.55);border-radius:4px;box-shadow:0 2px 9px rgba(0,0,0,.22);display:inline-flex;flex-direction:column;align-items:center;gap:1px;font-family:"Segoe UI",Arial,sans-serif;font-weight:900;line-height:1.02;padding:3px 7px;text-align:center;text-shadow:0 1px 0 rgba(255,255,255,.95);text-transform:uppercase;white-space:nowrap;transform:translate(-50%,-50%)}
+.territory-text-label span{display:block}
+.territory-text-label.is-selected{outline:2px solid #1f7a47;outline-offset:2px}
+.territory-text-marker{width:auto!important;height:auto!important;overflow:visible!important;z-index:1200!important}
+.leaflet-container{font-family:"Segoe UI",Arial,sans-serif;background:#dbe4df}
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-image-layer,.leaflet-layer,.leaflet-zoom-box{position:absolute;left:0;top:0}
+.leaflet-container{overflow:hidden;outline:0}
+.leaflet-tile{border:0;user-select:none;-webkit-user-drag:none}
+.leaflet-control{position:relative;z-index:800;pointer-events:auto}
+.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}
+.leaflet-control-container .leaflet-top,.leaflet-control-container .leaflet-bottom{pointer-events:none}
+.info-card{position:absolute;top:14px;left:14px;z-index:600;width:min(330px,calc(100% - 28px));background:rgba(255,255,255,.96);border:1px solid rgba(180,196,187,.9);border-left:5px solid #1f7a47;border-radius:8px;box-shadow:0 8px 28px rgba(22,38,28,.18);padding:12px 14px;display:none}
+.info-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.badge{display:inline-flex;align-items:center;border-radius:999px;background:#e5f3eb;color:#145b32;font-size:11px;font-weight:900;padding:4px 10px;white-space:nowrap}
+.year{font-size:11px;color:#6b7b72;font-weight:700}
+.info-card h1{font-size:20px;line-height:1.15;margin:0 0 9px;color:#152c1d}
+.meta{display:grid;grid-template-columns:84px 1fr;gap:5px 10px;font-size:12px;line-height:1.35}
+.meta b{color:#5d7066;font-size:11px;text-transform:uppercase;letter-spacing:.035em}
+.meta span{color:#17251c;font-weight:650;min-width:0;overflow-wrap:anywhere}
+.map-status{position:absolute;right:14px;bottom:18px;z-index:650;max-width:min(430px,calc(100% - 28px));background:rgba(20,32,25,.88);color:#fff;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.35;box-shadow:0 8px 22px rgba(0,0,0,.22)}
+.map-status.warn{background:rgba(139,76,18,.94)}
+.map-status.error{background:rgba(150,38,38,.94)}
+.legend{position:absolute;left:14px;bottom:18px;z-index:620;background:rgba(255,255,255,.94);border:1px solid rgba(190,202,194,.9);border-radius:8px;padding:8px 10px;font-size:11px;color:#53645b;box-shadow:0 6px 18px rgba(22,38,28,.13);display:flex;align-items:center;gap:8px}
+.loader{position:fixed;inset:0;background:rgba(11,18,14,.74);z-index:9999;display:none;align-items:center;justify-content:center;padding:18px}
+.loader.show{display:flex}
+.loader-box{width:min(390px,100%);background:#fff;border-radius:10px;padding:24px;box-shadow:0 18px 58px rgba(0,0,0,.32);text-align:center}
+.loader-box h2{font-size:17px;margin:0 0 8px;color:#17351f}
+.count{font-size:28px;font-weight:900;color:#1f7a47;margin:8px 0}
+.progress{height:10px;border-radius:999px;background:#e6ece8;overflow:hidden}
+.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#1f7a47,#4fae70);transition:width .22s}
+.loader-msg{font-size:12px;color:#65756c;margin-top:8px}
+.loader-error{display:none;margin-top:12px;background:#fff1ee;border:1px solid #e4b2a7;color:#9e3226;border-radius:8px;padding:9px 10px;font-size:12px;line-height:1.4}
+.print-sheet{display:none}
+.print-sheet.is-open{position:fixed;inset:0;z-index:9000;background:#e8efeb;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:12px}
+body.print-preview{overflow:hidden}
+.print-paper{width:297mm;height:210mm;min-width:297mm;background:#fff;color:#17251c;display:grid;grid-template-rows:15mm 189mm 6mm;box-shadow:0 18px 48px rgba(0,0,0,.24)}
+.print-hdr{height:15mm;background:#fff;color:#17251c;display:flex;align-items:center;gap:5mm;padding:0 4mm;border-bottom:1.2mm solid #1f7a47}
+.print-badge{color:#145b32;border:1.2px solid #1f7a47;border-radius:999px;padding:1.35mm 3.7mm;font-size:10px;font-weight:900;white-space:nowrap}
+.print-title{font-size:18px;font-weight:900;line-height:1.05;flex:1;min-width:0;color:#102419}
+.print-meta{text-align:right;font-size:7.4px;line-height:1.25;color:#26372d;white-space:nowrap}
+.print-map-stage{width:297mm;height:189mm;position:relative;overflow:hidden;background:#eef3ef}
+#print-map{width:var(--print-map-w,100%);height:var(--print-map-h,100%);position:absolute;left:0;top:0;background:#eef3ef;transform:scale(var(--print-map-scale,1));transform-origin:top left}
+.print-color-mask{position:absolute;inset:0;width:100%;height:100%;z-index:515;pointer-events:none}
+.print-ftr{height:6mm;background:#fff;border-top:1px solid #d7e2dc;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4mm;color:#43544b;font-size:6.6px;white-space:nowrap}
+.print-sheet .leaflet-control-container{display:none!important}
+.print-wait{position:absolute;inset:0;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;z-index:2}
+.print-panel{border:1px solid #d6e1db;border-radius:8px;background:#fff;padding:18px 22px;text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.14)}
+.print-panel strong{display:block;color:#17351f;margin-bottom:12px}
+.print-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.print-actions .btn{height:34px}
+.welcome-screen{position:fixed;inset:0;z-index:10050;background:linear-gradient(135deg,#eef7ff 0%,#d7ebff 48%,#b7d8f5 100%);display:flex;align-items:center;justify-content:center;padding:22px;overflow:auto}
+.welcome-screen.is-hidden{display:none}
+.welcome-panel{width:min(1040px,100%);max-height:calc(100vh - 44px);overflow:auto;background:rgba(255,255,255,.97);border:1px solid #b8d2ea;border-radius:10px;box-shadow:0 24px 70px rgba(11,56,102,.24);display:grid;grid-template-columns:minmax(280px,.88fr) minmax(360px,1.12fr)}
+.welcome-main{padding:34px 34px 30px;border-right:1px solid #d6e7f7}
+.welcome-kicker{display:inline-flex;align-items:center;border-radius:999px;background:#e6f2ff;color:#0f548f;font-size:12px;font-weight:900;padding:5px 11px;margin-bottom:16px}
+.welcome-main h2{font-size:32px;line-height:1.05;margin:0 0 12px;color:#0b2945}
+.welcome-main p{font-size:15px;line-height:1.5;color:#365269;margin:0 0 16px}
+.welcome-credit{font-size:13px;font-weight:900;color:#0f548f;margin:0 0 10px}
+.welcome-steps{display:grid;gap:8px;margin:18px 0 24px}
+.welcome-step{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.35;color:#344f64}
+.welcome-step b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;background:#1769aa;color:#fff;font-size:12px;flex:0 0 auto}
+.welcome-start{height:44px;padding:0 18px;border:0;border-radius:8px;background:#1769aa;color:#fff;font-weight:900;font-size:14px;cursor:pointer;box-shadow:0 10px 22px rgba(23,105,170,.24)}
+.welcome-start:hover{filter:brightness(1.04);transform:translateY(-1px)}
+.welcome-guide{padding:28px 28px 26px}
+.welcome-guide h3{margin:0 0 12px;font-size:18px;color:#0b2945}
+.tool-guide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.tool-item{display:grid;grid-template-columns:38px 1fr;gap:9px;align-items:center;border:1px solid #d5e5f3;border-radius:8px;background:#fbfdff;padding:8px}
+.tool-icon{width:34px;height:34px;border-radius:8px;background:#eef7ff;color:#1769aa;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c9ddf0}
+.tool-icon svg{width:17px;height:17px}
+.tool-icon.color-dot{background:linear-gradient(135deg,#ff8200 0%,#ffd54a 52%,#43c464 100%)}
+.tool-item b{display:block;font-size:12.5px;color:#153a5a;margin-bottom:2px}
+.tool-item span{display:block;font-size:11.4px;line-height:1.25;color:#587088}
+.tool-item>.tool-icon{display:inline-flex;color:#1769aa;line-height:1;font-size:13px}
+@media (max-width:760px){
+  body{overflow:auto}
+  .bar{position:relative;align-items:stretch}
+  .brand{min-width:100%;padding-bottom:2px}
+  .field{width:100%;align-items:flex-start;flex-direction:column;gap:4px}
+  .field select,.grow{width:100%;max-width:none}
+  .frame-control{width:100%}
+  .color-field{min-width:100%}
+  .color-control{width:100%;flex-wrap:wrap;height:auto}
+  .color-control input[type=range]{flex:1;min-width:96px}
+  .btn{flex:1;min-width:0}
+  .map-wrap{min-height:calc(100vh - 232px)}
+  .legend{display:none}
+  .leaflet-control-zoom{display:none}
+  .info-card{top:10px;left:10px;width:calc(100% - 20px)}
+  .map-status{right:10px;left:10px;bottom:10px;max-width:none}
+  .welcome-panel{grid-template-columns:1fr;max-height:calc(100vh - 28px)}
+  .welcome-main{border-right:0;border-bottom:1px solid #dbe6e0;padding:24px}
+  .welcome-main h2{font-size:26px}
+  .welcome-guide{padding:22px}
+  .tool-guide{grid-template-columns:1fr}
+}
+@media (max-width:360px){
+  .btn{flex:1 1 calc(50% - 6px)}
+}
+@media print{
+  @page{size:A4 landscape;margin:0}
+  html,body{width:297mm;height:210mm;overflow:hidden;background:#fff}
+  body{display:block}
+  .bar,.map-wrap,.map-status,.loader,.legend,.welcome-screen{display:none!important}
+  .print-sheet,.print-sheet.is-open{display:block!important;position:static!important;inset:auto!important;width:297mm;height:210mm;padding:0;background:#fff;overflow:hidden}
+  .print-paper{width:297mm;height:210mm;min-width:0;box-shadow:none}
+  .print-wait{display:none!important}
+}
+</style>
+</head>
+<body>
+<section class="welcome-screen" id="welcome-screen" aria-labelledby="welcome-title">
+  <div class="welcome-panel">
+    <div class="welcome-main">
+      <span class="welcome-kicker">Acceso al generador</span>
+      <h2 id="welcome-title">Bienvenido al croquis de territorios</h2>
+      <div class="welcome-credit">Creada por Bryan Levi</div>
+      <p>Esta pagina ayuda a revisar cada localidad, colorear las zonas del territorio, agregar nombres de colonias y generar el PDF final para imprimir o guardar.</p>
+      <div class="welcome-steps" aria-label="Pasos principales">
+        <div class="welcome-step"><b>1</b><span>Elige la localidad y revisa el mapa base con calles, avenidas y datos visuales.</span></div>
+        <div class="welcome-step"><b>2</b><span>Selecciona color, pinta las areas necesarias y guarda los cambios antes de pasar al siguiente territorio.</span></div>
+        <div class="welcome-step"><b>3</b><span>Cuando el croquis este listo, usa PDF para preparar la hoja de impresion.</span></div>
+      </div>
+      <button class="welcome-start" id="welcome-start" type="button">Continuar a generar croquis del territorio</button>
+    </div>
+    <div class="welcome-guide">
+      <h3>Guia rapida de herramientas</h3>
+      <div class="tool-guide">
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><span><b>Restablecer recuadro</b><span>Regresa el tamano del recuadro del territorio al valor inicial.</span></span></div>
+        <div class="tool-item"><span class="tool-icon color-dot"></span><span><b>Color y transparencia</b><span>Define el color de relleno y que tan visible queda sobre el mapa.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar pintada o texto</b><span>Selecciona una zona o un texto que ya habias marcado para modificarlo.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10l4 7-4 7H7l-4-7z"></path><path d="M7 5v14"></path><path d="M17 5v14"></path></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 4 10 7 4-8 1-8-1z"></path></svg></span><span><b>Pintar area</b><span>Toca varios puntos del mapa para formar la zona que quieres colorear.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar colonia</b><span>Coloca texto en el mapa. Usa / para separar el nombre en dos renglones.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores y textos del territorio actual.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg></span><span><b>Deshacer</b><span>Regresa el ultimo punto o cambio guardado si necesitas corregir.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></span><span><b>Borrar</b><span>Elimina colores o textos del territorio que estas editando.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg></span><span><b>PDF</b><span>Prepara la hoja del croquis para imprimir o guardar.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></span><span><b>Menu / instrucciones</b><span>Regresa a esta pantalla para consultar la guia cuando lo necesites.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span><span><b>Agregar territorio</b><span>Marca dos esquinas para formar el recuadro y despues escribe el nombre.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg></span><span><b>Eliminar territorio</b><span>Quita el territorio actual de la lista despues de confirmar.</span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="bar">
+  <div class="brand">
+    <strong>Croquis de territorio realizado por Bryan Levi</strong>
+    <span>Predicación 2026 · Ixhuatlán del Café</span>
+  </div>
+  <div class="field grow">
+    <label for="loc-sel">Localidad</label>
+    <select id="loc-sel" disabled>
+      <option value="">Cargando localidades...</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="view-sel">Mapa</label>
+    <select id="view-sel" disabled>
+      <option value="g-road" selected>Google Calles - principal</option>
+      <option value="g-sat">Google Satélite - vista previa</option>
+    </select>
+  </div>
+  <div class="field frame-field">
+    <label for="frame-scale">Recuadro</label>
+    <div class="frame-control">
+      <input id="frame-scale" type="range" min="55" max="180" step="5" value="100" disabled>
+      <output class="frame-value" id="frame-value" for="frame-scale">100%</output>
+      <button class="icon-btn" id="btn-frame-reset" type="button" disabled title="Restablecer recuadro" aria-label="Restablecer recuadro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg>
+      </button>
+    </div>
+  </div>
+  <div class="field color-field">
+    <label for="fill-color">Color</label>
+    <div class="color-control">
+      <input class="color-swatch" id="fill-color" type="color" value="#ff8200" disabled title="Color de relleno" aria-label="Color de relleno">
+      <input id="fill-opacity" type="range" min="10" max="85" step="5" value="35" disabled title="Transparencia" aria-label="Transparencia">
+      <output class="opacity-value" id="fill-opacity-value" for="fill-opacity">35%</output>
+      <input class="text-input" id="text-value" type="text" value="" placeholder="Colonia" disabled title="Nombre de colonia. Usa / para separar renglones" aria-label="Nombre de colonia">
+      <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de colonia" aria-label="Tamaño de colonia">
+      <output class="text-size-value" id="text-size-value" for="text-size">22</output>
+      <button class="icon-btn" id="btn-color-edit" type="button" disabled title="Editar pintada o texto" aria-label="Editar pintada o texto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-contour-edit" type="button" disabled title="Editar contorno" aria-label="Editar contorno">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10l4 7-4 7H7l-4-7z"></path><path d="M7 5v14"></path><path d="M17 5v14"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-color-draw" type="button" disabled title="Seleccionar area con color" aria-label="Seleccionar area con color">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 4 10 7 4-8 1-8-1z"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-text-add" type="button" disabled title="Agregar colonia" aria-label="Agregar colonia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-save-changes" type="button" disabled title="Guardar cambios" aria-label="Guardar cambios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-color-undo" type="button" disabled title="Regresar / deshacer" aria-label="Regresar o deshacer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-color-clear" type="button" disabled title="Borrar colores del territorio" aria-label="Borrar colores del territorio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+      </button>
+    </div>
+  </div>
+  <button class="btn ghost" id="btn-prev" type="button" disabled title="Territorio anterior" aria-label="Territorio anterior">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+    Anterior
+  </button>
+  <button class="btn ghost" id="btn-next" type="button" disabled title="Territorio siguiente" aria-label="Territorio siguiente">
+    Siguiente
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+  </button>
+  <button class="btn secondary" id="btn-pr" type="button" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
+    PDF
+  </button>
+  <button class="btn info" id="btn-menu-help" type="button" title="Regresar a menu con instrucciones" aria-label="Regresar a menu con instrucciones">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg>
+    Menu / instrucciones
+  </button>
+  <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+    Agregar territorio
+  </button>
+  <button class="btn danger" id="btn-delete-territory" type="button" disabled title="Eliminar territorio actual" aria-label="Eliminar territorio actual">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg>
+    Eliminar territorio
+  </button>
+</div>
+
+<div class="map-wrap">
+  <div id="map"></div>
+  <section class="info-card" id="info-card" aria-live="polite">
+    <div class="info-top">
+      <span class="badge" id="territory-badge">Territorio</span>
+      <span class="year">Actualización 2026</span>
+    </div>
+    <h1 id="loc-name">Localidad</h1>
+    <div class="meta">
+      <b>Localidad</b><span id="meta-localidad"></span>
+      <b>Municipio</b><span id="meta-municipio"></span>
+      <b>Estado</b><span id="meta-estado"></span>
+      <b>Altitud</b><span id="meta-altitud"></span>
+      <b>Centro</b><span id="meta-coords"></span>
+    </div>
+  </section>
+  <div class="map-status" id="map-status">Cargando mapa y nombres de calles...</div>
+</div>
+
+<div class="loader" id="loader">
+  <div class="loader-box">
+    <h2 id="loader-title">Generando imagen</h2>
+    <div class="count" id="loader-count">0 / 0</div>
+    <div class="progress"><span id="loader-bar"></span></div>
+    <div class="loader-msg" id="loader-msg">Preparando descarga...</div>
+    <div class="loader-error" id="loader-error"></div>
+  </div>
+</div>
+
+<script>
+const MUNICIPIO = 'Ixhuatlán del Café';
+const ESTADO = 'Veracruz de Ignacio de la Llave';
+const FUENTE_INEGI = 'INEGI CPV 2010 / cartografía base en línea 2026';
+const FUENTE_IFT = 'IFT localidades / cartografía base en línea 2026';
+const DETAIL_ZOOM = 20;
+const DETAIL_PAD = 2;
+const PRINT_ASPECT = 297 / 189;
+const PRINT_RENDER_SCALE = 18;
+const PRINT_MAX_ZOOM = 20;
+const PRINT_TILE_TIMEOUT_MS = 180000;
+const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
+const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
+const PNG_MAP_W = 4400;
+const PNG_MAP_H = Math.round(PNG_MAP_W / PRINT_ASPECT);
+const PNG_HEADER_H = 230;
+const PNG_FOOTER_H = 70;
+const PNG_PADDING = 120;
+const ROAD_OVERLAY_OPACITY = 1;
+const ROAD_LABEL_OPACITY = .96;
+const MAP_DETAIL_RESTORE_OPACITY = 1;
+const PRINT_DETAIL_RESTORE_OPACITY = 1;
+const AUTO_BLOCK_GRID_PX = 3;
+const AUTO_BLOCK_ROAD_WIDTH_PX = 42;
+const AUTO_BLOCK_ROAD_WIDTH_STEPS_PX = [28, 36, 46, 58, 70];
+const AUTO_BLOCK_MIN_CELLS = 18;
+const AUTO_BLOCK_MAX_RADIUS_PX = 420;
+const AUTO_BLOCK_MAX_FILL_RATIO = .32;
+const AUTO_BLOCK_MIN_AREA_PX = 700;
+const AUTO_BLOCK_EDGE_SIMPLIFY_PX = 5;
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter'
+];
+
+const TILES = {
+  osm: {
+    name: 'OpenStreetMap - más detallado en pantalla',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    sub: '',
+    maxZ: 19,
+    attr: '© OpenStreetMap contributors',
+    downloadable: false,
+    downloadAs: 'carto-voyager'
+  },
+  'carto-voyager': {
+    name: 'Carto Voyager - detallado',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+    labelUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
+    sub: 'abcd',
+    maxZ: 20,
+    attr: '© OpenStreetMap © CARTO',
+    downloadable: true,
+    dlUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+    dlTs: 512
+  },
+  'carto-light': {
+    name: 'Carto Claro - limpio',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+    labelUrl: 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png',
+    sub: 'abcd',
+    maxZ: 20,
+    attr: '© OpenStreetMap © CARTO',
+    downloadable: true,
+    dlUrl: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+    dlTs: 512
+  },
+  'carto-dark': {
+    name: 'Carto Oscuro - contraste',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    labelUrl: 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png',
+    sub: 'abcd',
+    maxZ: 20,
+    attr: '© OpenStreetMap © CARTO',
+    downloadable: true,
+    dlUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+    dlTs: 512
+  },
+  'g-road': {
+    name: 'Google Calles - principal',
+    url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    roadUrl: 'https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
+    roadSub: '0123',
+    labelUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
+    labelSub: 'abcd',
+    labelDlTs: 512,
+    sub: '0123',
+    maxZ: 20,
+    attr: '© Google',
+    downloadable: false,
+    downloadAs: 'carto-voyager'
+  },
+  'g-hybrid': {
+    name: 'Google Híbrido - vista previa',
+    url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    roadUrl: 'https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
+    roadSub: '0123',
+    labelUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
+    labelSub: 'abcd',
+    labelDlTs: 512,
+    sub: '0123',
+    maxZ: 20,
+    attr: '© Google',
+    downloadable: false
+  },
+  'g-sat': {
+    name: 'Google Satélite - vista previa',
+    url: 'https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    roadUrl: 'https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
+    roadSub: '0123',
+    labelUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
+    labelSub: 'abcd',
+    labelDlTs: 512,
+    sub: '0123',
+    maxZ: 20,
+    attr: '© Google',
+    downloadable: false
+  }
+};
+
+const LOCS = [
+  {num:1, name:'Ixhuatlán del Café', lat:19.048889, lon:-96.981944, alt:1344, pop2010:'6,649', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, fuente:FUENTE_INEGI,
+    printBounds:{south:19.0362, west:-96.9972, north:19.0594, east:-96.9628}},
+  {num:3, name:'Ocotitlán', lat:19.043333, lon:-96.909722, alt:1183, pop2010:'2,278', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:1050, fuente:FUENTE_INEGI},
+  {num:5, name:'Ixcatla', lat:19.075278, lon:-96.918889, alt:1062, pop2010:'1,137', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:850, fuente:FUENTE_INEGI},
+  {num:6, name:'Ixcapantla', lat:19.025000, lon:-96.971111, alt:1354, pop2010:'1,018', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:850, fuente:FUENTE_INEGI},
+  {num:9, name:'Zacamitla', lat:19.051389, lon:-96.923333, alt:1178, pop2010:'728', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:800, fuente:FUENTE_INEGI},
+  {num:14, name:'Opatla', lat:19.063333, lon:-96.907222, alt:1119, pop2010:'265', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI},
+  {num:15, name:'Moctezuma (Colonia Moctezuma)', lat:19.053056, lon:-96.928056, alt:1150, pop2010:'151', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI},
+  {num:16, name:'El Crucero de Zapata', alias:'El Crucero', lat:19.039167, lon:-96.927222, alt:1201, pop2010:'115', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI},
+  {num:17, name:'Nevería', lat:19.035000, lon:-96.949167, alt:1200, pop2010:'128', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:750, fuente:FUENTE_INEGI},
+  {num:18, name:'Ocotitlanapan', lat:19.047778, lon:-96.914722, alt:1180, pop2010:'118', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:750, fuente:FUENTE_INEGI},
+  {num:22, name:'Opatla Viejo', alias:'La Esperanza', lat:19.076389, lon:-96.906944, alt:1081, pop2010:'73', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:750, fuente:FUENTE_INEGI},
+  {num:23, name:'San Francisco Aviadero', lat:19.063889, lon:-96.895833, alt:1106, pop2010:'84', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI},
+  {num:25, name:'Los Velázquez', lat:19.058056, lon:-96.917778, alt:null, pop2010:'', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_IFT},
+  {num:26, name:'Providencia los Cedros', lat:19.044722, lon:-96.926389, alt:1199, pop2010:'37', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI},
+  {num:27, name:'Zopiloapan', lat:19.038056, lon:-96.934167, alt:1187, pop2010:'18', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI},
+  {num:29, name:'Pizarrostla', alias:'La Tranca', lat:19.040556, lon:-96.958889, alt:1235, pop2010:'12', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:800, fuente:FUENTE_INEGI},
+  {num:30, name:'Tomatlán', municipio:'Tomatlán', lat:19.031667, lon:-97.010278, alt:1358, pop2010:'4,348', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:1200, fuente:FUENTE_INEGI},
+  {num:31, name:'Las Compras', alias:'Los Ocozotes', municipio:'Tomatlán', lat:19.025280, lon:-96.996670, alt:1336, pop2010:'94', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI},
+  {num:32, name:'Tecolotla', municipio:'Tomatlán', lat:19.021113, lon:-96.999114, alt:1356, pop2010:'111', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI},
+  {num:33, name:'San Martín', municipio:'Tomatlán', lat:19.021200, lon:-96.975100, alt:null, pop2010:'81', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI}
+].map((loc, index) => ({ municipio:MUNICIPIO, estado:ESTADO, displayNum:index + 1, ...loc }));
+const BASE_TERRITORY_COUNT = LOCS.length;
+const BASE_LOCS = LOCS.map(loc => ({...loc}));
+
+let map = null;
+let tileLayer = null;
+let ringLayer = null;
+let currentIndex = 0;
+let currentView = 'g-road';
+let tileErrorCount = 0;
+let printMap = null;
+const originalDocumentTitle = document.title;
+
+const $ = id => document.getElementById(id);
+const locSel = $('loc-sel');
+const viewSel = $('view-sel');
+const statusBox = $('map-status');
+const frameScaleInput = $('frame-scale');
+const frameValue = $('frame-value');
+const frameResetButton = $('btn-frame-reset');
+const colorInput = $('fill-color');
+const colorOpacityInput = $('fill-opacity');
+const colorOpacityValue = $('fill-opacity-value');
+const textInput = $('text-value');
+const textSizeInput = $('text-size');
+const textSizeValue = $('text-size-value');
+const colorEditButton = $('btn-color-edit');
+const contourEditButton = $('btn-contour-edit');
+const colorFrameButton = $('btn-color-frame');
+const blockQuadButton = $('btn-block-quad');
+const colorDrawButton = $('btn-color-draw');
+const textAddButton = $('btn-text-add');
+const saveChangesButton = $('btn-save-changes');
+const colorUndoButton = $('btn-color-undo');
+const colorClearButton = $('btn-color-clear');
+const FRAME_SCALE_STORAGE_KEY = 'croquis-territory-frame-scale-v1';
+const COLOR_AREAS_STORAGE_KEY = 'croquis-territory-color-areas-v1';
+const TEXT_LABELS_STORAGE_KEY = 'croquis-territory-text-labels-v1';
+const UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v2';
+const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
+const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
+const CUSTOM_TERRITORIES_STORAGE_KEY = 'croquis-custom-territories-v1';
+const HIDDEN_TERRITORIES_STORAGE_KEY = 'croquis-hidden-territories-v1';
+const UNDO_HISTORY_LIMIT = 80;
+const FRAME_SCALE_MIN = 55;
+const FRAME_SCALE_MAX = 180;
+const FRAME_SCALE_STEP = 5;
+const DEFAULT_FILL_COLOR = '#ff8200';
+let frameScaleSettings = loadFrameScaleSettings();
+let colorAreaSettings = loadColorAreaSettings();
+let textLabelSettings = loadTextLabelSettings();
+let undoHistory = loadUndoHistory();
+let colorLayer = null;
+let draftLayer = null;
+let textLayer = null;
+let editHandleLayer = null;
+let colorRestoreLayer = null;
+let labelOverlayLayer = null;
+let roadOverlayLayer = null;
+let vectorRoadLayer = null;
+let runtimeRoadCache = null;
+let runtimeRoadRequestId = 0;
+let colorDrawMode = false;
+let blockQuadMode = false;
+let blockAutoMode = false;
+let blockAutoBusy = false;
+let autoBlockRoadCache = null;
+let colorEditMode = false;
+let contourEditMode = false;
+let textAddMode = false;
+let draftPoints = [];
+let territoryAddMode = false;
+let territoryAddStart = null;
+let territoryAddPreviewLayer = null;
+let selectedAreaIndex = null;
+let selectedTextIndex = null;
+let suppressUndoSnapshot = false;
+
+function setStatus(message, type){
+  statusBox.textContent = message;
+  statusBox.className = 'map-status' + (type ? ' ' + type : '');
+  statusBox.style.display = message ? 'block' : 'none';
+}
+
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function formatCoords(loc){
+  return loc.lat.toFixed(6) + ', ' + loc.lon.toFixed(6);
+}
+
+function displayTerritoryNumber(loc){
+  return loc.displayNum || LOCS.indexOf(loc) + 1;
+}
+
+function displayTerritoryTitle(loc){
+  return displayTerritoryNumber(loc) + ' ' + loc.name;
+}
+
+function safeFileName(value){
+  return String(value || 'territorio')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^\w.-]+/g,'_')
+    .replace(/^_+|_+$/g,'');
+}
+
+function loadFrameScaleSettings(){
+  try{
+    const raw = localStorage.getItem(FRAME_SCALE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveFrameScaleSettings(){
+  try{
+    localStorage.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(frameScaleSettings));
+    return true;
+  }catch(e){
+    clearHeavyUndoStorage();
+    try{
+      localStorage.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(frameScaleSettings));
+      return true;
+    }catch(err){
+      console.error('No se pudo guardar el ajuste de recuadro.', err);
+      return false;
+    }
+  }
+}
+
+function loadColorAreaSettings(){
+  try{
+    const raw = localStorage.getItem(COLOR_AREAS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveColorAreaSettings(){
+  try{
+    localStorage.setItem(COLOR_AREAS_STORAGE_KEY, JSON.stringify(colorAreaSettings));
+    return true;
+  }catch(e){
+    clearHeavyUndoStorage();
+    try{
+      localStorage.setItem(COLOR_AREAS_STORAGE_KEY, JSON.stringify(colorAreaSettings));
+      return true;
+    }catch(err){
+      console.error('No se pudieron guardar las areas pintadas.', err);
+      return false;
+    }
+  }
+}
+
+function loadTextLabelSettings(){
+  try{
+    const raw = localStorage.getItem(TEXT_LABELS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveTextLabelSettings(){
+  try{
+    localStorage.setItem(TEXT_LABELS_STORAGE_KEY, JSON.stringify(textLabelSettings));
+    return true;
+  }catch(e){
+    clearHeavyUndoStorage();
+    try{
+      localStorage.setItem(TEXT_LABELS_STORAGE_KEY, JSON.stringify(textLabelSettings));
+      return true;
+    }catch(err){
+      console.error('No se pudieron guardar los textos.', err);
+      return false;
+    }
+  }
+}
+
+function normalizeCustomTerritory(raw, index){
+  const lat = Number(raw?.lat);
+  const lon = Number(raw?.lon);
+  const name = String(raw?.name || '').trim();
+  if(!name || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const rawBounds = raw?.printBounds;
+  const printBounds = rawBounds &&
+    Number.isFinite(Number(rawBounds.south)) &&
+    Number.isFinite(Number(rawBounds.west)) &&
+    Number.isFinite(Number(rawBounds.north)) &&
+    Number.isFinite(Number(rawBounds.east))
+      ? {
+        south:Number(rawBounds.south),
+        west:Number(rawBounds.west),
+        north:Number(rawBounds.north),
+        east:Number(rawBounds.east)
+      }
+      : null;
+  return {
+    num:String(raw.num || ('custom-' + Date.now() + '-' + index)),
+    name,
+    alias:String(raw.alias || '').trim(),
+    municipio:String(raw.municipio || MUNICIPIO).trim() || MUNICIPIO,
+    estado:String(raw.estado || ESTADO).trim() || ESTADO,
+    lat,
+    lon,
+    alt:Number.isFinite(Number(raw.alt)) ? Number(raw.alt) : null,
+    pop2010:String(raw.pop2010 || ''),
+    pad:DETAIL_PAD,
+    zoom:DETAIL_ZOOM,
+    ...(printBounds ? { printBounds } : { printRadiusM:Number.isFinite(Number(raw.printRadiusM)) ? Number(raw.printRadiusM) : 700 }),
+    fuente:String(raw.fuente || 'Territorio agregado por usuario / cartografia base en linea 2026'),
+    custom:true
+  };
+}
+
+function loadCustomTerritorySettings(){
+  try{
+    const raw = localStorage.getItem(CUSTOM_TERRITORIES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeCustomTerritory).filter(Boolean) : [];
+  }catch(e){
+    return [];
+  }
+}
+
+function saveCustomTerritorySettings(items){
+  try{
+    localStorage.setItem(CUSTOM_TERRITORIES_STORAGE_KEY, JSON.stringify(items || []));
+    return true;
+  }catch(e){
+    console.error('No se pudieron guardar los territorios agregados.', e);
+    return false;
+  }
+}
+
+function loadHiddenTerritorySettings(){
+  try{
+    const raw = localStorage.getItem(HIDDEN_TERRITORIES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  }catch(e){
+    return [];
+  }
+}
+
+function saveHiddenTerritorySettings(items){
+  try{
+    localStorage.setItem(HIDDEN_TERRITORIES_STORAGE_KEY, JSON.stringify((items || []).map(String)));
+    return true;
+  }catch(e){
+    console.error('No se pudo guardar la lista de territorios eliminados.', e);
+    return false;
+  }
+}
+
+function applyCustomTerritories(){
+  const hidden = new Set(loadHiddenTerritorySettings());
+  const items = loadCustomTerritorySettings();
+  LOCS.splice(0, LOCS.length, ...BASE_LOCS
+    .filter(loc => !hidden.has(String(loc.num)))
+    .map((loc, index) => ({...loc, displayNum:index + 1})));
+  const baseVisibleCount = LOCS.length;
+  items.forEach((item, index) => {
+    LOCS.push({
+      ...item,
+      displayNum:baseVisibleCount + index + 1
+    });
+  });
+  if(currentIndex >= LOCS.length) currentIndex = Math.max(0, LOCS.length - 1);
+}
+
+function boundsPlainFromCorners(a, b){
+  if(!a || !b) return null;
+  const south = Math.min(Number(a.lat), Number(b.lat));
+  const north = Math.max(Number(a.lat), Number(b.lat));
+  const west = Math.min(Number(a.lng), Number(b.lng));
+  const east = Math.max(Number(a.lng), Number(b.lng));
+  if(!Number.isFinite(south) || !Number.isFinite(north) || !Number.isFinite(west) || !Number.isFinite(east)) return null;
+  if(Math.abs(north - south) < .00008 || Math.abs(east - west) < .00008) return null;
+  return { south, west, north, east };
+}
+
+function centerFromBoundsPlain(bounds){
+  return {
+    lat:(Number(bounds.south) + Number(bounds.north)) / 2,
+    lng:(Number(bounds.west) + Number(bounds.east)) / 2
+  };
+}
+
+function clearTerritoryAddPreview(){
+  if(territoryAddPreviewLayer && map) map.removeLayer(territoryAddPreviewLayer);
+  territoryAddPreviewLayer = null;
+}
+
+function renderTerritoryAddPreview(currentLatLng = null){
+  if(!map || !territoryAddStart) return;
+  clearTerritoryAddPreview();
+  const end = currentLatLng || territoryAddStart;
+  const bounds = boundsPlainFromCorners(territoryAddStart, end);
+  if(bounds){
+    territoryAddPreviewLayer = L.rectangle([[bounds.south, bounds.west], [bounds.north, bounds.east]], {
+      color:'#1769aa',
+      weight:2.5,
+      dashArray:'8,5',
+      fillColor:'#1769aa',
+      fillOpacity:.08,
+      interactive:false
+    }).addTo(map);
+  }else{
+    territoryAddPreviewLayer = L.circleMarker(territoryAddStart, {
+      radius:6,
+      color:'#1769aa',
+      weight:2,
+      fillColor:'#1769aa',
+      fillOpacity:.7,
+      interactive:false
+    }).addTo(map);
+  }
+}
+
+function setTerritoryAddMode(active, showMessage = true){
+  territoryAddMode = !!active;
+  territoryAddStart = null;
+  clearTerritoryAddPreview();
+  document.querySelector('.map-wrap')?.classList.toggle('is-color-drawing', territoryAddMode);
+  if(territoryAddMode){
+    setColorDrawMode(false);
+    setBlockQuadMode(false, false);
+    setTextAddMode(false, false);
+    setContourEditMode(false, false);
+    selectedAreaIndex = null;
+    selectedTextIndex = null;
+    if(showMessage) setStatus('Agregar territorio: toca una esquina del recuadro en el mapa.', 'warn');
+  }else if(showMessage && statusBox.classList.contains('warn') && statusBox.textContent.includes('Agregar territorio')){
+    setStatus('', '');
+  }
+  updateButtons();
+}
+
+function addCustomTerritoryFromBounds(bounds){
+  const center = centerFromBoundsPlain(bounds);
+  const name = window.prompt('Nombre del nuevo territorio:', '');
+  if(name == null) return;
+  const cleanName = name.trim();
+  if(!cleanName){
+    setStatus('Escribe un nombre para agregar el territorio.', 'warn');
+    return;
+  }
+  const municipio = (window.prompt('Municipio:', LOCS[currentIndex]?.municipio || MUNICIPIO) || MUNICIPIO).trim() || MUNICIPIO;
+  const items = loadCustomTerritorySettings();
+  const territory = normalizeCustomTerritory({
+    num:'custom-' + Date.now(),
+    name:cleanName,
+    municipio,
+    estado:ESTADO,
+    lat:center.lat,
+    lon:center.lng,
+    alt:null,
+    printBounds:bounds
+  }, items.length);
+  if(!territory) return;
+  items.push(territory);
+  if(!saveCustomTerritorySettings(items)){
+    setStatus('No se pudo guardar el territorio nuevo.', 'error');
+    return;
+  }
+  applyCustomTerritories();
+  populateSelect();
+  goTo(LOCS.length - 1);
+  setStatus('Territorio agregado con el recuadro seleccionado. Ya puedes pintar y guardar cambios.', 'warn');
+}
+
+function handleTerritoryAddClick(latlng){
+  if(!territoryAddMode || !latlng) return;
+  if(!territoryAddStart){
+    territoryAddStart = latlng;
+    renderTerritoryAddPreview(latlng);
+    setStatus('Agregar territorio: ahora toca la esquina opuesta del recuadro.', 'warn');
+    return;
+  }
+  const bounds = boundsPlainFromCorners(territoryAddStart, latlng);
+  if(!bounds){
+    setStatus('El recuadro es muy pequeno. Toca una esquina mas separada.', 'warn');
+    return;
+  }
+  setTerritoryAddMode(false, false);
+  addCustomTerritoryFromBounds(bounds);
+}
+
+function addCustomTerritory(){
+  if(!map){
+    setStatus('Espera a que cargue el mapa para agregar un territorio.', 'warn');
+    return;
+  }
+  setTerritoryAddMode(!territoryAddMode);
+}
+
+function clearTerritoryStoredWork(loc){
+  if(!loc) return;
+  const key = String(loc.num);
+  delete colorAreaSettings[key];
+  delete textLabelSettings[key];
+  delete frameScaleSettings[key];
+  saveColorAreaSettings();
+  saveTextLabelSettings();
+  saveFrameScaleSettings();
+}
+
+function deleteCurrentTerritory(){
+  const loc = LOCS[currentIndex];
+  if(!loc) return;
+  if(LOCS.length <= 1){
+    setStatus('Debe quedar al menos un territorio en la lista.', 'warn');
+    return;
+  }
+  const title = displayTerritoryTitle(loc);
+  const ok = window.confirm('¿Eliminar "' + title + '" de la lista de territorios?');
+  if(!ok) return;
+
+  if(loc.custom){
+    const remaining = loadCustomTerritorySettings().filter(item => String(item.num) !== String(loc.num));
+    if(!saveCustomTerritorySettings(remaining)){
+      setStatus('No se pudo eliminar el territorio agregado.', 'error');
+      return;
+    }
+    clearTerritoryStoredWork(loc);
+  }else{
+    const hidden = new Set(loadHiddenTerritorySettings());
+    hidden.add(String(loc.num));
+    if(!saveHiddenTerritorySettings([...hidden])){
+      setStatus('No se pudo ocultar el territorio.', 'error');
+      return;
+    }
+  }
+
+  const nextIndex = Math.min(currentIndex, LOCS.length - 2);
+  applyCustomTerritories();
+  populateSelect();
+  goTo(nextIndex, true);
+  setStatus('Territorio eliminado de la lista.', 'warn');
+}
+
+function hideWelcomeScreen(){
+  $('welcome-screen')?.classList.add('is-hidden');
+  if(map) setTimeout(() => map.invalidateSize(), 60);
+  locSel?.focus?.();
+}
+
+function showWelcomeScreen(){
+  $('welcome-screen')?.classList.remove('is-hidden');
+}
+
+function clearHeavyUndoStorage(){
+  try{
+    localStorage.removeItem(UNDO_HISTORY_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_UNDO_HISTORY_STORAGE_KEY);
+  }catch(e){}
+}
+
+function clearLegacyUndoStorage(){
+  try{
+    localStorage.removeItem(LEGACY_UNDO_HISTORY_STORAGE_KEY);
+  }catch(e){}
+}
+
+function cloneData(value){
+  try{
+    return JSON.parse(JSON.stringify(value ?? null));
+  }catch(e){
+    return value;
+  }
+}
+
+function stateFingerprint(value){
+  try{
+    return JSON.stringify(value ?? null);
+  }catch(e){
+    return '';
+  }
+}
+
+function loadUndoHistory(){
+  clearLegacyUndoStorage();
+  try{
+    const raw = localStorage.getItem(UNDO_HISTORY_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.slice(-UNDO_HISTORY_LIMIT) : [];
+  }catch(e){
+    return [];
+  }
+}
+
+function saveUndoHistory(){
+  try{
+    localStorage.setItem(UNDO_HISTORY_STORAGE_KEY, JSON.stringify(undoHistory.slice(-UNDO_HISTORY_LIMIT)));
+  }catch(e){
+    undoHistory = undoHistory.slice(-12);
+    try{
+      localStorage.setItem(UNDO_HISTORY_STORAGE_KEY, JSON.stringify(undoHistory));
+    }catch(err){
+      clearHeavyUndoStorage();
+    }
+  }
+}
+
+function getCurrentSnapshot(reason = 'change', loc = LOCS[currentIndex]){
+  return {
+    reason,
+    index:currentIndex,
+    locNum:loc?.num ?? null,
+    areas:cloneData(getColorAreasForLoc(loc)) || [],
+    labels:cloneData(getTextLabelsForLoc(loc)) || [],
+    createdAt:Date.now()
+  };
+}
+
+function pushUndoSnapshot(reason = 'change', loc = LOCS[currentIndex]){
+  if(suppressUndoSnapshot) return;
+  const snapshot = getCurrentSnapshot(reason, loc);
+  const last = undoHistory[undoHistory.length - 1];
+  const nextKey = stateFingerprint({
+    locNum:snapshot.locNum,
+    areas:snapshot.areas,
+    labels:snapshot.labels
+  });
+  const lastKey = last ? stateFingerprint({
+    locNum:last.locNum,
+    areas:last.areas,
+    labels:last.labels
+  }) : '';
+  if(nextKey && nextKey === lastKey) return;
+  undoHistory.push(snapshot);
+  if(undoHistory.length > UNDO_HISTORY_LIMIT) undoHistory = undoHistory.slice(-UNDO_HISTORY_LIMIT);
+  saveUndoHistory();
+}
+
+function restoreLastUndoSnapshot(){
+  const snapshot = undoHistory.pop();
+  if(!snapshot){
+    setStatus('No hay cambios anteriores para regresar.', 'warn');
+    updateColorControls();
+    return;
+  }
+  saveUndoHistory();
+  suppressUndoSnapshot = true;
+  try{
+    if(snapshot.colorAreaSettings || snapshot.textLabelSettings){
+      colorAreaSettings = cloneData(snapshot.colorAreaSettings) || {};
+      textLabelSettings = cloneData(snapshot.textLabelSettings) || {};
+    }else{
+      const key = String(snapshot.locNum);
+      const areas = cloneData(snapshot.areas) || [];
+      const labels = cloneData(snapshot.labels) || [];
+      if(areas.length){
+        colorAreaSettings[key] = areas;
+      }else{
+        delete colorAreaSettings[key];
+      }
+      if(labels.length){
+        textLabelSettings[key] = labels;
+      }else{
+        delete textLabelSettings[key];
+      }
+    }
+    saveColorAreaSettings();
+    saveTextLabelSettings();
+  }finally{
+    suppressUndoSnapshot = false;
+  }
+  resetDraftArea();
+  selectedAreaIndex = null;
+  selectedTextIndex = null;
+  setContourEditMode(false, false);
+  const locIndex = LOCS.findIndex(loc => String(loc.num) === String(snapshot.locNum));
+  if(locIndex >= 0){
+    goTo(locIndex, true);
+  }else if(Number.isFinite(Number(snapshot.index)) && LOCS[Number(snapshot.index)]){
+    goTo(Number(snapshot.index), true);
+  }else{
+    renderColorAreas(LOCS[currentIndex]);
+    renderTextLabels(LOCS[currentIndex]);
+    updateColorControls();
+  }
+  setStatus('Cambio restaurado.', 'warn');
+}
+
+function sanitizeColor(value){
+  const raw = String(value || '').trim();
+  return /^#[0-9a-f]{6}$/i.test(raw) ? raw : DEFAULT_FILL_COLOR;
+}
+
+function getFillOpacity(){
+  const value = Number(colorOpacityInput?.value ?? 35);
+  const clamped = Math.max(10, Math.min(85, Number.isFinite(value) ? value : 35));
+  return clamped / 100;
+}
+
+function getRenderedColorOpacity(value){
+  const savedOpacity = Number(value);
+  return Number.isFinite(savedOpacity) ? Math.max(.24, Math.min(.68, savedOpacity + .14)) : .5;
+}
+
+function getTextLabelSize(){
+  const value = Number(textSizeInput?.value ?? 22);
+  return Math.max(10, Math.min(34, Number.isFinite(value) ? value : 22));
+}
+
+function updateTextSizeValue(){
+  if(textSizeValue) textSizeValue.textContent = String(getTextLabelSize());
+}
+
+function getColorAreasForLoc(loc){
+  if(!loc) return [];
+  const areas = colorAreaSettings[String(loc.num)];
+  return Array.isArray(areas) ? areas : [];
+}
+
+function getExportColorAreasForLoc(loc){
+  return getColorAreasForLoc(loc).filter(area => {
+    if(!Array.isArray(area.points) || area.points.length < 3) return false;
+    const validPoints = area.points.filter(point => Number.isFinite(Number(point[0])) && Number.isFinite(Number(point[1])));
+    return validPoints.length >= 3;
+  });
+}
+
+function hasColorExportMask(loc){
+  return getExportColorAreasForLoc(loc).length > 0;
+}
+
+function setColorAreasForLoc(loc, areas, options = {}){
+  if(!loc) return false;
+  const key = String(loc.num);
+  const before = cloneData(getColorAreasForLoc(loc));
+  const validAreas = (areas || []).filter(area => Array.isArray(area.points) && area.points.length >= 3);
+  if(stateFingerprint(before) !== stateFingerprint(validAreas) && !options.skipUndo){
+    pushUndoSnapshot('colors', loc);
+  }
+  if(validAreas.length){
+    colorAreaSettings[key] = validAreas;
+  }else{
+    delete colorAreaSettings[key];
+  }
+  const saved = saveColorAreaSettings();
+  if(!saved && !options.silent){
+    setStatus('No se pudo guardar la pintada. Se libero historial pesado; intenta cerrar el area otra vez.', 'error');
+  }
+  return saved;
+}
+
+function getTextLabelsForLoc(loc){
+  if(!loc) return [];
+  const labels = textLabelSettings[String(loc.num)];
+  return Array.isArray(labels) ? labels : [];
+}
+
+function setTextLabelsForLoc(loc, labels, options = {}){
+  if(!loc) return false;
+  const key = String(loc.num);
+  const before = cloneData(getTextLabelsForLoc(loc));
+  const validLabels = (labels || []).filter(label => label && String(label.text || '').trim());
+  if(stateFingerprint(before) !== stateFingerprint(validLabels) && !options.skipUndo){
+    pushUndoSnapshot('text', loc);
+  }
+  if(validLabels.length){
+    textLabelSettings[key] = validLabels;
+  }else{
+    delete textLabelSettings[key];
+  }
+  const saved = saveTextLabelSettings();
+  if(!saved && !options.silent){
+    setStatus('No se pudo guardar el texto. Se libero historial pesado; intenta de nuevo.', 'error');
+  }
+  return saved;
+}
+
+function colorAreaStyle(area, weight = 2, selected = false, pane = 'territoryColorPane'){
+  const color = sanitizeColor(area.color);
+  const fillOpacity = getRenderedColorOpacity(area.opacity);
+  return {
+    color,
+    fillColor:color,
+    pane,
+    className:'color-area-path' + (selected ? ' is-selected' : ''),
+    stroke:!selected,
+    weight:Math.max(1, weight),
+    opacity:.58,
+    fillOpacity
+  };
+}
+
+function pointsToLatLngs(points){
+  return points.map(point => L.latLng(Number(point[0]), Number(point[1]))).filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+}
+
+function isLatLngInsideArea(latlng, area){
+  if(!latlng || !Array.isArray(area?.points) || area.points.length < 3) return false;
+  const x = Number(latlng.lng);
+  const y = Number(latlng.lat);
+  if(!Number.isFinite(x) || !Number.isFinite(y)) return false;
+  let inside = false;
+  for(let i = 0, j = area.points.length - 1; i < area.points.length; j = i++){
+    const yi = Number(area.points[i][0]);
+    const xi = Number(area.points[i][1]);
+    const yj = Number(area.points[j][0]);
+    const xj = Number(area.points[j][1]);
+    if(!Number.isFinite(xi) || !Number.isFinite(yi) || !Number.isFinite(xj) || !Number.isFinite(yj)) continue;
+    const crosses = (yi > y) !== (yj > y);
+    if(crosses){
+      const intersectionX = (xj - xi) * (y - yi) / (yj - yi) + xi;
+      if(x < intersectionX) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function findColorAreaAtLatLng(loc, latlng){
+  const areas = getColorAreasForLoc(loc);
+  for(let index = areas.length - 1; index >= 0; index--){
+    if(isLatLngInsideArea(latlng, areas[index])) return index;
+  }
+  return null;
+}
+
+function updateColorControls(loc = LOCS[currentIndex]){
+  if(!colorInput || !colorOpacityInput) return;
+  const enabled = !!map;
+  const hasSelection = selectedAreaIndex != null || selectedTextIndex != null;
+  colorInput.disabled = !enabled;
+  colorOpacityInput.disabled = !enabled;
+  textInput.disabled = !enabled;
+  if(textSizeInput) textSizeInput.disabled = !enabled;
+  colorEditButton.disabled = !enabled || !loc || (getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0);
+  colorEditButton.classList.toggle('active', colorEditMode || hasSelection);
+  contourEditButton.disabled = !enabled || !loc || selectedAreaIndex == null;
+  contourEditButton.classList.toggle('active', contourEditMode);
+  if(colorFrameButton) colorFrameButton.disabled = !enabled || !loc;
+  if(blockQuadButton){
+    blockQuadButton.disabled = !enabled || !loc || blockAutoBusy;
+    blockQuadButton.classList.toggle('active', blockQuadMode);
+  }
+  if(colorDrawButton){
+    colorDrawButton.disabled = !enabled || !loc;
+    colorDrawButton.classList.toggle('active', colorDrawMode);
+  }
+  textAddButton.disabled = !enabled || !loc;
+  textAddButton.classList.toggle('active', textAddMode);
+  saveChangesButton.disabled = !enabled || blockAutoBusy || !loc;
+  const canUndoSavedChange = undoHistory.length > 0;
+  colorUndoButton.disabled = !enabled || blockAutoBusy || ((!colorDrawMode || draftPoints.length < 1) && (!blockQuadMode || draftPoints.length < 1) && !(contourEditMode && selectedAreaIndex != null && getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.length > 3) && !canUndoSavedChange);
+  colorClearButton.disabled = !enabled || !loc || (!draftPoints.length && getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0);
+  colorOpacityValue.textContent = Math.round(getFillOpacity() * 100) + '%';
+  updateTextSizeValue();
+}
+
+function renderColorAreas(loc){
+  if(!colorLayer || !window.L) return;
+  colorLayer.clearLayers();
+  getColorAreasForLoc(loc).forEach((area, index) => {
+    const latLngs = pointsToLatLngs(area.points);
+    if(latLngs.length < 3) return;
+    const polygon = L.polygon(latLngs, {
+      ...colorAreaStyle(area, 1, selectedAreaIndex === index),
+      interactive:true,
+      bubblingMouseEvents:false
+    }).addTo(colorLayer);
+    polygon.on('click', event => {
+      if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
+      if(textAddMode || colorDrawMode || contourEditMode || blockQuadMode){
+        handleColorMapClick(event);
+        return;
+      }
+      selectColorArea(index);
+    });
+  });
+  renderContourEditHandles(loc);
+  if(ringLayer?.bringToFront) ringLayer.bringToFront();
+  updateLabelOverlayVisibility(loc);
+}
+
+function updateLabelOverlayVisibility(loc = LOCS[currentIndex]){
+  const hasAreas = getColorAreasForLoc(loc).length > 0;
+  if(colorRestoreLayer?.setOpacity) colorRestoreLayer.setOpacity(hasAreas ? MAP_DETAIL_RESTORE_OPACITY : 0);
+  if(labelOverlayLayer?.setOpacity) labelOverlayLayer.setOpacity(0);
+  if(roadOverlayLayer?.setOpacity) roadOverlayLayer.setOpacity(0);
+  updateRuntimeVectorRoadOverlay(loc);
+}
+
+function getRuntimeLabelTileSource(src){
+  if(src?.labelUrl){
+    return {
+      url:src.labelUrl,
+      sub:src.labelSub || src.sub || '',
+      maxZ:src.maxZ,
+      attr:''
+    };
+  }
+  return null;
+}
+
+function getRuntimeRoadBounds(){
+  if(!map) return null;
+  return map.getBounds().pad(.16);
+}
+
+function getRuntimeRoadCacheKey(bounds){
+  if(!bounds || !map) return '';
+  const round = value => Math.round(Number(value) * 10000);
+  return [
+    LOCS[currentIndex]?.num || 'x',
+    Math.round(map.getZoom() * 2) / 2,
+    round(bounds.getSouth()),
+    round(bounds.getWest()),
+    round(bounds.getNorth()),
+    round(bounds.getEast())
+  ].join(':');
+}
+
+function runtimeRoadWeight(highway){
+  const key = String(highway || '').replace(/_link$/, '');
+  return ({
+    motorway:8.5,
+    trunk:8,
+    primary:7.6,
+    secondary:7.1,
+    tertiary:6.4,
+    unclassified:5.8,
+    residential:5.4,
+    living_street:5,
+    pedestrian:4.6,
+    road:5.2,
+    service:4.2
+  }[key] || 5.2);
+}
+
+function drawRuntimeVectorRoads(roadWays){
+  if(!vectorRoadLayer || !window.L) return;
+  vectorRoadLayer.clearLayers();
+}
+
+async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
+  if(!map || !vectorRoadLayer) return;
+  runtimeRoadRequestId++;
+  vectorRoadLayer.clearLayers();
+}
+
+function contourHandleIcon(kind){
+  const isMid = kind === 'mid';
+  return L.divIcon({
+    className:'',
+    html:'<div class="' + (isMid ? 'contour-midpoint' : 'contour-handle') + '"></div>',
+    iconSize:isMid ? [12,12] : [15,15],
+    iconAnchor:isMid ? [6,6] : [7.5,7.5]
+  });
+}
+
+function midpoint(a, b){
+  return [(Number(a[0]) + Number(b[0])) / 2, (Number(a[1]) + Number(b[1])) / 2];
+}
+
+function updateSelectedAreaPoints(points){
+  const loc = LOCS[currentIndex];
+  if(!loc || selectedAreaIndex == null) return;
+  const areas = getColorAreasForLoc(loc).slice();
+  if(!areas[selectedAreaIndex]) return;
+  areas[selectedAreaIndex] = { ...areas[selectedAreaIndex], points };
+  setColorAreasForLoc(loc, areas);
+  renderColorAreas(loc);
+  updateColorControls(loc);
+}
+
+function distanceToSegment(point, a, b){
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  if(dx === 0 && dy === 0) return point.distanceTo(a);
+  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / (dx * dx + dy * dy)));
+  return point.distanceTo(L.point(a.x + t * dx, a.y + t * dy));
+}
+
+function insertContourPointNear(latlng){
+  const loc = LOCS[currentIndex];
+  if(!loc || selectedAreaIndex == null || !latlng || !map) return;
+  const area = getColorAreasForLoc(loc)[selectedAreaIndex];
+  if(!area || !Array.isArray(area.points) || area.points.length < 3) return;
+  const clickPoint = map.latLngToLayerPoint(latlng);
+  let bestIndex = 0;
+  let bestDistance = Infinity;
+  area.points.forEach((point, index) => {
+    const next = area.points[(index + 1) % area.points.length];
+    const a = map.latLngToLayerPoint(L.latLng(point[0], point[1]));
+    const b = map.latLngToLayerPoint(L.latLng(next[0], next[1]));
+    const distance = distanceToSegment(clickPoint, a, b);
+    if(distance < bestDistance){
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+  const nextPoints = area.points.slice();
+  nextPoints.splice(bestIndex + 1, 0, [Number(latlng.lat.toFixed(6)), Number(latlng.lng.toFixed(6))]);
+  updateSelectedAreaPoints(nextPoints);
+}
+
+function renderContourEditHandles(loc){
+  if(!editHandleLayer || !window.L) return;
+  editHandleLayer.clearLayers();
+  if(!contourEditMode || selectedAreaIndex == null) return;
+  const area = getColorAreasForLoc(loc)[selectedAreaIndex];
+  if(!area || !Array.isArray(area.points) || area.points.length < 3) return;
+
+  area.points.forEach((point, index) => {
+    const marker = L.circleMarker([point[0], point[1]], {
+      pane:'territoryDraftPane',
+      radius:7,
+      color:'#1f7a47',
+      fillColor:'#ffffff',
+      fillOpacity:1,
+      weight:3,
+      className:'contour-handle'
+    }).addTo(editHandleLayer);
+    const removePoint = event => {
+      if(event) L.DomEvent.stop(event);
+      const next = getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.slice() || [];
+      if(next.length <= 3){
+        setStatus('El contorno necesita al menos 3 puntos.', 'warn');
+        return;
+      }
+      next.splice(index, 1);
+      updateSelectedAreaPoints(next);
+    };
+    marker.on('mousedown', event => {
+      if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
+      if(map?.dragging) map.dragging.disable();
+      const movePoint = moveEvent => {
+        if(moveEvent?.latlng) marker.setLatLng(moveEvent.latlng);
+      };
+      const finishMove = upEvent => {
+        map.off('mousemove', movePoint);
+        if(map?.dragging) map.dragging.enable();
+        const next = getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.slice() || [];
+        const latlng = marker.getLatLng();
+        if(next[index]){
+          next[index] = [Number(latlng.lat.toFixed(6)), Number(latlng.lng.toFixed(6))];
+          updateSelectedAreaPoints(next);
+        }
+      };
+      map.on('mousemove', movePoint);
+      map.once('mouseup', finishMove);
+    });
+    marker.on('dragend', () => {
+      const next = getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.slice() || [];
+      const latlng = marker.getLatLng();
+      if(next[index]){
+        next[index] = [Number(latlng.lat.toFixed(6)), Number(latlng.lng.toFixed(6))];
+        updateSelectedAreaPoints(next);
+      }
+    });
+    marker.on('dblclick', event => removePoint(event.originalEvent));
+    if(marker.getElement()) L.DomEvent.on(marker.getElement(), 'dblclick', removePoint);
+  });
+
+  area.points.forEach((point, index) => {
+    const nextPoint = area.points[(index + 1) % area.points.length];
+    const mid = midpoint(point, nextPoint);
+    const marker = L.circleMarker(mid, {
+      pane:'territoryDraftPane',
+      radius:5,
+      color:'#ffffff',
+      fillColor:'#1f7a47',
+      fillOpacity:.95,
+      weight:2,
+      className:'contour-midpoint'
+    }).addTo(editHandleLayer);
+    let inserted = false;
+    const insertPoint = event => {
+      if(event) L.DomEvent.stop(event);
+      if(inserted) return;
+      inserted = true;
+      const next = getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.slice() || [];
+      next.splice(index + 1, 0, [Number(mid[0].toFixed(6)), Number(mid[1].toFixed(6))]);
+      updateSelectedAreaPoints(next);
+    };
+    marker.on('click', event => insertPoint(event.originalEvent));
+    if(marker.getElement()) L.DomEvent.on(marker.getElement(), 'click', insertPoint);
+  });
+}
+
+function createTextIcon(label, selected = false, scale = 1){
+  const size = Math.max(13, Math.min(38, Number(label.size) || 22)) * scale;
+  const opacity = Number.isFinite(Number(label.opacity)) ? Math.max(.45, Math.min(1, Number(label.opacity))) : 1;
+  const selectedClass = selected ? ' is-selected' : '';
+  const textHtml = renderColonyLabelHtml(label.text);
+  return L.divIcon({
+    className:'territory-text-marker',
+    html:'<div class="territory-text-label' + selectedClass + '" style="color:#243129!important;font-size:' + size + 'px;opacity:' + opacity + '">' + textHtml + '</div>',
+    iconAnchor:[0,0]
+  });
+}
+
+function splitColonyLabelText(value){
+  return String(value || '')
+    .replace(/\r/g, '\n')
+    .split(/\n|\/|\|/)
+    .map(part => part.trim().replace(/\s+/g, ' '))
+    .filter(Boolean);
+}
+
+function formatColonyLabelText(value){
+  return splitColonyLabelText(value).map(part => part.toLocaleUpperCase('es-MX')).join('\n');
+}
+
+function colonyLabelTextToInput(value){
+  return String(value || '').split(/\n+/).map(part => part.trim()).filter(Boolean).join(' / ');
+}
+
+function renderColonyLabelHtml(value){
+  const lines = splitColonyLabelText(value);
+  if(!lines.length) return '';
+  return lines.map(line => '<span>' + escapeHtml(line) + '</span>').join('');
+}
+
+function renderTextLabels(loc){
+  if(!textLayer || !window.L) return;
+  textLayer.clearLayers();
+  getTextLabelsForLoc(loc).forEach((label, index) => {
+    const lat = Number(label.lat);
+    const lng = Number(label.lng);
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const marker = L.marker([lat, lng], {
+      draggable:true,
+      icon:createTextIcon(label, selectedTextIndex === index),
+      interactive:true,
+      riseOnHover:true,
+      zIndexOffset:1200
+    }).addTo(textLayer);
+    marker.on('click', event => {
+      if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
+      selectTextLabel(index);
+    });
+    marker.on('dblclick', event => {
+      if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
+      selectTextLabel(index);
+      editSelectedTextLabel();
+    });
+    marker.on('dragend', () => {
+      const labels = getTextLabelsForLoc(loc).slice();
+      const next = marker.getLatLng();
+      if(labels[index]){
+        labels[index] = { ...labels[index], lat:Number(next.lat.toFixed(6)), lng:Number(next.lng.toFixed(6)) };
+        setTextLabelsForLoc(loc, labels);
+        renderTextLabels(loc);
+      }
+    });
+  });
+}
+
+function renderDraftArea(){
+  if(!draftLayer || !window.L) return;
+  draftLayer.clearLayers();
+  const color = sanitizeColor(colorInput?.value);
+  const style = colorAreaStyle({ color, opacity:getFillOpacity() }, 2.5, false, 'territoryDraftPane');
+  if(draftPoints.length === 1){
+    L.circleMarker(draftPoints[0], {
+      radius:5,
+      color,
+      fillColor:color,
+      fillOpacity:.95,
+      weight:2,
+      pane:'territoryDraftPane'
+    }).addTo(draftLayer);
+    return;
+  }
+  if(draftPoints.length === 2){
+    L.polyline(draftPoints, { color, weight:3, opacity:.95, dashArray:'7,5', pane:'territoryDraftPane' }).addTo(draftLayer);
+    return;
+  }
+  L.polygon(draftPoints, { ...style, dashArray:'7,5' }).addTo(draftLayer);
+}
+
+function resetDraftArea(){
+  draftPoints = [];
+  if(draftLayer) draftLayer.clearLayers();
+}
+
+function setColorDrawMode(active){
+  colorDrawMode = !!active;
+  if(colorDrawMode) setTerritoryAddMode(false, false);
+  if(colorDrawMode) setTextAddMode(false, false);
+  if(colorDrawMode) setContourEditMode(false, false);
+  if(colorDrawMode) setBlockQuadMode(false, false);
+  resetDraftArea();
+  document.querySelector('.map-wrap')?.classList.toggle('is-color-drawing', colorDrawMode);
+  if(colorDrawMode){
+    setStatus('Dibujando area de color. Marca puntos y cierra con la palomita.', 'warn');
+  }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Dibujando area')){
+    setStatus('', '');
+  }
+  updateColorControls();
+}
+
+function setBlockAutoMode(active, showMessage = true){
+  blockAutoMode = !!active;
+  if(blockAutoMode){
+    setColorDrawMode(false);
+    setTextAddMode(false, false);
+    setContourEditMode(false, false);
+    selectedAreaIndex = null;
+    selectedTextIndex = null;
+    renderColorAreas(LOCS[currentIndex]);
+    renderTextLabels(LOCS[currentIndex]);
+  }
+  document.querySelector('.map-wrap')?.classList.toggle('is-block-auto', blockAutoMode);
+  if(showMessage){
+    if(blockAutoMode){
+      setStatus('Seleccion automatica: toca dentro de una cuadra. Se buscaran calles cercanas para no pintarlas.', 'warn');
+    }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Seleccion automatica')){
+      setStatus('', '');
+    }
+  }
+  updateColorControls();
+}
+
+function setBlockQuadMode(active, showMessage = true){
+  blockQuadMode = !!active;
+  if(blockQuadMode){
+    setTerritoryAddMode(false, false);
+    setColorDrawMode(false);
+    setTextAddMode(false, false);
+    setContourEditMode(false, false);
+    selectedAreaIndex = null;
+    selectedTextIndex = null;
+    renderColorAreas(LOCS[currentIndex]);
+    renderTextLabels(LOCS[currentIndex]);
+  }
+  resetDraftArea();
+  document.querySelector('.map-wrap')?.classList.toggle('is-color-drawing', blockQuadMode);
+  if(showMessage){
+    if(blockQuadMode){
+      setStatus('Cuadra automatica: toca dentro de la cuadra para detectar quiebres. Si no se puede, marca puntos y cierra con la palomita.', 'warn');
+    }else if(statusBox.classList.contains('warn') && (statusBox.textContent.includes('Cuadra automatica') || statusBox.textContent.includes('Cuadra por puntos'))){
+      setStatus('', '');
+    }
+  }
+  updateColorControls();
+}
+
+function setColorEditMode(active){
+  colorEditMode = !!active;
+  if(colorEditMode){
+    setTerritoryAddMode(false, false);
+    setColorDrawMode(false);
+    setBlockQuadMode(false, false);
+    setTextAddMode(false, false);
+    setStatus('Modo edicion: toca una pintada para seleccionarla. Doble clic en un texto para editarlo.', 'warn');
+  }else{
+    setContourEditMode(false, false);
+    selectedAreaIndex = null;
+    selectedTextIndex = null;
+    renderColorAreas(LOCS[currentIndex]);
+    renderTextLabels(LOCS[currentIndex]);
+    if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Modo edicion')) setStatus('', '');
+  }
+  updateColorControls();
+}
+
+function setContourEditMode(active, showMessage = true){
+  contourEditMode = !!active && selectedAreaIndex != null;
+  if(contourEditMode){
+    setTerritoryAddMode(false, false);
+    colorEditMode = true;
+    setColorDrawMode(false);
+    setBlockQuadMode(false, false);
+    setTextAddMode(false, false);
+    document.querySelector('.map-wrap')?.classList.add('is-contour-editing');
+    if(showMessage) setStatus('Editando contorno: arrastra puntos blancos. Clic en la zona agrega un punto al borde cercano; flecha quita el ultimo.', 'warn');
+  }else{
+    document.querySelector('.map-wrap')?.classList.remove('is-contour-editing');
+    if(editHandleLayer) editHandleLayer.clearLayers();
+    if(showMessage && statusBox.classList.contains('warn') && statusBox.textContent.includes('Editando contorno')) setStatus('', '');
+  }
+  renderContourEditHandles(LOCS[currentIndex]);
+  updateColorControls();
+}
+
+function setTextAddMode(active, showMessage = true){
+  textAddMode = !!active;
+  if(textAddMode){
+    setTerritoryAddMode(false, false);
+    setColorDrawMode(false);
+    setBlockQuadMode(false, false);
+    setContourEditMode(false, false);
+    selectedAreaIndex = null;
+    selectedTextIndex = null;
+    renderColorAreas(LOCS[currentIndex]);
+    renderTextLabels(LOCS[currentIndex]);
+  }
+  document.querySelector('.map-wrap')?.classList.toggle('is-text-placing', textAddMode);
+  if(showMessage){
+    if(textAddMode){
+      setStatus('Colonia: escribe el nombre y toca el mapa donde debe quedar fijo.', 'warn');
+    }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Colonia:')){
+      setStatus('', '');
+    }
+  }
+  updateColorControls();
+}
+
+function selectColorArea(index){
+  const loc = LOCS[currentIndex];
+  const area = getColorAreasForLoc(loc)[index];
+  if(!area) return;
+  selectedAreaIndex = index;
+  selectedTextIndex = null;
+  colorEditMode = true;
+  colorInput.value = sanitizeColor(area.color);
+  colorOpacityInput.value = String(Math.round((Number(area.opacity) || getFillOpacity()) * 100));
+  textInput.value = '';
+  renderColorAreas(loc);
+  renderTextLabels(loc);
+  renderContourEditHandles(loc);
+  setStatus(contourEditMode ? 'Editando contorno: arrastra puntos blancos. Clic en la zona agrega un punto al borde cercano; flecha quita el ultimo.' : 'Pintada seleccionada. Cambia color/transparencia, edita contorno o usa la basura para borrarla.', 'warn');
+  updateColorControls(loc);
+}
+
+function selectTextLabel(index){
+  const loc = LOCS[currentIndex];
+  const label = getTextLabelsForLoc(loc)[index];
+  if(!label) return;
+  selectedTextIndex = index;
+  selectedAreaIndex = null;
+  setContourEditMode(false, false);
+  colorEditMode = true;
+  colorInput.value = sanitizeColor(label.color);
+  textInput.value = colonyLabelTextToInput(label.text);
+  if(textSizeInput) textSizeInput.value = String(Math.round(Math.max(10, Math.min(34, Number(label.size) || 22))));
+  updateTextSizeValue();
+  renderColorAreas(loc);
+  renderTextLabels(loc);
+  setStatus('Colonia seleccionada. Edita el campo Colonia o el tamaño; usa la basura o Supr para borrarla.', 'warn');
+  updateColorControls(loc);
+}
+
+function applySelectedStyleChange(){
+  const loc = LOCS[currentIndex];
+  if(!loc) return;
+  if(selectedAreaIndex != null){
+    const areas = getColorAreasForLoc(loc).slice();
+    if(areas[selectedAreaIndex]){
+      areas[selectedAreaIndex] = { ...areas[selectedAreaIndex], color:sanitizeColor(colorInput.value), opacity:getFillOpacity() };
+      setColorAreasForLoc(loc, areas);
+      renderColorAreas(loc);
+    }
+  }
+  if(selectedTextIndex != null){
+    const labels = getTextLabelsForLoc(loc).slice();
+    if(labels[selectedTextIndex]){
+      labels[selectedTextIndex] = { ...labels[selectedTextIndex], color:'#243129', size:getTextLabelSize(), type:'colonia' };
+      setTextLabelsForLoc(loc, labels);
+      renderTextLabels(loc);
+    }
+  }
+  updateColorControls(loc);
+}
+
+function addColorAreaForCurrent(points){
+  const loc = LOCS[currentIndex];
+  if(!loc || !Array.isArray(points) || points.length < 3) return;
+  const area = {
+    color:sanitizeColor(colorInput?.value),
+    opacity:getFillOpacity(),
+    points:points.map(point => [Number(point.lat.toFixed(6)), Number(point.lng.toFixed(6))])
+  };
+  const areas = getColorAreasForLoc(loc).slice();
+  areas.push(area);
+  const saved = setColorAreasForLoc(loc, areas);
+  selectedAreaIndex = areas.length - 1;
+  selectedTextIndex = null;
+  renderColorAreas(loc);
+  if(saved) setStatus('Area guardada.', 'warn');
+  updateColorControls(loc);
+}
+
+function addFrameColorAreaForCurrent(){
+  const loc = LOCS[currentIndex];
+  if(!loc) return;
+  const b = getPrintBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+  addColorAreaForCurrent([
+    L.latLng(b.north, b.west),
+    L.latLng(b.north, b.east),
+    L.latLng(b.south, b.east),
+    L.latLng(b.south, b.west)
+  ]);
+}
+
+function recoverIxcatlaBlueIfMissing(){
+  const loc = LOCS.find(item => item.num === 5 || item.name === 'Ixcatla');
+  if(!loc || getColorAreasForLoc(loc).length) return false;
+  try{
+    if(localStorage.getItem(IXCATLA_RECOVERY_STORAGE_KEY) === 'done') return false;
+  }catch(e){}
+  const b = getPrintBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+  const area = {
+    color:'#2196f3',
+    opacity:.35,
+    points:[
+      [Number(b.north.toFixed(6)), Number(b.west.toFixed(6))],
+      [Number(b.north.toFixed(6)), Number(b.east.toFixed(6))],
+      [Number(b.south.toFixed(6)), Number(b.east.toFixed(6))],
+      [Number(b.south.toFixed(6)), Number(b.west.toFixed(6))]
+    ]
+  };
+  pushUndoSnapshot('recover-ixcatla-blue', loc);
+  setColorAreasForLoc(loc, [area], {skipUndo:true});
+  try{
+    localStorage.setItem(IXCATLA_RECOVERY_STORAGE_KEY, 'done');
+  }catch(e){}
+  return true;
+}
+
+function getAutoBlockBounds(){
+  if(!map) return null;
+  return map.getBounds().pad(.22);
+}
+
+function getAutoBlockCacheKey(bounds){
+  if(!bounds || !map) return '';
+  const round = value => Math.round(Number(value) * 10000);
+  return [
+    LOCS[currentIndex]?.num || 'x',
+    Math.round(map.getZoom() * 2) / 2,
+    round(bounds.getSouth()),
+    round(bounds.getWest()),
+    round(bounds.getNorth()),
+    round(bounds.getEast())
+  ].join(':');
+}
+
+function buildOverpassRoadQuery(bounds){
+  const south = bounds.getSouth().toFixed(6);
+  const west = bounds.getWest().toFixed(6);
+  const north = bounds.getNorth().toFixed(6);
+  const east = bounds.getEast().toFixed(6);
+  const bbox = south + ',' + west + ',' + north + ',' + east;
+  return '[out:json][timeout:8];(' +
+    'way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|road|primary_link|secondary_link|tertiary_link)$"](' + bbox + ');' +
+    ');out geom;';
+}
+
+async function fetchOverpassRoadData(query){
+  let lastError = null;
+  for(const endpoint of OVERPASS_ENDPOINTS){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 9000);
+    try{
+      const response = await fetch(endpoint, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' },
+        body:'data=' + encodeURIComponent(query),
+        signal:controller.signal
+      });
+      clearTimeout(timer);
+      if(!response.ok) throw new Error('Overpass ' + response.status);
+      return await response.json();
+    }catch(err){
+      clearTimeout(timer);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error('No se pudo consultar calles.');
+}
+
+function roadSegmentsFromOverpass(data){
+  const segments = [];
+  (data?.elements || []).forEach(element => {
+    const geometry = Array.isArray(element.geometry) ? element.geometry : [];
+    for(let i = 0; i < geometry.length - 1; i++){
+      const a = geometry[i];
+      const b = geometry[i + 1];
+      if(!Number.isFinite(Number(a?.lat)) || !Number.isFinite(Number(a?.lon)) || !Number.isFinite(Number(b?.lat)) || !Number.isFinite(Number(b?.lon))) continue;
+      segments.push({
+        a:L.latLng(Number(a.lat), Number(a.lon)),
+        b:L.latLng(Number(b.lat), Number(b.lon))
+      });
+    }
+  });
+  return segments;
+}
+
+function roadWaysFromOverpass(data){
+  const ways = [];
+  (data?.elements || []).forEach(element => {
+    const geometry = Array.isArray(element.geometry) ? element.geometry : [];
+    if(geometry.length < 2) return;
+    const latLngs = geometry
+      .filter(point => Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lon)))
+      .map(point => L.latLng(Number(point.lat), Number(point.lon)));
+    if(latLngs.length < 2) return;
+    ways.push({
+      name:String(element.tags?.name || element.tags?.ref || '').trim(),
+      highway:String(element.tags?.highway || '').trim(),
+      latLngs
+    });
+  });
+  return ways;
+}
+
+async function fetchRoadWaysForBounds(bounds){
+  if(!bounds) return [];
+  const data = await fetchOverpassRoadData(buildOverpassRoadQuery(bounds));
+  return roadWaysFromOverpass(data);
+}
+
+async function getAutoBlockRoadSegments(){
+  const bounds = getAutoBlockBounds();
+  if(!bounds) return [];
+  const key = getAutoBlockCacheKey(bounds);
+  if(autoBlockRoadCache?.key === key && Array.isArray(autoBlockRoadCache.segments)){
+    return autoBlockRoadCache.segments;
+  }
+  const data = await fetchOverpassRoadData(buildOverpassRoadQuery(bounds));
+  const segments = roadSegmentsFromOverpass(data);
+  autoBlockRoadCache = { key, segments };
+  return segments;
+}
+
+function getAutoBlockSearchRadius(){
+  const size = map?.getSize?.();
+  const base = size ? Math.max(size.x, size.y) * .62 : 520;
+  return Math.max(220, Math.min(AUTO_BLOCK_MAX_RADIUS_PX, base));
+}
+
+function pointSegmentDistance(point, a, b){
+  return distanceToSegment(point, a, b);
+}
+
+function polygonLayerMetrics(points){
+  if(!Array.isArray(points) || points.length < 3) return null;
+  let twiceArea = 0;
+  let perimeter = 0;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for(let i = 0; i < points.length; i++){
+    const point = points[i];
+    const next = points[(i + 1) % points.length];
+    twiceArea += point.x * next.y - next.x * point.y;
+    perimeter += point.distanceTo(next);
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+  }
+  const area = Math.abs(twiceArea) / 2;
+  const compactness = perimeter > 0 ? (4 * Math.PI * area) / (perimeter * perimeter) : 0;
+  return {
+    area,
+    perimeter,
+    compactness,
+    width:maxX - minX,
+    height:maxY - minY
+  };
+}
+
+function isPointInsideLayerPolygon(point, polygon){
+  if(!point || !Array.isArray(polygon) || polygon.length < 3) return false;
+  let inside = false;
+  for(let i = 0, j = polygon.length - 1; i < polygon.length; j = i++){
+    const a = polygon[i];
+    const b = polygon[j];
+    const crosses = (a.y > point.y) !== (b.y > point.y);
+    if(crosses){
+      const x = (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x;
+      if(point.x < x) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function simplifyPointRing(points, tolerance){
+  if(points.length <= 4) return points;
+  const sqTolerance = tolerance * tolerance;
+  const getSqSegDist = (point, a, b) => {
+    let x = a.x;
+    let y = a.y;
+    let dx = b.x - x;
+    let dy = b.y - y;
+    if(dx !== 0 || dy !== 0){
+      const t = ((point.x - x) * dx + (point.y - y) * dy) / (dx * dx + dy * dy);
+      if(t > 1){
+        x = b.x;
+        y = b.y;
+      }else if(t > 0){
+        x += dx * t;
+        y += dy * t;
+      }
+    }
+    dx = point.x - x;
+    dy = point.y - y;
+    return dx * dx + dy * dy;
+  };
+  const simplifyDPStep = (list, first, last, simplified) => {
+    let maxSqDist = sqTolerance;
+    let index = null;
+    for(let i = first + 1; i < last; i++){
+      const sqDist = getSqSegDist(list[i], list[first], list[last]);
+      if(sqDist > maxSqDist){
+        index = i;
+        maxSqDist = sqDist;
+      }
+    }
+    if(index != null){
+      if(index - first > 1) simplifyDPStep(list, first, index, simplified);
+      simplified.push(list[index]);
+      if(last - index > 1) simplifyDPStep(list, index, last, simplified);
+    }
+  };
+  const closed = points.concat([points[0]]);
+  const simplified = [closed[0]];
+  simplifyDPStep(closed, 0, closed.length - 1, simplified);
+  simplified.push(closed[closed.length - 1]);
+  simplified.pop();
+  return simplified.length >= 3 ? simplified : points;
+}
+
+function getNearestOpenCell(startX, startY, blocked, cols, rows){
+  const startIndex = startY * cols + startX;
+  if(startX >= 0 && startY >= 0 && startX < cols && startY < rows && !blocked[startIndex]) return { x:startX, y:startY };
+  const maxRadius = 8;
+  for(let radius = 1; radius <= maxRadius; radius++){
+    for(let dy = -radius; dy <= radius; dy++){
+      for(let dx = -radius; dx <= radius; dx++){
+        if(Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+        const x = startX + dx;
+        const y = startY + dy;
+        if(x < 0 || y < 0 || x >= cols || y >= rows) continue;
+        if(!blocked[y * cols + x]) return { x, y };
+      }
+    }
+  }
+  return null;
+}
+
+function extractFilledBoundary(filled, cols, rows, left, top, cell){
+  const edges = [];
+  const isFilled = (x, y) => x >= 0 && y >= 0 && x < cols && y < rows && filled[y * cols + x];
+  const addEdge = (a, b) => edges.push({ a, b, used:false });
+  for(let y = 0; y < rows; y++){
+    for(let x = 0; x < cols; x++){
+      if(!isFilled(x, y)) continue;
+      if(!isFilled(x, y - 1)) addEdge([x, y], [x + 1, y]);
+      if(!isFilled(x + 1, y)) addEdge([x + 1, y], [x + 1, y + 1]);
+      if(!isFilled(x, y + 1)) addEdge([x + 1, y + 1], [x, y + 1]);
+      if(!isFilled(x - 1, y)) addEdge([x, y + 1], [x, y]);
+    }
+  }
+  if(!edges.length) return null;
+  const byStart = new Map();
+  edges.forEach((edge, index) => {
+    const key = edge.a.join(',');
+    if(!byStart.has(key)) byStart.set(key, []);
+    byStart.get(key).push(index);
+  });
+  let bestLoop = [];
+  edges.forEach((edge, index) => {
+    if(edge.used) return;
+    const loop = [];
+    let current = index;
+    let guard = 0;
+    while(current != null && guard++ < edges.length + 4){
+      const item = edges[current];
+      if(item.used) break;
+      item.used = true;
+      loop.push(item.a);
+      const nextKey = item.b.join(',');
+      const options = byStart.get(nextKey) || [];
+      current = options.find(edgeIndex => !edges[edgeIndex].used);
+      if(nextKey === loop[0].join(',')){
+        loop.push(item.b);
+        break;
+      }
+    }
+    if(loop.length > bestLoop.length) bestLoop = loop;
+  });
+  if(bestLoop.length < 4) return null;
+  bestLoop.pop();
+  return bestLoop.map(point => L.point(left + point[0] * cell, top + point[1] * cell));
+}
+
+function buildAutoBlockPolygon(latlng, roadSegments, options = {}){
+  if(!map || !latlng || !roadSegments.length) return null;
+  const origin = map.latLngToLayerPoint(latlng);
+  const radius = options.radius || getAutoBlockSearchRadius();
+  const cell = options.cell || AUTO_BLOCK_GRID_PX;
+  const left = origin.x - radius;
+  const top = origin.y - radius;
+  const cols = Math.ceil((radius * 2) / cell) + 1;
+  const rows = Math.ceil((radius * 2) / cell) + 1;
+  const roadHalfWidth = (options.roadWidthPx || AUTO_BLOCK_ROAD_WIDTH_PX) / 2;
+  const pointSegments = roadSegments.map(segment => ({
+    a:map.latLngToLayerPoint(segment.a),
+    b:map.latLngToLayerPoint(segment.b)
+  })).filter(segment => segment.a.distanceTo(segment.b) > 4);
+  const blocked = new Uint8Array(cols * rows);
+  for(let y = 0; y < rows; y++){
+    const py = top + y * cell + cell / 2;
+    for(let x = 0; x < cols; x++){
+      const px = left + x * cell + cell / 2;
+      const point = L.point(px, py);
+      for(const segment of pointSegments){
+        if(px < Math.min(segment.a.x, segment.b.x) - roadHalfWidth || px > Math.max(segment.a.x, segment.b.x) + roadHalfWidth ||
+           py < Math.min(segment.a.y, segment.b.y) - roadHalfWidth || py > Math.max(segment.a.y, segment.b.y) + roadHalfWidth){
+          continue;
+        }
+        if(pointSegmentDistance(point, segment.a, segment.b) <= roadHalfWidth){
+          blocked[y * cols + x] = 1;
+          break;
+        }
+      }
+    }
+  }
+  const startX = Math.round((origin.x - left) / cell);
+  const startY = Math.round((origin.y - top) / cell);
+  const start = getNearestOpenCell(startX, startY, blocked, cols, rows);
+  if(!start) return null;
+  const filled = new Uint8Array(cols * rows);
+  const stack = [start];
+  let cells = 0;
+  let touchesBounds = false;
+  while(stack.length){
+    const item = stack.pop();
+    if(item.x < 0 || item.y < 0 || item.x >= cols || item.y >= rows) continue;
+    const index = item.y * cols + item.x;
+    if(filled[index] || blocked[index]) continue;
+    filled[index] = 1;
+    cells++;
+    if(item.x === 0 || item.y === 0 || item.x === cols - 1 || item.y === rows - 1) touchesBounds = true;
+    stack.push({ x:item.x + 1, y:item.y });
+    stack.push({ x:item.x - 1, y:item.y });
+    stack.push({ x:item.x, y:item.y + 1 });
+    stack.push({ x:item.x, y:item.y - 1 });
+  }
+  if(cells < AUTO_BLOCK_MIN_CELLS || touchesBounds || cells > cols * rows * AUTO_BLOCK_MAX_FILL_RATIO) return null;
+  const boundary = extractFilledBoundary(filled, cols, rows, left, top, cell);
+  if(!boundary || boundary.length < 3) return null;
+  const ring = simplifyPointRing(boundary, options.simplifyPx || AUTO_BLOCK_EDGE_SIMPLIFY_PX);
+  if(!isPointInsideLayerPolygon(origin, ring)) return null;
+  const metrics = polygonLayerMetrics(ring);
+  if(!metrics || metrics.area < AUTO_BLOCK_MIN_AREA_PX) return null;
+  if(metrics.width > radius * 1.72 || metrics.height > radius * 1.72) return null;
+  return {
+    points:ring.map(point => map.layerPointToLatLng(point)),
+    metrics,
+    roadWidthPx:options.roadWidthPx || AUTO_BLOCK_ROAD_WIDTH_PX
+  };
+}
+
+function buildBestAutoBlockPolygon(latlng, roadSegments){
+  const candidates = [];
+  AUTO_BLOCK_ROAD_WIDTH_STEPS_PX.forEach(roadWidthPx => {
+    const candidate = buildAutoBlockPolygon(latlng, roadSegments, { roadWidthPx });
+    if(candidate) candidates.push(candidate);
+  });
+  if(!candidates.length) return null;
+  candidates.sort((a, b) => {
+    const compactDiff = b.metrics.compactness - a.metrics.compactness;
+    if(Math.abs(compactDiff) > .1) return compactDiff;
+    return a.metrics.area - b.metrics.area;
+  });
+  return candidates[0].points;
+}
+
+function addBlockAreaAndStayReady(points, message){
+  const loc = LOCS[currentIndex];
+  if(!loc || !Array.isArray(points) || points.length < 3) return;
+  addColorAreaForCurrent(points);
+  resetDraftArea();
+  selectedAreaIndex = null;
+  selectedTextIndex = null;
+  renderColorAreas(loc);
+  renderTextLabels(loc);
+  setStatus(message, 'warn');
+  updateColorControls(loc);
+}
+
+async function addAutoBlockColorArea(latlng){
+  if(blockAutoBusy || !latlng) return false;
+  const targetIndex = currentIndex;
+  blockAutoBusy = true;
+  updateColorControls();
+  setStatus('Detectando quiebres de la cuadra...', 'warn');
+  try{
+    const segments = await getAutoBlockRoadSegments();
+    if(currentIndex !== targetIndex || !blockQuadMode) return false;
+    if(!segments.length) throw new Error('No se encontraron calles cercanas.');
+    const points = buildBestAutoBlockPolygon(latlng, segments);
+    if(currentIndex !== targetIndex || !blockQuadMode) return false;
+    if(!points || points.length < 3) throw new Error('No se pudo cerrar una cuadra.');
+    addBlockAreaAndStayReady(points, 'Cuadra detectada con quiebres. Toca otra cuadra o marca puntos si necesitas corregir.');
+    return true;
+  }catch(err){
+    console.error(err);
+    setStatus('No pude detectar esa cuadra automaticamente. Continua marcando puntos y cierra con la palomita.', 'warn');
+    return false;
+  }finally{
+    blockAutoBusy = false;
+    updateColorControls();
+  }
+}
+
+function finishDraftColorArea(){
+  if(draftPoints.length < 3) return;
+  addColorAreaForCurrent(draftPoints);
+  setColorDrawMode(false);
+}
+
+function finishBlockQuadArea(){
+  if(!blockQuadMode || draftPoints.length < 3) return;
+  addBlockAreaAndStayReady(draftPoints, 'Cuadra coloreada. Marca otra cuadra o desactiva el boton cuando termines.');
+}
+
+function saveAllChanges(){
+  const loc = LOCS[currentIndex];
+  if(!loc) return;
+  if((colorDrawMode || blockQuadMode) && draftPoints.length > 0 && draftPoints.length < 3){
+    setStatus('Marca al menos 3 puntos para cerrar y guardar el area.', 'warn');
+    updateColorControls(loc);
+    return;
+  }
+  let closedArea = false;
+  if(colorDrawMode && draftPoints.length >= 3){
+    finishDraftColorArea();
+    closedArea = true;
+  }else if(blockQuadMode && draftPoints.length >= 3){
+    finishBlockQuadArea();
+    closedArea = true;
+  }
+  if(contourEditMode) setContourEditMode(false);
+  if(selectedTextIndex != null && textInput.value.trim()){
+    editSelectedTextLabel();
+  }
+  const colorsSaved = saveColorAreaSettings();
+  const textsSaved = saveTextLabelSettings();
+  const frameSaved = saveFrameScaleSettings();
+  saveUndoHistory();
+  if(colorsSaved && textsSaved && frameSaved){
+    setStatus(closedArea ? 'Area y cambios guardados.' : 'Cambios guardados.', 'warn');
+  }else{
+    setStatus('No se pudieron guardar todos los cambios. Intenta otra vez.', 'error');
+  }
+  renderColorAreas(LOCS[currentIndex]);
+  renderTextLabels(LOCS[currentIndex]);
+  updateColorControls(LOCS[currentIndex]);
+}
+
+function undoDraftColorPoint(){
+  if(contourEditMode && selectedAreaIndex != null){
+    const loc = LOCS[currentIndex];
+    const area = getColorAreasForLoc(loc)[selectedAreaIndex];
+    if(area?.points?.length > 3){
+      const next = area.points.slice(0, -1);
+      updateSelectedAreaPoints(next);
+    }
+    return;
+  }
+  if((colorDrawMode || blockQuadMode) && draftPoints.length){
+    draftPoints.pop();
+    renderDraftArea();
+    updateColorControls();
+    return;
+  }
+  restoreLastUndoSnapshot();
+}
+
+function clearColorAreasForCurrent(){
+  const loc = LOCS[currentIndex];
+  if(!loc) return;
+  if(draftPoints.length){
+    resetDraftArea();
+  }else if(selectedAreaIndex != null){
+    const areas = getColorAreasForLoc(loc).slice();
+    areas.splice(selectedAreaIndex, 1);
+    selectedAreaIndex = null;
+    setContourEditMode(false, false);
+    setColorAreasForLoc(loc, areas);
+    renderColorAreas(loc);
+  }else if(selectedTextIndex != null){
+    const labels = getTextLabelsForLoc(loc).slice();
+    labels.splice(selectedTextIndex, 1);
+    selectedTextIndex = null;
+    setTextLabelsForLoc(loc, labels);
+    renderTextLabels(loc);
+    setStatus('Colonia borrada.', 'warn');
+  }else{
+    pushUndoSnapshot('clear-all', loc);
+    setContourEditMode(false, false);
+    setColorAreasForLoc(loc, [], {skipUndo:true});
+    setTextLabelsForLoc(loc, [], {skipUndo:true});
+    renderColorAreas(loc);
+    renderTextLabels(loc);
+  }
+  updateColorControls(loc);
+}
+
+async function handleColorMapClick(event){
+  if(!event?.latlng) return;
+  if(event.originalEvent){
+    event.originalEvent.preventDefault();
+    event.originalEvent.stopPropagation();
+  }
+  if(territoryAddMode){
+    handleTerritoryAddClick(event.latlng);
+    return;
+  }
+  if(textAddMode){
+    addTextLabelForCurrent(event.latlng);
+    return;
+  }
+  if(contourEditMode && selectedAreaIndex != null){
+    insertContourPointNear(event.latlng);
+    return;
+  }
+  if(blockQuadMode){
+    if(blockAutoBusy){
+      setStatus('Detectando quiebres de la cuadra...', 'warn');
+      return;
+    }
+    if(!draftPoints.length){
+      const targetIndex = currentIndex;
+      const autoAdded = await addAutoBlockColorArea(event.latlng);
+      if(currentIndex !== targetIndex || !blockQuadMode) return;
+      if(autoAdded) return;
+    }
+    draftPoints.push(event.latlng);
+    renderDraftArea();
+    setStatus('Modo manual: puntos marcados ' + draftPoints.length + '. Marca los quiebres y cierra con la palomita.', 'warn');
+    updateColorControls();
+    return;
+  }
+  if(!colorDrawMode){
+    if(colorEditMode){
+      const touchedAreaIndex = findColorAreaAtLatLng(LOCS[currentIndex], event.latlng);
+      if(touchedAreaIndex != null){
+        selectColorArea(touchedAreaIndex);
+        return;
+      }
+      selectedAreaIndex = null;
+      selectedTextIndex = null;
+      setContourEditMode(false, false);
+      renderColorAreas(LOCS[currentIndex]);
+      renderTextLabels(LOCS[currentIndex]);
+      updateColorControls();
+    }
+    return;
+  }
+  draftPoints.push(event.latlng);
+  renderDraftArea();
+  updateColorControls();
+}
+
+function handleMapMouseMove(event){
+  if(territoryAddMode && territoryAddStart && event?.latlng){
+    renderTerritoryAddPreview(event.latlng);
+  }
+}
+
+function addTextLabelForCurrent(latlng){
+  const loc = LOCS[currentIndex];
+  if(!loc || !latlng) return;
+  const text = formatColonyLabelText(textInput?.value);
+  if(!text || !text.trim()){
+    textInput?.focus();
+    setStatus('Escribe el nombre de la colonia y vuelve a tocar T.', 'warn');
+    return;
+  }
+  const labels = getTextLabelsForLoc(loc).slice();
+  labels.push({
+    text,
+    lat:Number(latlng.lat.toFixed(6)),
+    lng:Number(latlng.lng.toFixed(6)),
+    color:'#243129',
+    opacity:1,
+    size:getTextLabelSize(),
+    type:'colonia'
+  });
+  setTextLabelsForLoc(loc, labels);
+  selectedTextIndex = labels.length - 1;
+  selectedAreaIndex = null;
+  setTextAddMode(false);
+  renderTextLabels(loc);
+  updateColorControls(loc);
+}
+
+function editSelectedTextLabel(){
+  const loc = LOCS[currentIndex];
+  if(!loc || selectedTextIndex == null) return;
+  const labels = getTextLabelsForLoc(loc).slice();
+  const label = labels[selectedTextIndex];
+  if(!label) return;
+  const next = formatColonyLabelText(textInput?.value);
+  if(!next.trim()){
+    textInput?.focus();
+    setStatus('El nombre de la colonia no puede quedar vacio. Usa la basura si quieres borrar la etiqueta.', 'warn');
+    return;
+  }else{
+    labels[selectedTextIndex] = { ...label, text:next, color:'#243129', size:getTextLabelSize(), type:'colonia' };
+  }
+  setTextLabelsForLoc(loc, labels);
+  renderTextLabels(loc);
+  updateColorControls(loc);
+}
+
+function clampFrameScale(value){
+  const number = Number(value);
+  if(!Number.isFinite(number)) return 100;
+  const stepped = Math.round(number / FRAME_SCALE_STEP) * FRAME_SCALE_STEP;
+  return Math.max(FRAME_SCALE_MIN, Math.min(FRAME_SCALE_MAX, stepped));
+}
+
+function getFrameScaleForLoc(loc){
+  return clampFrameScale(frameScaleSettings[String(loc.num)] ?? 100);
+}
+
+function updateFrameControls(loc){
+  if(!frameScaleInput || !frameValue || !frameResetButton || !loc) return;
+  const scale = getFrameScaleForLoc(loc);
+  frameScaleInput.value = String(scale);
+  frameValue.textContent = scale + '%';
+  frameScaleInput.disabled = !map;
+  frameResetButton.disabled = !map || scale === 100;
+}
+
+function setFrameScaleForCurrent(value, fitMap = true){
+  const loc = LOCS[currentIndex];
+  if(!loc) return;
+  const scale = clampFrameScale(value);
+  const key = String(loc.num);
+  if(scale === 100){
+    delete frameScaleSettings[key];
+  }else{
+    frameScaleSettings[key] = scale;
+  }
+  saveFrameScaleSettings();
+  updateFrameControls(loc);
+  if(map) drawTerritoryFrame(loc, fitMap, false);
+}
+
+function scaleBoundsPlain(bounds, scale){
+  const factor = clampFrameScale(scale) / 100;
+  if(Math.abs(factor - 1) < .001) return {...bounds};
+  const centerLat = (bounds.north + bounds.south) / 2;
+  const centerLon = (bounds.east + bounds.west) / 2;
+  const halfLat = (bounds.north - bounds.south) / 2 * factor;
+  const halfLon = (bounds.east - bounds.west) / 2 * factor;
+  return {
+    south:centerLat - halfLat,
+    west:centerLon - halfLon,
+    north:centerLat + halfLat,
+    east:centerLon + halfLon
+  };
+}
+
+function populateSelect(){
+  locSel.innerHTML = '';
+  LOCS.forEach((loc, index) => {
+    const option = document.createElement('option');
+    option.value = String(index);
+    option.textContent = '#' + displayTerritoryNumber(loc) + ' - ' + loc.name + (loc.alias ? ' / ' + loc.alias : '');
+    locSel.appendChild(option);
+  });
+  locSel.value = String(currentIndex);
+}
+
+function loadLeaflet(){
+  if(window.L){
+    initApp();
+    return;
+  }
+  const sources = [
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+    'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'
+  ];
+  let sourceIndex = 0;
+  const tryNextSource = () => {
+    if(window.L){
+      initApp();
+      return;
+    }
+    if(sourceIndex >= sources.length){
+      setStatus('No se pudo cargar Leaflet. Revisa la conexión a internet y vuelve a abrir el archivo.', 'error');
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = sources[sourceIndex++];
+    script.async = true;
+    script.onload = initApp;
+    script.onerror = tryNextSource;
+    document.head.appendChild(script);
+  };
+  tryNextSource();
+}
+
+function initApp(){
+  if(map || !window.L) return;
+  locSel.disabled = false;
+  viewSel.disabled = false;
+  $('btn-prev').disabled = false;
+  $('btn-next').disabled = false;
+
+  map = L.map('map', { zoomControl:true, attributionControl:true }).setView([LOCS[0].lat, LOCS[0].lon], 17);
+  map.createPane('territoryColorPane');
+  map.getPane('territoryColorPane').style.zIndex = 350;
+  map.createPane('territoryRestorePane');
+  map.getPane('territoryRestorePane').style.zIndex = 360;
+  map.getPane('territoryRestorePane').style.pointerEvents = 'none';
+  map.getPane('territoryRestorePane').classList.add('territory-restore-pane');
+  map.createPane('territoryRoadPane');
+  map.getPane('territoryRoadPane').style.zIndex = 510;
+  map.getPane('territoryRoadPane').style.pointerEvents = 'none';
+  map.getPane('territoryRoadPane').classList.add('territory-road-pane');
+  map.createPane('territoryLabelPane');
+  map.getPane('territoryLabelPane').style.zIndex = 520;
+  map.getPane('territoryLabelPane').style.pointerEvents = 'none';
+  map.getPane('territoryLabelPane').classList.add('territory-label-pane');
+  map.createPane('territoryDraftPane');
+  map.getPane('territoryDraftPane').style.zIndex = 430;
+  map.getPane('territoryDraftPane').style.pointerEvents = 'auto';
+  L.control.scale({ imperial:false, metric:true, position:'bottomleft' }).addTo(map);
+  colorLayer = L.layerGroup().addTo(map);
+  draftLayer = L.layerGroup().addTo(map);
+  textLayer = L.layerGroup().addTo(map);
+  editHandleLayer = L.layerGroup().addTo(map);
+  vectorRoadLayer = L.layerGroup().addTo(map);
+  map.on('click', handleColorMapClick);
+  map.on('mousemove', handleMapMouseMove);
+  map.on('moveend zoomend', () => updateLabelOverlayVisibility());
+
+  recoverIxcatlaBlueIfMissing();
+  changeView(currentView, true);
+  goTo(currentIndex, true);
+  setTimeout(() => map.invalidateSize(), 150);
+}
+
+function changeView(key, silent){
+  currentView = key;
+  const src = TILES[key] || TILES.osm;
+  tileErrorCount = 0;
+  if(tileLayer) map.removeLayer(tileLayer);
+  if(colorRestoreLayer) map.removeLayer(colorRestoreLayer);
+  if(labelOverlayLayer) map.removeLayer(labelOverlayLayer);
+  if(roadOverlayLayer) map.removeLayer(roadOverlayLayer);
+  tileLayer = L.tileLayer(src.url, {
+    maxZoom: src.maxZ,
+    subdomains: src.sub || '',
+    attribution: src.attr,
+    crossOrigin: true
+  }).addTo(map);
+  colorRestoreLayer = L.tileLayer(src.url, {
+    maxZoom: src.maxZ,
+    subdomains: src.sub || '',
+    attribution:'',
+    crossOrigin: true,
+    opacity:getColorAreasForLoc(LOCS[currentIndex]).length ? MAP_DETAIL_RESTORE_OPACITY : 0,
+    pane:'territoryRestorePane',
+    interactive:false
+  }).addTo(map);
+  roadOverlayLayer = null;
+  const labelSrc = getRuntimeLabelTileSource(src);
+  labelOverlayLayer = labelSrc ? L.tileLayer(labelSrc.url, {
+    maxZoom: labelSrc.maxZ,
+    subdomains: labelSrc.sub || '',
+    attribution:'',
+    crossOrigin: true,
+    opacity:0,
+    pane:'territoryLabelPane',
+    interactive:false
+  }).addTo(map) : null;
+  const activeLayer = tileLayer;
+  tileLayer.on('tileload', () => {
+    if(tileLayer === activeLayer && tileErrorCount === 0 && !statusBox.classList.contains('warn')) setStatus('', '');
+  });
+  tileLayer.on('tileerror', () => {
+    if(tileLayer !== activeLayer) return;
+    tileErrorCount++;
+    if(tileErrorCount >= 4 && src.downloadAs && TILES[src.downloadAs]?.downloadable){
+      const fallbackKey = src.downloadAs;
+      viewSel.value = fallbackKey;
+      changeView(fallbackKey, true);
+      setStatus(src.name + ' no cargó correctamente. Se cambió automáticamente a ' + TILES[fallbackKey].name + ' para evitar que el mapa quede en blanco.', 'warn');
+      return;
+    }
+    setStatus('Algunas teselas no cargaron. Si el mapa se ve incompleto, cambia de capa o revisa internet.', 'warn');
+  });
+  if(!silent){
+    if(src.downloadable){
+      setStatus('', '');
+    }else if(src.downloadAs){
+      setStatus('', '');
+    }else{
+      setStatus('Esta vista es para previsualizar e imprimir.', 'warn');
+    }
+  }
+  updateButtons();
+}
+
+function ll2t(lat, lon, z){
+  const n = Math.pow(2, z);
+  return {
+    x: (lon + 180) / 360 * n,
+    y: (1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * n
+  };
+}
+
+function t2ll(tx, ty, z){
+  const n = Math.pow(2, z);
+  return {
+    lat: Math.atan(Math.sinh(Math.PI * (1 - 2 * ty / n))) * 180 / Math.PI,
+    lon: tx / n * 360 - 180
+  };
+}
+
+function calcBounds(lat, lon, pad, z){
+  const c = ll2t(lat, lon, z);
+  const nw = t2ll(Math.floor(c.x) - pad, Math.floor(c.y) - pad, z);
+  const se = t2ll(Math.floor(c.x) + pad + 1, Math.floor(c.y) + pad + 1, z);
+  return L.latLngBounds([se.lat, nw.lon], [nw.lat, se.lon]);
+}
+
+function updateInfo(loc){
+  $('territory-badge').textContent = 'Territorio #' + displayTerritoryNumber(loc);
+  $('loc-name').textContent = displayTerritoryTitle(loc);
+  $('meta-localidad').textContent = loc.alias ? loc.name + ' / ' + loc.alias : loc.name;
+  $('meta-municipio').textContent = loc.municipio;
+  $('meta-estado').textContent = loc.estado;
+  $('meta-altitud').textContent = loc.alt ? loc.alt.toLocaleString('es-MX') + ' m s. n. m.' : 'Por verificar';
+  $('meta-coords').textContent = formatCoords(loc);
+  $('info-card').style.display = 'block';
+}
+
+function updateButtons(){
+  $('btn-pr').disabled = !map;
+  $('btn-add-territory').disabled = !map;
+  $('btn-delete-territory').disabled = !map || LOCS.length <= 1;
+}
+
+function getDownloadSourceKey(key = currentView){
+  const src = TILES[key] || TILES['carto-light'];
+  if(src.downloadable) return key;
+  if(src.downloadAs && TILES[src.downloadAs]?.downloadable) return src.downloadAs;
+  return null;
+}
+
+function drawTerritoryFrame(loc, fitMap = true, silent = false){
+  if(ringLayer) map.removeLayer(ringLayer);
+
+  ringLayer = L.rectangle(getBoundsForLoc(loc, loc.zoom || DETAIL_ZOOM), {
+    color:'#1f7a47',
+    weight:2,
+    dashArray:'7,5',
+    fillColor:'#1f7a47',
+    fillOpacity:.045,
+    interactive:false
+  }).addTo(map);
+  if(ringLayer?.bringToFront) ringLayer.bringToFront();
+  if(fitMap){
+    map.fitBounds(getBoundsForLoc(loc, loc.zoom || DETAIL_ZOOM), { padding:[28,28], maxZoom:17, animate: !silent });
+  }
+}
+
+function goTo(index, silent){
+  const idx = Number(index);
+  if(!Number.isFinite(idx) || !LOCS[idx]) return;
+  currentIndex = idx;
+  locSel.value = String(idx);
+  const loc = LOCS[idx];
+  updateInfo(loc);
+  updateFrameControls(loc);
+  drawTerritoryFrame(loc, true, silent);
+  if(territoryAddMode) setTerritoryAddMode(false, false);
+  if(colorDrawMode) setColorDrawMode(false);
+  if(blockQuadMode) setBlockQuadMode(false, false);
+  if(textAddMode) setTextAddMode(false, false);
+  if(contourEditMode) setContourEditMode(false, false);
+  selectedAreaIndex = null;
+  selectedTextIndex = null;
+  renderColorAreas(loc);
+  renderTextLabels(loc);
+  updateColorControls(loc);
+  updateButtons();
+}
+
+function navigate(delta){
+  goTo((currentIndex + delta + LOCS.length) % LOCS.length);
+}
+
+async function fetchBlobURL(url){
+  try{
+    const direct = await fetch(url, { mode:'cors', credentials:'omit' });
+    if(direct.ok) return URL.createObjectURL(await direct.blob());
+  }catch(e){}
+  try{
+    const proxied = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+    if(proxied.ok) return URL.createObjectURL(await proxied.blob());
+  }catch(e){}
+  return null;
+}
+
+function drawTile(ctx, blobUrl, px, py, size){
+  if(!blobUrl) return Promise.resolve(false);
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, px, py, size, size);
+      URL.revokeObjectURL(blobUrl);
+      resolve(true);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      resolve(false);
+    };
+    img.src = blobUrl;
+  });
+}
+
+function setProgress(percent, message, done, total){
+  $('loader-bar').style.width = percent + '%';
+  $('loader-msg').textContent = message;
+  if(total != null) $('loader-count').textContent = done + ' / ' + total;
+}
+
+function roundRect(ctx, x, y, w, h, r){
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function drawFitText(ctx, text, x, y, maxWidth, maxSize, minSize, weight){
+  let size = maxSize;
+  do {
+    ctx.font = (weight || '700') + ' ' + size + 'px Segoe UI, Arial, sans-serif';
+    if(ctx.measureText(text).width <= maxWidth || size <= minSize) break;
+    size -= 2;
+  } while(size > minSize);
+  ctx.fillText(text, x, y, maxWidth);
+  return size;
+}
+
+function ll2px(lat, lon, z, tileSize = 256){
+  const t = ll2t(lat, lon, z);
+  return { x:t.x * tileSize, y:t.y * tileSize };
+}
+
+function getBoundsPixelBox(bounds, z, tileSize){
+  const nw = ll2px(bounds.north, bounds.west, z, tileSize);
+  const se = ll2px(bounds.south, bounds.east, z, tileSize);
+  return {
+    minX:Math.min(nw.x, se.x),
+    maxX:Math.max(nw.x, se.x),
+    minY:Math.min(nw.y, se.y),
+    maxY:Math.max(nw.y, se.y)
+  };
+}
+
+function choosePngZoom(bounds, src, tileSize){
+  const maxZ = Math.min(src.maxZ || DETAIL_ZOOM, DETAIL_ZOOM);
+  const innerW = PNG_MAP_W - PNG_PADDING * 2;
+  const innerH = PNG_MAP_H - PNG_PADDING * 2;
+  for(let z = maxZ; z >= 10; z--){
+    const box = getBoundsPixelBox(bounds, z, tileSize);
+    if((box.maxX - box.minX) <= innerW && (box.maxY - box.minY) <= innerH){
+      return z;
+    }
+  }
+  return 10;
+}
+
+function projectToPng(lat, lon, z, tileSize, topLeft, offsetY = 0){
+  const p = ll2px(lat, lon, z, tileSize);
+  return { x:p.x - topLeft.x, y:p.y - topLeft.y + offsetY };
+}
+
+function tracePngArea(ctx, area, topLeft, z, tileSize, offsetY){
+  if(!Array.isArray(area.points) || area.points.length < 3) return false;
+  let hasPoint = false;
+  area.points.forEach(point => {
+    const lat = Number(point[0]);
+    const lng = Number(point[1]);
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const p = projectToPng(lat, lng, z, tileSize, topLeft, offsetY);
+    if(!hasPoint){
+      ctx.moveTo(p.x, p.y);
+      hasPoint = true;
+    }else{
+      ctx.lineTo(p.x, p.y);
+    }
+  });
+  if(hasPoint) ctx.closePath();
+  return hasPoint;
+}
+
+function tracePngColorAreas(ctx, loc, topLeft, z, tileSize, offsetY){
+  let traced = false;
+  getExportColorAreasForLoc(loc).forEach(area => {
+    if(tracePngArea(ctx, area, topLeft, z, tileSize, offsetY)) traced = true;
+  });
+  return traced;
+}
+
+function applyPngColorMask(ctx, loc, snapshot, topLeft, z, tileSize, mapY, mapW, mapH){
+  if(!snapshot || !hasColorExportMask(loc)) return false;
+  ctx.save();
+  ctx.beginPath();
+  const traced = tracePngColorAreas(ctx, loc, topLeft, z, tileSize, mapY);
+  if(!traced){
+    ctx.restore();
+    return false;
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, mapY, mapW, mapH);
+  ctx.clip();
+  ctx.drawImage(snapshot, 0, 0, mapW, mapH, 0, mapY, mapW, mapH);
+  ctx.restore();
+  return true;
+}
+
+function drawPngTerritoryFrame(ctx, bounds, topLeft, z, tileSize, offsetY){
+  const nw = projectToPng(bounds.north, bounds.west, z, tileSize, topLeft, offsetY);
+  const se = projectToPng(bounds.south, bounds.east, z, tileSize, topLeft, offsetY);
+  const x = Math.min(nw.x, se.x);
+  const y = Math.min(nw.y, se.y);
+  const w = Math.abs(se.x - nw.x);
+  const h = Math.abs(se.y - nw.y);
+  ctx.save();
+  ctx.strokeStyle = '#0f7a3b';
+  ctx.lineWidth = 7;
+  ctx.setLineDash([26, 16]);
+  ctx.strokeRect(x, y, w, h);
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(31,122,71,.025)';
+  ctx.fillRect(x, y, w, h);
+  ctx.restore();
+}
+
+function hexToRgba(hex, alpha){
+  const value = sanitizeColor(hex).slice(1);
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+}
+
+function drawPngColorAreas(ctx, loc, topLeft, z, tileSize, offsetY){
+  const areas = getExportColorAreasForLoc(loc);
+  if(!areas.length) return;
+  ctx.save();
+  areas.forEach(area => {
+    ctx.beginPath();
+    if(!tracePngArea(ctx, area, topLeft, z, tileSize, offsetY)) return;
+    const color = sanitizeColor(area.color);
+    const opacity = getRenderedColorOpacity(area.opacity);
+    ctx.fillStyle = hexToRgba(color, opacity);
+    ctx.fill();
+    ctx.strokeStyle = hexToRgba(color, .95);
+    ctx.lineWidth = 7;
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawPngColorAreaOutlines(ctx, loc, topLeft, z, tileSize, offsetY){
+  const areas = getExportColorAreasForLoc(loc);
+  if(!areas.length) return;
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  areas.forEach(area => {
+    ctx.beginPath();
+    if(!tracePngArea(ctx, area, topLeft, z, tileSize, offsetY)) return;
+    const color = sanitizeColor(area.color);
+    ctx.strokeStyle = hexToRgba(color, .96);
+    ctx.lineWidth = 9;
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function snapshotPngMap(canvas, mapY, mapW, mapH){
+  const copy = document.createElement('canvas');
+  copy.width = mapW;
+  copy.height = mapH;
+  copy.getContext('2d').drawImage(canvas, 0, mapY, mapW, mapH, 0, 0, mapW, mapH);
+  return copy;
+}
+
+function restorePngMapDetails(ctx, snapshot, mapY, mapW, mapH, loc = null, topLeft = null, z = null, tileSize = null){
+  if(!snapshot) return;
+  ctx.save();
+  ctx.globalAlpha = .82;
+  if(loc && topLeft && Number.isFinite(Number(z)) && Number.isFinite(Number(tileSize)) && hasColorExportMask(loc)){
+    ctx.beginPath();
+    if(tracePngColorAreas(ctx, loc, topLeft, z, tileSize, mapY)) ctx.clip();
+  }
+  ctx.drawImage(snapshot, 0, 0, mapW, mapH, 0, mapY, mapW, mapH);
+  ctx.restore();
+}
+
+function drawPngTextLabels(ctx, loc, topLeft, z, tileSize, offsetY, clipToColorMask = false){
+  const labels = getTextLabelsForLoc(loc);
+  if(!labels.length) return;
+  ctx.save();
+  if(clipToColorMask && hasColorExportMask(loc)){
+    ctx.beginPath();
+    if(tracePngColorAreas(ctx, loc, topLeft, z, tileSize, offsetY)) ctx.clip();
+  }
+  labels.forEach(label => {
+    const text = String(label.text || '').trim();
+    if(!text) return;
+    const p = projectToPng(Number(label.lat), Number(label.lng), z, tileSize, topLeft, offsetY);
+    if(!Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
+    const size = Math.max(34, Math.min(96, (Number(label.size) || 18) * 3.2));
+    ctx.font = '900 ' + size + 'px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(255,255,255,.95)';
+    ctx.lineWidth = Math.max(8, size * .18);
+    ctx.strokeText(text, p.x, p.y);
+    ctx.fillStyle = sanitizeColor(label.color);
+    ctx.fillText(text, p.x, p.y);
+  });
+  ctx.restore();
+}
+
+function buildTileUrl(src, z, tx, ty){
+  const subs = src.sub || '';
+  const sub = subs ? subs[Math.abs(tx + ty) % subs.length] : '';
+  return (src.dlUrl || src.url)
+    .replace('{s}', sub)
+    .replace('{z}', z)
+    .replace('{x}', tx)
+    .replace('{y}', ty);
+}
+
+function buildLabelTileUrl(src, z, tx, ty){
+  if(!src?.labelUrl) return null;
+  const subs = src.labelSub || src.sub || '';
+  const sub = subs ? subs[Math.abs(tx + ty) % subs.length] : '';
+  let url = src.labelUrl;
+  if((src.labelDlTs === 512 || src.dlTs === 512) && !String(url).includes('@2x')){
+    url = url.replace('.png', '@2x.png');
+  }
+  url = url
+    .replace('{s}', sub)
+    .replace('{z}', z)
+    .replace('{x}', tx)
+    .replace('{y}', ty);
+  if(url.includes('google.com') && !url.includes('scale=')) url += '&scale=2';
+  return url;
+}
+
+async function drawPngLabelOverlay(ctx, src, z, tileSize, topLeft, offsetY, minTX, maxTX, minTY, maxTY){
+  if(!src?.labelUrl) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  const jobs = [];
+  for(let ty = minTY; ty <= maxTY; ty++){
+    for(let tx = minTX; tx <= maxTX; tx++){
+      const url = buildLabelTileUrl(src, z, tx, ty);
+      if(!url) continue;
+      jobs.push({
+        url,
+        px: tx * tileSize - topLeft.x,
+        py: offsetY + ty * tileSize - topLeft.y
+      });
+    }
+  }
+  for(let i = 0; i < jobs.length; i += 8){
+    await Promise.all(jobs.slice(i, i + 8).map(async job => {
+      const blobUrl = await fetchBlobURL(job.url);
+      await drawTile(ctx, blobUrl, job.px, job.py, tileSize);
+    }));
+  }
+  ctx.restore();
+}
+
+function getPrintTileUrl(tileSource){
+  if(tileSource.dlUrl) return tileSource.dlUrl;
+  if(String(tileSource.url || '').includes('google.com') && !String(tileSource.url || '').includes('scale=')){
+    return tileSource.url + '&scale=2';
+  }
+  return tileSource.url;
+}
+
+function getPrintLabelTileUrl(tileSource){
+  if(!tileSource?.labelUrl) return null;
+  let url = tileSource.labelUrl;
+  if((tileSource.labelDlTs === 512 || tileSource.dlTs === 512) && !String(url).includes('@2x')){
+    url = url.replace('.png', '@2x.png');
+  }
+  if(String(url).includes('google.com') && !String(url).includes('scale=')){
+    url += '&scale=2';
+  }
+  return url;
+}
+
+function getPrintDetailTileSource(tileSource){
+  const labelUrl = getPrintLabelTileUrl(tileSource);
+  if(labelUrl){
+    return {
+      url:labelUrl,
+      sub:tileSource.labelSub || tileSource.sub || '',
+      maxZ:tileSource.maxZ || PRINT_MAX_ZOOM,
+      attr:''
+    };
+  }
+  return null;
+}
+
+async function descargarPNG(){
+  const loc = LOCS[currentIndex];
+  const downloadKey = getDownloadSourceKey();
+  const src = downloadKey ? TILES[downloadKey] : null;
+  if(!loc || !src) return;
+  const usingFallback = downloadKey !== currentView;
+  const usingColorMask = hasColorExportMask(loc);
+
+  const bounds = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+  const TS = src.dlTs || 256;
+  const HDR = PNG_HEADER_H;
+  const FTR = PNG_FOOTER_H;
+  const W = PNG_MAP_W;
+  const H = PNG_MAP_H;
+  const Z = choosePngZoom(bounds, src, TS);
+  const box = getBoundsPixelBox(bounds, Z, TS);
+  const centerPx = {
+    x:(box.minX + box.maxX) / 2,
+    y:(box.minY + box.maxY) / 2
+  };
+  const topLeft = {
+    x:Math.round(centerPx.x - W / 2),
+    y:Math.round(centerPx.y - H / 2)
+  };
+  const minTX = Math.floor(topLeft.x / TS);
+  const maxTX = Math.floor((topLeft.x + W - 1) / TS);
+  const minTY = Math.floor(topLeft.y / TS);
+  const maxTY = Math.floor((topLeft.y + H - 1) / TS);
+  const cols = maxTX - minTX + 1;
+  const rows = maxTY - minTY + 1;
+  const total = cols * rows;
+
+  $('loader-title').textContent = 'Generando PNG: ' + displayTerritoryTitle(loc);
+  $('loader-error').style.display = 'none';
+  $('loader').classList.add('show');
+  setProgress(0, usingFallback ? 'Usando Carto Voyager para generar la zona coloreada...' : (usingColorMask ? 'Preparando zonas coloreadas...' : 'Preparando recuadro completo...'), 0, total);
+
+  try{
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = HDR + H + FTR;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const header = ctx.createLinearGradient(0, 0, W, 0);
+    header.addColorStop(0, '#17351f');
+    header.addColorStop(1, '#1f5f8a');
+    ctx.fillStyle = header;
+    ctx.fillRect(0, 0, W, HDR);
+    ctx.fillStyle = '#1f7a47';
+    ctx.fillRect(0, HDR - 6, W, 6);
+
+    const pad = Math.max(24, Math.round(W * .022));
+    ctx.fillStyle = 'rgba(255,255,255,.14)';
+    roundRect(ctx, pad, 28, Math.max(250, Math.round(W * .16)), 58, 12);
+    ctx.fill();
+    ctx.fillStyle = '#d9f4e3';
+    drawFitText(ctx, 'Territorio #' + displayTerritoryNumber(loc), pad + 22, 68, Math.round(W * .15), 44, 24, '900');
+    ctx.fillStyle = '#ffffff';
+    drawFitText(ctx, displayTerritoryTitle(loc), pad, 158, Math.round(W * .58), 92, 42, '900');
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,.82)';
+    const small = Math.max(22, Math.min(30, Math.round(W / 145)));
+    ctx.font = '700 ' + small + 'px Segoe UI, Arial, sans-serif';
+    const rightX = W - pad;
+    ctx.fillText('Localidad: ' + (loc.alias ? loc.name + ' / ' + loc.alias : loc.name), rightX, 48, Math.round(W * .38));
+    ctx.fillText('Municipio: ' + loc.municipio, rightX, 84, Math.round(W * .38));
+    ctx.fillText('Estado: ' + loc.estado, rightX, 120, Math.round(W * .38));
+    ctx.fillText('Centro: ' + formatCoords(loc), rightX, 156, Math.round(W * .38));
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = '#eef3ef';
+    ctx.fillRect(0, HDR, W, H);
+
+    const jobs = [];
+    for(let ty = minTY; ty <= maxTY; ty++){
+      for(let tx = minTX; tx <= maxTX; tx++){
+        jobs.push({
+          url: buildTileUrl(src, Z, tx, ty),
+          px: tx * TS - topLeft.x,
+          py: HDR + ty * TS - topLeft.y
+        });
+      }
+    }
+
+    let done = 0;
+    let ok = 0;
+    for(let i = 0; i < jobs.length; i += 6){
+      await Promise.all(jobs.slice(i, i + 6).map(async job => {
+        const blobUrl = await fetchBlobURL(job.url);
+        if(await drawTile(ctx, blobUrl, job.px, job.py, TS)) ok++;
+        done++;
+        setProgress(Math.round(done / total * 86), 'Descargando mapas ' + done + '/' + total, done, total);
+      }));
+    }
+
+    if(ok < Math.max(4, Math.ceil(total * .6))){
+      throw new Error('No se pudieron descargar suficientes teselas del mapa. Prueba con PDF o cambia de capa.');
+    }
+
+    const mapSnapshot = snapshotPngMap(canvas, HDR, W, H);
+    const maskedToColor = applyPngColorMask(ctx, loc, mapSnapshot, topLeft, Z, TS, HDR, W, H);
+    drawPngColorAreas(ctx, loc, topLeft, Z, TS, HDR);
+    if(maskedToColor){
+      drawPngColorAreaOutlines(ctx, loc, topLeft, Z, TS, HDR);
+    }
+    if(!maskedToColor){
+      restorePngMapDetails(ctx, mapSnapshot, HDR, W, H, null, topLeft, Z, TS);
+    }
+    if(maskedToColor) await drawPngLabelOverlay(ctx, src, Z, TS, topLeft, HDR, minTX, maxTX, minTY, maxTY);
+    if(!maskedToColor) drawPngTerritoryFrame(ctx, bounds, topLeft, Z, TS, HDR);
+    drawPngTextLabels(ctx, loc, topLeft, Z, TS, HDR, maskedToColor);
+
+    const metersPerPixel = 156543.03392 * Math.cos(loc.lat * Math.PI / 180) / Math.pow(2, Z) * (256 / TS);
+    const candidates = [25, 50, 100, 200, 250, 500, 1000];
+    const targetScalePx = Math.min(900, Math.max(380, W * .16));
+    const scaleMeters = candidates.reduce((best, next) => Math.abs(next - metersPerPixel * targetScalePx) < Math.abs(best - metersPerPixel * targetScalePx) ? next : best);
+    const scalePx = scaleMeters / metersPerPixel;
+    const sx = 28;
+    const sy = HDR + H - 38;
+    ctx.fillStyle = 'rgba(255,255,255,.96)';
+    roundRect(ctx, sx - 10, sy - 31, scalePx + 20, 42, 8);
+    ctx.fill();
+    ctx.fillStyle = '#1f7a47';
+    ctx.fillRect(sx, sy, scalePx, 8);
+    ctx.strokeStyle = '#0f4224';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(sx, sy, scalePx, 8);
+    ctx.fillStyle = '#183d25';
+    ctx.font = '700 14px Arial, sans-serif';
+    ctx.fillText('0', sx, sy - 7);
+    ctx.textAlign = 'right';
+    ctx.fillText(scaleMeters < 1000 ? scaleMeters + ' m' : (scaleMeters / 1000) + ' km', sx + scalePx, sy - 7);
+    ctx.textAlign = 'left';
+
+    const nr = 28;
+    const nx = W - nr - 28;
+    const ny = HDR + nr + 28;
+    ctx.fillStyle = 'rgba(255,255,255,.96)';
+    ctx.beginPath();
+    ctx.arc(nx, ny, nr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#c8d2cc';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#17351f';
+    ctx.beginPath();
+    ctx.moveTo(nx, ny - nr * .72);
+    ctx.lineTo(nx - nr * .34, ny + nr * .42);
+    ctx.lineTo(nx, ny + nr * .16);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#77ad87';
+    ctx.beginPath();
+    ctx.moveTo(nx, ny - nr * .72);
+    ctx.lineTo(nx + nr * .34, ny + nr * .42);
+    ctx.lineTo(nx, ny + nr * .16);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#17351f';
+    ctx.textAlign = 'center';
+    ctx.font = '900 14px Arial, sans-serif';
+    ctx.fillText('N', nx, ny + nr * .95);
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = '#f6f8f7';
+    ctx.fillRect(0, HDR + H, W, FTR);
+    ctx.fillStyle = '#cbd8d1';
+    ctx.fillRect(0, HDR + H, W, 1);
+    ctx.fillStyle = '#5c6c63';
+    ctx.font = '13px Segoe UI, Arial, sans-serif';
+    const today = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
+    ctx.fillText('Croquis de territorio', 18, HDR + H + 31);
+    ctx.textAlign = 'right';
+    ctx.fillText('Predicación 2026 · ' + today + ' · Zoom ' + Z + ' · recuadro completo · ' + W + '×' + H + ' px', W - 18, HDR + H + 42);
+    ctx.fillStyle = '#f8faf8';
+    ctx.fillRect(Math.round(W * .42), HDR + H + 20, Math.round(W * .58) - 10, 30);
+    ctx.fillStyle = '#5c6c63';
+    ctx.fillText('Predicacion 2026 - ' + today + ' - Zoom ' + Z + ' - ' + (maskedToColor ? 'solo zonas coloreadas' : 'recuadro completo') + ' - ' + W + 'x' + H + ' px', W - 18, HDR + H + 42);
+    ctx.textAlign = 'left';
+
+    setProgress(96, 'Guardando imagen...', total, total);
+    await new Promise((resolve, reject) => {
+      canvas.toBlob(blob => {
+        if(!blob){
+          reject(new Error('El navegador no pudo crear el PNG.'));
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = displayTerritoryNumber(loc) + '_' + safeFileName(loc.name) + '_2026.png';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 8000);
+        resolve();
+      }, 'image/png');
+    });
+    setProgress(100, 'Listo.', total, total);
+    setTimeout(() => $('loader').classList.remove('show'), 900);
+  }catch(err){
+    $('loader-error').textContent = err.message || String(err);
+    $('loader-error').style.display = 'block';
+    setProgress(100, 'No se pudo completar la descarga.', 0, 0);
+    setTimeout(() => $('loader').classList.remove('show'), 3200);
+  }finally{
+    updateButtons();
+  }
+}
+
+function buildPrintSheetMarkup(loc, src){
+  const fecha = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
+  const title = displayTerritoryNumber(loc) + ' - ' + loc.name;
+  const exportMode = hasColorExportMask(loc) ? 'Solo zonas coloreadas' : 'Recuadro completo';
+  return `
+<main class="print-paper">
+  <div class="print-hdr">
+    <span class="print-badge">Territorio #${displayTerritoryNumber(loc)}</span>
+    <div class="print-title">${escapeHtml(displayTerritoryTitle(loc))}</div>
+    <div class="print-meta">Localidad: ${escapeHtml(loc.alias ? loc.name + ' / ' + loc.alias : loc.name)}<br>Municipio: ${escapeHtml(loc.municipio)}<br>${escapeHtml(loc.estado)}<br>${formatCoords(loc)} &middot; ${escapeHtml(fecha)}</div>
+  </div>
+  <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${PRINT_MAP_W}px;--print-map-h:${PRINT_MAP_H}px;--print-map-scale:${1 / PRINT_RENDER_SCALE}"><div id="print-map"></div></div>
+  <div class="print-ftr"><span>Croquis de territorio</span><span>Predicación 2026 &middot; ${escapeHtml(title)}</span></div>
+</main>
+<div class="print-wait" id="print-wait">
+  <div class="print-panel">
+    <strong id="print-wait-text">Preparando mapa para PDF...</strong>
+    <div class="print-actions">
+      <button class="btn secondary" id="print-ready-button" type="button" disabled>Imprimir / Guardar PDF</button>
+      <button class="btn ghost" id="print-close-button" type="button">Cerrar</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function drawPrintColorAreas(targetMap, loc){
+  getExportColorAreasForLoc(loc).forEach(area => {
+    const latLngs = pointsToLatLngs(area.points);
+    if(latLngs.length < 3) return;
+    const printFillOpacity = Math.max(.5, Math.min(.72, getRenderedColorOpacity(area.opacity) + .08));
+    L.polygon(latLngs, {
+      ...colorAreaStyle(area, 1, false),
+      fillOpacity:printFillOpacity,
+      stroke:false
+    }).addTo(targetMap);
+  });
+}
+
+function drawPrintColorAreaOutlines(targetMap, loc){
+  getExportColorAreasForLoc(loc).forEach(area => {
+    const latLngs = pointsToLatLngs(area.points);
+    if(latLngs.length < 3) return;
+    L.polygon(latLngs, {
+      color:sanitizeColor(area.color),
+      weight:.65 * PRINT_RENDER_SCALE,
+      opacity:.82,
+      fill:false,
+      interactive:false,
+      pane:'territoryOutlinePane'
+    }).addTo(targetMap);
+  });
+}
+
+function drawPrintTextLabels(targetMap, loc){
+  getTextLabelsForLoc(loc).forEach(label => {
+    const lat = Number(label.lat);
+    const lng = Number(label.lng);
+    if(!String(label.text || '').trim() || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    L.marker([lat, lng], {
+      interactive:false,
+      icon:createTextIcon(label, false, PRINT_RENDER_SCALE)
+    }).addTo(targetMap);
+  });
+}
+
+function printRoadWeight(highway){
+  const key = String(highway || '').replace(/_link$/, '');
+  const base = {
+    motorway:9,
+    trunk:8.5,
+    primary:8,
+    secondary:7.4,
+    tertiary:6.8,
+    unclassified:6.2,
+    residential:5.8,
+    living_street:5.4,
+    pedestrian:4.8,
+    road:5.6,
+    service:4.2
+  }[key] || 5.4;
+  return base * PRINT_RENDER_SCALE;
+}
+
+function drawPrintVectorRoads(targetMap, roadWays){
+  return;
+}
+
+function getPrintRoadLabelPlacement(targetMap, latLngs){
+  if(!targetMap || !Array.isArray(latLngs) || latLngs.length < 2) return null;
+  let best = null;
+  for(let i = 0; i < latLngs.length - 1; i++){
+    const a = targetMap.latLngToLayerPoint(latLngs[i]);
+    const b = targetMap.latLngToLayerPoint(latLngs[i + 1]);
+    const length = a.distanceTo(b);
+    if(!best || length > best.length){
+      let angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      if(angle > 90) angle -= 180;
+      if(angle < -90) angle += 180;
+      best = {
+        latlng:L.latLng((latLngs[i].lat + latLngs[i + 1].lat) / 2, (latLngs[i].lng + latLngs[i + 1].lng) / 2),
+        angle,
+        length
+      };
+    }
+  }
+  return best;
+}
+
+function drawPrintVectorRoadLabels(targetMap, roadWays){
+  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
+  const seen = new Set();
+  roadWays.forEach(way => {
+    const name = String(way.name || '').trim();
+    if(!name || name.length > 42) return;
+    const placement = getPrintRoadLabelPlacement(targetMap, way.latLngs);
+    if(!placement || placement.length < 34 * PRINT_RENDER_SCALE) return;
+    const key = name.toLowerCase() + ':' + Math.round(placement.latlng.lat * 1000) + ':' + Math.round(placement.latlng.lng * 1000);
+    if(seen.has(key)) return;
+    seen.add(key);
+    const fontSize = Math.max(3.8, Math.min(5.8, 4.4 + name.length * .018)) * PRINT_RENDER_SCALE;
+    L.marker(placement.latlng, {
+      interactive:false,
+      pane:'territoryLabelPane',
+      icon:L.divIcon({
+        className:'print-vector-road-label',
+        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;font-size:' + fontSize.toFixed(1) + 'px;color:#243129!important">' + escapeHtml(name) + '</span>',
+        iconSize:[0,0],
+        iconAnchor:[0,0]
+      })
+    }).addTo(targetMap);
+  });
+}
+
+function renderPrintColorMask(targetMap, loc){
+  const container = targetMap?.getContainer?.();
+  if(!container) return;
+  container.querySelectorAll('.print-color-mask').forEach(node => node.remove());
+  const areas = getExportColorAreasForLoc(loc);
+  if(!areas.length) return;
+  const size = targetMap.getSize();
+  if(!size?.x || !size?.y) return;
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  const maskId = 'print-color-mask-' + Date.now() + '-' + Math.round(Math.random() * 100000);
+  svg.classList.add('print-color-mask');
+  svg.setAttribute('viewBox', '0 0 ' + size.x + ' ' + size.y);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+
+  const defs = document.createElementNS(ns, 'defs');
+  const mask = document.createElementNS(ns, 'mask');
+  mask.setAttribute('id', maskId);
+  mask.setAttribute('x', '0');
+  mask.setAttribute('y', '0');
+  mask.setAttribute('width', String(size.x));
+  mask.setAttribute('height', String(size.y));
+  mask.setAttribute('maskUnits', 'userSpaceOnUse');
+
+  const full = document.createElementNS(ns, 'rect');
+  full.setAttribute('x', '0');
+  full.setAttribute('y', '0');
+  full.setAttribute('width', String(size.x));
+  full.setAttribute('height', String(size.y));
+  full.setAttribute('fill', '#fff');
+  mask.appendChild(full);
+
+  let holes = 0;
+  areas.forEach(area => {
+    const points = area.points.map(point => {
+      const lat = Number(point[0]);
+      const lng = Number(point[1]);
+      if(!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      const p = targetMap.latLngToContainerPoint([lat, lng]);
+      return Math.round(p.x * 10) / 10 + ',' + Math.round(p.y * 10) / 10;
+    }).filter(Boolean);
+    if(points.length < 3) return;
+    const polygon = document.createElementNS(ns, 'polygon');
+    polygon.setAttribute('points', points.join(' '));
+    polygon.setAttribute('fill', '#000');
+    polygon.setAttribute('stroke', '#000');
+    polygon.setAttribute('stroke-width', String(3 * PRINT_RENDER_SCALE));
+    polygon.setAttribute('stroke-linejoin', 'round');
+    polygon.setAttribute('stroke-linecap', 'round');
+    mask.appendChild(polygon);
+    holes++;
+  });
+  if(!holes) return;
+
+  defs.appendChild(mask);
+  svg.appendChild(defs);
+  const cover = document.createElementNS(ns, 'rect');
+  cover.setAttribute('x', '0');
+  cover.setAttribute('y', '0');
+  cover.setAttribute('width', String(size.x));
+  cover.setAttribute('height', String(size.y));
+  cover.setAttribute('fill', '#fff');
+  cover.setAttribute('fill-opacity', '1');
+  cover.setAttribute('mask', 'url(#' + maskId + ')');
+  svg.appendChild(cover);
+  container.appendChild(svg);
+}
+
+function resetPrintSheet(){
+  window.removeEventListener('afterprint', resetPrintSheet);
+  document.title = originalDocumentTitle;
+  if(printMap){
+    printMap.remove();
+    printMap = null;
+  }
+  const sheet = $('print-sheet');
+  if(sheet) sheet.remove();
+  document.body.classList.remove('print-preview');
+  updateButtons();
+}
+
+function waitForPrintTiles(layer, timeoutMs = 8000){
+  return new Promise(resolve => {
+    let done = false;
+    let loaded = 0;
+    let failed = 0;
+    const finish = () => {
+      if(done) return;
+      done = true;
+      clearTimeout(timer);
+      layer.off('load', finish);
+      layer.off('tileload', onTileLoad);
+      layer.off('tileerror', onTileError);
+      resolve({ loaded, failed });
+    };
+    const onTileLoad = () => { loaded++; };
+    const onTileError = () => {
+      failed++;
+      setTimeout(finish, 900);
+    };
+    const timer = setTimeout(finish, timeoutMs);
+    layer.on('tileload', onTileLoad);
+    layer.on('tileerror', onTileError);
+    layer.on('load', finish);
+  });
+}
+
+function printPreparedSheet(){
+  const wait = $('print-wait');
+  if(wait) wait.style.display = 'none';
+  if(printMap) printMap.invalidateSize();
+  window.addEventListener('afterprint', resetPrintSheet, { once:true });
+  setTimeout(() => window.print(), 250);
+}
+
+function getBoundsForLoc(loc, z = DETAIL_ZOOM){
+  const b = getPrintBoundsPlain(loc, z);
+  return L.latLngBounds([b.south, b.west], [b.north, b.east]);
+}
+
+function getColorAreasBoundsPlain(loc){
+  const areas = getExportColorAreasForLoc(loc);
+  if(!areas.length) return null;
+  let south = Infinity;
+  let west = Infinity;
+  let north = -Infinity;
+  let east = -Infinity;
+  areas.forEach(area => {
+    area.points.forEach(point => {
+      const lat = Number(point[0]);
+      const lng = Number(point[1]);
+      if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      south = Math.min(south, lat);
+      north = Math.max(north, lat);
+      west = Math.min(west, lng);
+      east = Math.max(east, lng);
+    });
+  });
+  if(!Number.isFinite(south) || !Number.isFinite(west) || !Number.isFinite(north) || !Number.isFinite(east)) return null;
+  const latSpan = Math.max(north - south, .0006);
+  const lngSpan = Math.max(east - west, .0006);
+  const padLat = latSpan * .08;
+  const padLng = lngSpan * .08;
+  return {
+    south:south - padLat,
+    west:west - padLng,
+    north:north + padLat,
+    east:east + padLng
+  };
+}
+
+function getExportBoundsPlain(loc, z = DETAIL_ZOOM){
+  return getColorAreasBoundsPlain(loc) || getPrintBoundsPlain(loc, z);
+}
+
+function getPrintBoundsPlain(loc, z = DETAIL_ZOOM){
+  return scaleBoundsPlain(getBaseBoundsPlain(loc, z), getFrameScaleForLoc(loc));
+}
+
+function getBaseBoundsPlain(loc, z = DETAIL_ZOOM){
+  if(loc.printBounds) return {...loc.printBounds};
+  if(loc.printRadiusM) return boundsAroundCenter(loc.lat, loc.lon, loc.printRadiusM);
+  return calcBoundsPlain(loc, z);
+}
+
+function boundsAroundCenter(lat, lon, halfHeightMeters){
+  const metersPerDegLat = 111320;
+  const metersPerDegLon = metersPerDegLat * Math.cos(lat * Math.PI / 180);
+  const halfLat = halfHeightMeters / metersPerDegLat;
+  const halfLon = (halfHeightMeters * PRINT_ASPECT) / metersPerDegLon;
+  return {
+    south: lat - halfLat,
+    west: lon - halfLon,
+    north: lat + halfLat,
+    east: lon + halfLon
+  };
+}
+
+function calcBoundsPlain(loc, z = DETAIL_ZOOM){
+  const pad = loc.pad || DETAIL_PAD;
+  const c = ll2t(loc.lat, loc.lon, z);
+  const nw = t2ll(Math.floor(c.x) - pad, Math.floor(c.y) - pad, z);
+  const se = t2ll(Math.floor(c.x) + pad + 1, Math.floor(c.y) + pad + 1, z);
+  return { north:nw.lat, south:se.lat, west:nw.lon, east:se.lon };
+}
+
+async function imprimir(){
+  const loc = LOCS[currentIndex];
+  let src = TILES[currentView] || TILES.osm;
+  if(!loc) return;
+  resetPrintSheet();
+  document.title = displayTerritoryTitle(loc) + ' - Croquis 2026';
+  $('btn-pr').disabled = true;
+
+  const sheet = document.createElement('section');
+  sheet.id = 'print-sheet';
+  sheet.className = 'print-sheet is-open';
+  sheet.setAttribute('aria-live', 'polite');
+  sheet.innerHTML = buildPrintSheetMarkup(loc, src);
+  document.body.appendChild(sheet);
+  document.body.classList.add('print-preview');
+
+  $('print-close-button').addEventListener('click', resetPrintSheet);
+  $('print-ready-button').addEventListener('click', printPreparedSheet);
+
+  try{
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    const usingColorMask = hasColorExportMask(loc);
+    const plainBounds = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+    const bounds = L.latLngBounds([plainBounds.south, plainBounds.west], [plainBounds.north, plainBounds.east]);
+    printMap = L.map('print-map', {
+      zoomControl:false,
+      attributionControl:false,
+      dragging:false,
+      scrollWheelZoom:false,
+      doubleClickZoom:false,
+      boxZoom:false,
+      keyboard:false,
+      zoomSnap:.25,
+      zoomDelta:.5
+    });
+    printMap.createPane('territoryColorPane');
+    printMap.getPane('territoryColorPane').style.zIndex = 350;
+    printMap.createPane('territoryRestorePane');
+    printMap.getPane('territoryRestorePane').style.zIndex = 360;
+    printMap.getPane('territoryRestorePane').style.pointerEvents = 'none';
+    printMap.getPane('territoryRestorePane').classList.add('territory-restore-pane');
+    printMap.createPane('territoryOutlinePane');
+    printMap.getPane('territoryOutlinePane').style.zIndex = 505;
+    printMap.getPane('territoryOutlinePane').style.pointerEvents = 'none';
+    printMap.createPane('territoryRoadPane');
+    printMap.getPane('territoryRoadPane').style.zIndex = 510;
+    printMap.getPane('territoryRoadPane').style.pointerEvents = 'none';
+    printMap.getPane('territoryRoadPane').classList.add('territory-road-pane');
+    printMap.createPane('territoryLabelPane');
+    printMap.getPane('territoryLabelPane').style.zIndex = 520;
+    printMap.getPane('territoryLabelPane').style.pointerEvents = 'none';
+    printMap.getPane('territoryLabelPane').classList.add('territory-label-pane');
+    const addPrintTiles = (tileSource, options = {}) => {
+      const layerOptions = {
+        maxZoom:tileSource.maxZ || PRINT_MAX_ZOOM,
+        maxNativeZoom:tileSource.maxZ || PRINT_MAX_ZOOM,
+        subdomains:tileSource.sub || '',
+        attribution:options.attribution ?? tileSource.attr ?? '',
+        opacity:options.opacity ?? 1,
+        tileSize:256,
+        keepBuffer:8,
+        updateWhenIdle:false
+      };
+      if(options.pane) layerOptions.pane = options.pane;
+      return L.tileLayer(getPrintTileUrl(tileSource), layerOptions).addTo(printMap);
+    };
+    const baseTileOpacity = usingColorMask ? 0 : 1;
+    let tiles = addPrintTiles(src, { opacity:baseTileOpacity });
+    drawPrintColorAreas(printMap, loc);
+    let restoreTiles = usingColorMask ? addPrintTiles(src, {
+      attribution:'',
+      opacity:PRINT_DETAIL_RESTORE_OPACITY,
+      pane:'territoryRestorePane'
+    }) : null;
+    let detailSource = null;
+    let detailTiles = null;
+    let roadTiles = null;
+    let labelTiles = null;
+    let printRoadWays = [];
+    if(usingColorMask){
+      drawPrintColorAreaOutlines(printMap, loc);
+    }else{
+      L.rectangle(bounds, {
+        color:'#0f7a3b',
+        weight:2.5 * PRINT_RENDER_SCALE,
+        dashArray:(8 * PRINT_RENDER_SCALE) + ',' + (5 * PRINT_RENDER_SCALE),
+        fillColor:'#1f7a47',
+        fillOpacity:.025
+      }).addTo(printMap);
+    }
+    drawPrintTextLabels(printMap, loc);
+    const frameMap = () => {
+      printMap.invalidateSize();
+      printMap.fitBounds(bounds, {
+        padding:[18 * PRINT_RENDER_SCALE,18 * PRINT_RENDER_SCALE],
+        maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM)
+      });
+    };
+    printMap.whenReady(frameMap);
+    setTimeout(frameMap, 150);
+    let tileStats = await waitForPrintTiles(tiles, PRINT_TILE_TIMEOUT_MS);
+    if(tileStats.loaded === 0 && src.downloadAs && TILES[src.downloadAs]?.downloadable){
+      printMap.removeLayer(tiles);
+      if(restoreTiles) printMap.removeLayer(restoreTiles);
+      if(detailTiles) printMap.removeLayer(detailTiles);
+      if(roadTiles) printMap.removeLayer(roadTiles);
+      if(labelTiles) printMap.removeLayer(labelTiles);
+      src = TILES[src.downloadAs];
+      const footerSource = document.querySelector('.print-ftr span');
+      if(footerSource) footerSource.textContent = 'Croquis de territorio';
+      $('print-wait-text').textContent = 'Google Calles no cargó. Preparando respaldo descargable para evitar hoja en blanco...';
+      tiles = addPrintTiles(src, { opacity:baseTileOpacity });
+      restoreTiles = usingColorMask ? addPrintTiles(src, {
+        attribution:'',
+        opacity:PRINT_DETAIL_RESTORE_OPACITY,
+        pane:'territoryRestorePane'
+      }) : null;
+      detailSource = null;
+      detailTiles = null;
+      roadTiles = null;
+      labelTiles = null;
+      tileStats = await waitForPrintTiles(tiles, PRINT_TILE_TIMEOUT_MS);
+    }
+    if(restoreTiles) await waitForPrintTiles(restoreTiles, 45000);
+    if(detailTiles) await waitForPrintTiles(detailTiles, 45000);
+    if(tileStats.loaded === 0){
+      throw new Error('No se pudieron cargar teselas del mapa para imprimir.');
+    }
+    frameMap();
+    if(usingColorMask) renderPrintColorMask(printMap, loc);
+    if(usingColorMask){
+      $('print-wait-text').textContent = 'Aplicando recorte de zonas pintadas...';
+    }
+    $('print-wait-text').textContent = 'Listo. El territorio se imprimirá desde esta misma hoja.';
+    $('print-ready-button').disabled = false;
+    if(new URLSearchParams(location.search).has('noPrint')){
+      $('print-wait').style.display = 'none';
+    }else{
+      setTimeout(printPreparedSheet, 450);
+    }
+  }catch(err){
+    $('print-wait-text').textContent = 'No se pudo preparar el mapa. Revisa internet y vuelve a intentar.';
+    $('print-ready-button').disabled = true;
+    console.error(err);
+  }
+}
+
+locSel.addEventListener('change', () => goTo(locSel.value));
+viewSel.addEventListener('change', () => changeView(viewSel.value));
+frameScaleInput.addEventListener('input', () => setFrameScaleForCurrent(frameScaleInput.value));
+frameResetButton.addEventListener('click', () => setFrameScaleForCurrent(100));
+colorInput.addEventListener('input', () => {
+  renderDraftArea();
+  applySelectedStyleChange();
+  updateColorControls();
+});
+colorOpacityInput.addEventListener('input', () => {
+  renderDraftArea();
+  applySelectedStyleChange();
+  updateColorControls();
+});
+textInput.addEventListener('input', () => {
+  if(selectedTextIndex != null && textInput.value.trim()) editSelectedTextLabel();
+});
+textSizeInput?.addEventListener('input', () => {
+  updateTextSizeValue();
+  if(selectedTextIndex != null) applySelectedStyleChange();
+});
+colorEditButton.addEventListener('click', () => setColorEditMode(!colorEditMode));
+contourEditButton.addEventListener('click', () => {
+  if(selectedAreaIndex == null){
+    setColorEditMode(true);
+    setStatus('Primero toca una pintada; luego activa editar contorno.', 'warn');
+    return;
+  }
+  setContourEditMode(!contourEditMode);
+});
+colorFrameButton?.addEventListener('click', addFrameColorAreaForCurrent);
+blockQuadButton?.addEventListener('click', () => setBlockQuadMode(!blockQuadMode));
+colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode));
+textAddButton.addEventListener('click', () => {
+  if(selectedTextIndex != null){
+    editSelectedTextLabel();
+  }else{
+    addTextLabelForCurrent(map ? map.getCenter() : null);
+  }
+});
+saveChangesButton.addEventListener('click', saveAllChanges);
+colorUndoButton.addEventListener('click', undoDraftColorPoint);
+colorClearButton.addEventListener('click', clearColorAreasForCurrent);
+$('btn-prev').addEventListener('click', () => navigate(-1));
+$('btn-next').addEventListener('click', () => navigate(1));
+$('btn-pr').addEventListener('click', imprimir);
+$('btn-menu-help')?.addEventListener('click', showWelcomeScreen);
+$('btn-add-territory')?.addEventListener('click', addCustomTerritory);
+$('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
+$('welcome-start')?.addEventListener('click', hideWelcomeScreen);
+document.addEventListener('keydown', event => {
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's'){
+    event.preventDefault();
+    saveAllChanges();
+    return;
+  }
+  if(event.key === 'Escape' && territoryAddMode){
+    setTerritoryAddMode(false);
+    return;
+  }
+  if(event.key === 'Escape' && colorDrawMode){
+    setColorDrawMode(false);
+    return;
+  }
+  if(event.key === 'Escape' && blockQuadMode){
+    setBlockQuadMode(false);
+    return;
+  }
+  if(event.key === 'Escape' && textAddMode){
+    setTextAddMode(false);
+    return;
+  }
+  if(event.key === 'Escape' && contourEditMode){
+    setContourEditMode(false);
+    return;
+  }
+  if(event.key === 'Escape' && (colorEditMode || selectedAreaIndex != null || selectedTextIndex != null)){
+    setColorEditMode(false);
+    return;
+  }
+  if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(event.target.tagName)) return;
+  if((event.key === 'Delete' || event.key === 'Backspace') && selectedTextIndex != null){
+    event.preventDefault();
+    clearColorAreasForCurrent();
+    return;
+  }
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z'){
+    event.preventDefault();
+    undoDraftColorPoint();
+    return;
+  }
+  if(event.key === 'ArrowLeft') navigate(-1);
+  if(event.key === 'ArrowRight') navigate(1);
+});
+
+applyCustomTerritories();
+populateSelect();
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', loadLeaflet);
+}else{
+  loadLeaflet();
+}
+</script>
+</body>
+</html>
