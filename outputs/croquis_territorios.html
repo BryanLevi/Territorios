@@ -30,8 +30,8 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .frame-control{height:38px;display:flex;align-items:center;gap:8px;width:220px}
 .frame-control input[type=range]{flex:1;min-width:0;accent-color:#1f7a47}
 .frame-value{width:43px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
-.color-field{min-width:905px}
-.color-control{height:38px;display:flex;align-items:center;gap:7px;width:905px}
+.color-field{min-width:1055px}
+.color-control{height:38px;display:flex;align-items:center;gap:7px;width:1055px}
 .color-swatch{width:38px;height:38px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;padding:3px;cursor:pointer}
 .color-control input[type=range]{width:86px;accent-color:#1f7a47}
 .text-input{height:38px;width:150px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;color:#17251c;padding:0 9px;font-size:13px;font-weight:700}
@@ -55,7 +55,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .btn.ghost{background:#eef4f0;color:#1d5331;border:1px solid #cfe0d6}
 .map-wrap{position:relative;flex:1;min-height:0;background:#dbe4df}
 #map{position:absolute;inset:0;width:100%;height:100%}
-.map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container{cursor:crosshair}
+.map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-icon-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container{cursor:crosshair}
 .map-wrap.is-contour-editing .leaflet-container{cursor:default}
 .color-area-path{mix-blend-mode:multiply;filter:saturate(1.08) contrast(1.02)}
 .color-area-path.is-selected{filter:saturate(1.16) contrast(1.04)}
@@ -82,12 +82,12 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .runtime-reference-label,.print-reference-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);max-width:260px;padding:0;border:0!important;background:transparent!important;color:#102018!important;font-family:"Segoe UI",Arial,sans-serif;font-weight:950;line-height:1.04;text-align:left;text-transform:uppercase;white-space:normal;filter:none!important;mix-blend-mode:normal!important;text-shadow:none!important}
 .print-reference-label{gap:calc(5px * var(--print-label-scale,1));max-width:calc(360px * var(--print-label-scale,1))}
 .runtime-reference-icon,.print-reference-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px;box-shadow:0 0 0 2px rgba(255,255,255,.96),0 3px 8px rgba(0,0,0,.25)}
-.runtime-reference-icon{width:calc(31px * var(--runtime-reference-scale,1));height:calc(31px * var(--runtime-reference-scale,1));border-width:calc(2px * var(--runtime-reference-scale,1));border-radius:calc(5px * var(--runtime-reference-scale,1));box-shadow:0 0 0 calc(2px * var(--runtime-reference-scale,1)) rgba(255,255,255,.96),0 calc(3px * var(--runtime-reference-scale,1)) calc(8px * var(--runtime-reference-scale,1)) rgba(0,0,0,.25)}
-.print-reference-icon{width:calc(56px * var(--print-label-scale,1));height:calc(56px * var(--print-label-scale,1));border-width:calc(2.6px * var(--print-label-scale,1));border-radius:calc(9px * var(--print-label-scale,1));box-shadow:0 0 0 calc(3px * var(--print-label-scale,1)) rgba(255,255,255,.98),0 calc(3px * var(--print-label-scale,1)) calc(9px * var(--print-label-scale,1)) rgba(0,0,0,.27)}
-.runtime-reference-icon svg,.print-reference-icon svg{width:80%;height:80%;display:block;fill:none;stroke:currentColor}
+.runtime-reference-icon{width:31px;height:31px}
+.print-reference-icon{width:calc(46px * var(--print-label-scale,1));height:calc(46px * var(--print-label-scale,1));border-width:calc(2.4px * var(--print-label-scale,1));border-radius:calc(8px * var(--print-label-scale,1));box-shadow:0 0 0 calc(2.8px * var(--print-label-scale,1)) rgba(255,255,255,.98),0 calc(3px * var(--print-label-scale,1)) calc(8px * var(--print-label-scale,1)) rgba(0,0,0,.27)}
+.runtime-reference-icon svg,.print-reference-icon svg{width:76%;height:76%;display:block;fill:none;stroke:currentColor}
 .reference-icon-letter{display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:"Segoe UI",Arial,sans-serif;font-weight:1000;line-height:1}
-.runtime-reference-icon .reference-icon-letter{font-size:calc(15px * var(--runtime-reference-scale,1))}
-.print-reference-icon .reference-icon-letter{font-size:calc(20px * var(--print-label-scale,1))}
+.runtime-reference-icon .reference-icon-letter{font-size:15px}
+.print-reference-icon .reference-icon-letter{font-size:calc(16px * var(--print-label-scale,1))}
 .runtime-reference-name,.print-reference-name{display:inline-block;color:#102018!important;background:rgba(255,255,255,.96)!important;border:1.5px solid rgba(15,42,24,.55);border-radius:4px;box-shadow:0 1px 5px rgba(0,0,0,.22);font-weight:950;line-height:1.05;max-width:140px;overflow-wrap:normal;white-space:nowrap;word-break:normal}
 .runtime-reference-name{display:none!important}
 .print-reference-name{display:inline-block!important;font-size:calc(12px * var(--print-label-scale,1));padding:calc(2px * var(--print-label-scale,1)) calc(4px * var(--print-label-scale,1));max-width:calc(230px * var(--print-label-scale,1));color:#102018!important}
@@ -100,6 +100,13 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .territory-text-label span{display:block}
 .territory-text-label.is-selected{outline:2px solid #1f7a47;outline-offset:2px}
 .territory-text-marker{width:auto!important;height:auto!important;overflow:visible!important;z-index:1200!important}
+.manual-icon-select{height:38px;width:142px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;color:#17251c;padding:0 8px;font-size:12px;font-weight:800}
+.manual-icon-select:disabled{opacity:.45}
+.manual-map-icon{width:calc(31px * var(--manual-icon-scale,1));height:calc(31px * var(--manual-icon-scale,1));display:inline-flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px;box-shadow:0 0 0 2px rgba(255,255,255,.96),0 3px 8px rgba(0,0,0,.25)}
+.manual-map-icon svg{width:76%;height:76%;display:block;fill:none;stroke:currentColor}
+.manual-map-icon .reference-icon-letter{font-size:calc(15px * var(--manual-icon-scale,1))}
+.manual-map-icon.is-selected{outline:2px solid #1f7a47;outline-offset:3px}
+.manual-icon-marker{width:auto!important;height:auto!important;overflow:visible!important;z-index:1300!important}
 .leaflet-container{font-family:"Segoe UI",Arial,sans-serif;background:#dbe4df}
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-image-layer,.leaflet-layer,.leaflet-zoom-box{position:absolute;left:0;top:0}
 .leaflet-container{overflow:hidden;outline:0}
@@ -280,6 +287,7 @@ body.print-preview{overflow:hidden}
       <input class="text-input" id="text-value" type="text" value="" placeholder="Texto" disabled title="Texto. Usa / para separar renglones" aria-label="Texto">
       <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de texto" aria-label="Tamaño de texto">
       <output class="text-size-value" id="text-size-value" for="text-size">22</output>
+      <select class="manual-icon-select" id="manual-icon-kind" disabled title="Icono de referencia" aria-label="Icono de referencia"></select>
       <button class="icon-btn" id="btn-color-edit" type="button" disabled title="Editar pintada o texto" aria-label="Editar pintada o texto">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
       </button>
@@ -294,6 +302,9 @@ body.print-preview{overflow:hidden}
       </button>
       <button class="icon-btn" id="btn-text-add" type="button" disabled title="Agregar texto" aria-label="Agregar texto">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-icon-add" type="button" disabled title="Agregar icono" aria-label="Agregar icono">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
       </button>
       <button class="icon-btn" id="btn-save-changes" type="button" disabled title="Guardar cambios" aria-label="Guardar cambios">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
@@ -375,12 +386,15 @@ const MUNICIPIO = 'Ixhuatlán del Café';
 const ESTADO = 'Veracruz de Ignacio de la Llave';
 const FUENTE_INEGI = 'INEGI CPV 2010 / cartografía base en línea 2026';
 const FUENTE_IFT = 'IFT localidades / cartografía base en línea 2026';
-const APP_BUILD = 'iconos-zoom-dinamico-2026-06-30-7';
+const APP_BUILD = 'pdf-sin-refuerzo-calles-2026-07-01-14';
 const DETAIL_ZOOM = 20;
 const DETAIL_PAD = 2;
 const PRINT_ASPECT = 297 / 189;
 const PRINT_RENDER_SCALE = 18;
 const PRINT_MAX_ZOOM = 20;
+const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
+const PRINT_VECTOR_LABEL_SCALE = PRINT_RENDER_SCALE * .24;
+const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .62;
 const PRINT_TILE_TIMEOUT_MS = 180000;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
@@ -550,6 +564,7 @@ const colorOpacityValue = $('fill-opacity-value');
 const textInput = $('text-value');
 const textSizeInput = $('text-size');
 const textSizeValue = $('text-size-value');
+const manualIconSelect = $('manual-icon-kind');
 if(textSizeInput){
   textSizeInput.min = '12';
   textSizeInput.max = '48';
@@ -562,6 +577,7 @@ const blockQuadButton = $('btn-block-quad');
 const colorDrawButton = $('btn-color-draw');
 const roadPencilButton = $('btn-road-pencil');
 const textAddButton = $('btn-text-add');
+const iconAddButton = $('btn-icon-add');
 const saveChangesButton = $('btn-save-changes');
 const backupExportButton = $('btn-backup-export');
 const backupImportButton = $('btn-backup-import');
@@ -571,6 +587,7 @@ const colorClearButton = $('btn-color-clear');
 const FRAME_SCALE_STORAGE_KEY = 'croquis-territory-frame-scale-v1';
 const COLOR_AREAS_STORAGE_KEY = 'croquis-territory-color-areas-v1';
 const TEXT_LABELS_STORAGE_KEY = 'croquis-territory-text-labels-v1';
+const MANUAL_ICONS_STORAGE_KEY = 'croquis-territory-manual-icons-v1';
 const WHITE_ROADS_STORAGE_KEY = 'croquis-territory-white-roads-v1';
 const UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v2';
 const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
@@ -583,14 +600,60 @@ const FRAME_SCALE_MIN = 55;
 const FRAME_SCALE_MAX = 180;
 const FRAME_SCALE_STEP = 5;
 const DEFAULT_FILL_COLOR = '#ff8200';
+const MANUAL_ICON_OPTIONS = [
+  ['Iglesia','Iglesia / templo'],
+  ['Escuela','Escuela'],
+  ['Parque','Parque'],
+  ['Cancha','Cancha / deporte'],
+  ['Monumento','Monumento'],
+  ['Mirador','Mirador'],
+  ['Palacio','Gobierno'],
+  ['Mercado','Mercado'],
+  ['Comercio','Tienda / comercio'],
+  ['Tienda','Tienda'],
+  ['Super','Supermercado'],
+  ['Abarrotes','Abarrotes'],
+  ['Ferreteria','Ferreteria'],
+  ['Panaderia','Panaderia'],
+  ['Carniceria','Carniceria'],
+  ['Papeleria','Papeleria'],
+  ['Restaurante','Restaurante'],
+  ['Cafe','Cafe'],
+  ['Comida','Comida'],
+  ['Bar','Bar'],
+  ['Helado','Heladeria'],
+  ['Farmacia','Farmacia'],
+  ['Clinica','Clinica'],
+  ['Hospital','Hospital'],
+  ['Dentista','Dentista'],
+  ['Veterinaria','Veterinaria'],
+  ['Banco','Banco'],
+  ['Cajero','Cajero'],
+  ['Gasolinera','Gasolinera'],
+  ['Taller','Taller mecanico'],
+  ['Estetica','Estetica / peluqueria'],
+  ['Lavanderia','Lavanderia'],
+  ['Gimnasio','Gimnasio'],
+  ['Biblioteca','Biblioteca'],
+  ['Hotel','Hotel'],
+  ['Estacionamiento','Estacionamiento'],
+  ['Policia','Policia'],
+  ['Bomberos','Bomberos'],
+  ['Terminal','Terminal / bus'],
+  ['Correo','Correo'],
+  ['Panteon','Panteon'],
+  ['Referencia','Referencia']
+];
 let frameScaleSettings = loadFrameScaleSettings();
 let colorAreaSettings = loadColorAreaSettings();
 let textLabelSettings = loadTextLabelSettings();
+let manualIconSettings = loadManualIconSettings();
 let whiteRoadSettings = loadWhiteRoadSettings();
 let undoHistory = loadUndoHistory();
 let colorLayer = null;
 let draftLayer = null;
 let textLayer = null;
+let manualIconLayer = null;
 let editHandleLayer = null;
 let colorRestoreLayer = null;
 let labelOverlayLayer = null;
@@ -610,6 +673,7 @@ let autoBlockRoadCache = null;
 let colorEditMode = false;
 let contourEditMode = false;
 let textAddMode = false;
+let iconAddMode = false;
 let roadPencilMode = false;
 let roadDraftPoints = [];
 let draftPoints = [];
@@ -618,6 +682,7 @@ let territoryAddStart = null;
 let territoryAddPreviewLayer = null;
 let selectedAreaIndex = null;
 let selectedTextIndex = null;
+let selectedIconIndex = null;
 let suppressUndoSnapshot = false;
 
 function setStatus(message, type){
@@ -647,6 +712,18 @@ function safeFileName(value){
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/[^\w.-]+/g,'_')
     .replace(/^_+|_+$/g,'');
+}
+
+function populateManualIconSelect(){
+  if(!manualIconSelect) return;
+  manualIconSelect.innerHTML = '';
+  MANUAL_ICON_OPTIONS.forEach(([value, label]) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    manualIconSelect.appendChild(option);
+  });
+  manualIconSelect.value = 'Iglesia';
 }
 
 function loadFrameScaleSettings(){
@@ -722,6 +799,32 @@ function saveTextLabelSettings(){
       return true;
     }catch(err){
       console.error('No se pudieron guardar los textos.', err);
+      return false;
+    }
+  }
+}
+
+function loadManualIconSettings(){
+  try{
+    const raw = localStorage.getItem(MANUAL_ICONS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveManualIconSettings(){
+  try{
+    localStorage.setItem(MANUAL_ICONS_STORAGE_KEY, JSON.stringify(manualIconSettings));
+    return true;
+  }catch(e){
+    clearHeavyUndoStorage();
+    try{
+      localStorage.setItem(MANUAL_ICONS_STORAGE_KEY, JSON.stringify(manualIconSettings));
+      return true;
+    }catch(err){
+      console.error('No se pudieron guardar los iconos.', err);
       return false;
     }
   }
@@ -904,9 +1007,11 @@ function setTerritoryAddMode(active, showMessage = true){
     setRoadPencilMode(false, false);
     setBlockQuadMode(false, false);
     setTextAddMode(false, false);
+    setIconAddMode(false, false);
     setContourEditMode(false, false);
     selectedAreaIndex = null;
     selectedTextIndex = null;
+    selectedIconIndex = null;
     if(showMessage) setStatus('Agregar territorio: toca una esquina del recuadro en el mapa.', 'warn');
   }else if(showMessage && statusBox.classList.contains('warn') && statusBox.textContent.includes('Agregar territorio')){
     setStatus('', '');
@@ -977,10 +1082,12 @@ function clearTerritoryStoredWork(loc){
   const key = String(loc.num);
   delete colorAreaSettings[key];
   delete textLabelSettings[key];
+  delete manualIconSettings[key];
   delete whiteRoadSettings[key];
   delete frameScaleSettings[key];
   saveColorAreaSettings();
   saveTextLabelSettings();
+  saveManualIconSettings();
   saveWhiteRoadSettings();
   saveFrameScaleSettings();
 }
@@ -1089,6 +1196,7 @@ function getCurrentSnapshot(reason = 'change', loc = LOCS[currentIndex]){
     locNum:loc?.num ?? null,
     areas:cloneData(getColorAreasForLoc(loc)) || [],
     labels:cloneData(getTextLabelsForLoc(loc)) || [],
+    icons:cloneData(getManualIconsForLoc(loc)) || [],
     roads:cloneData(getWhiteRoadsForLoc(loc)) || [],
     createdAt:Date.now()
   };
@@ -1102,12 +1210,14 @@ function pushUndoSnapshot(reason = 'change', loc = LOCS[currentIndex]){
     locNum:snapshot.locNum,
     areas:snapshot.areas,
     labels:snapshot.labels,
+    icons:snapshot.icons,
     roads:snapshot.roads
   });
   const lastKey = last ? stateFingerprint({
     locNum:last.locNum,
     areas:last.areas,
     labels:last.labels,
+    icons:last.icons,
     roads:last.roads
   }) : '';
   if(nextKey && nextKey === lastKey) return;
@@ -1126,14 +1236,16 @@ function restoreLastUndoSnapshot(){
   saveUndoHistory();
   suppressUndoSnapshot = true;
   try{
-    if(snapshot.colorAreaSettings || snapshot.textLabelSettings || snapshot.whiteRoadSettings){
+    if(snapshot.colorAreaSettings || snapshot.textLabelSettings || snapshot.manualIconSettings || snapshot.whiteRoadSettings){
       colorAreaSettings = cloneData(snapshot.colorAreaSettings) || {};
       textLabelSettings = cloneData(snapshot.textLabelSettings) || {};
+      manualIconSettings = cloneData(snapshot.manualIconSettings) || {};
       whiteRoadSettings = cloneData(snapshot.whiteRoadSettings) || {};
     }else{
       const key = String(snapshot.locNum);
       const areas = cloneData(snapshot.areas) || [];
       const labels = cloneData(snapshot.labels) || [];
+      const icons = cloneData(snapshot.icons) || [];
       const roads = cloneData(snapshot.roads) || [];
       if(areas.length){
         colorAreaSettings[key] = areas;
@@ -1145,6 +1257,11 @@ function restoreLastUndoSnapshot(){
       }else{
         delete textLabelSettings[key];
       }
+      if(icons.length){
+        manualIconSettings[key] = icons;
+      }else{
+        delete manualIconSettings[key];
+      }
       if(roads.length){
         whiteRoadSettings[key] = roads;
       }else{
@@ -1153,6 +1270,7 @@ function restoreLastUndoSnapshot(){
     }
     saveColorAreaSettings();
     saveTextLabelSettings();
+    saveManualIconSettings();
     saveWhiteRoadSettings();
   }finally{
     suppressUndoSnapshot = false;
@@ -1160,6 +1278,7 @@ function restoreLastUndoSnapshot(){
   resetDraftArea();
   selectedAreaIndex = null;
   selectedTextIndex = null;
+  selectedIconIndex = null;
   setContourEditMode(false, false);
   const locIndex = LOCS.findIndex(loc => String(loc.num) === String(snapshot.locNum));
   if(locIndex >= 0){
@@ -1169,6 +1288,7 @@ function restoreLastUndoSnapshot(){
   }else{
     renderColorAreas(LOCS[currentIndex]);
     renderTextLabels(LOCS[currentIndex]);
+    renderManualIcons(LOCS[currentIndex]);
     renderManualWhiteRoads(LOCS[currentIndex]);
     updateColorControls();
   }
@@ -1264,6 +1384,44 @@ function setTextLabelsForLoc(loc, labels, options = {}){
   return saved;
 }
 
+function normalizeManualIcon(icon){
+  const lat = Number(icon?.lat);
+  const lng = Number(icon?.lng);
+  if(!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const kind = String(icon?.kind || 'Referencia').trim() || 'Referencia';
+  return {
+    kind,
+    lat:Number(lat.toFixed(6)),
+    lng:Number(lng.toFixed(6))
+  };
+}
+
+function getManualIconsForLoc(loc){
+  if(!loc) return [];
+  const icons = manualIconSettings[String(loc.num)];
+  return Array.isArray(icons) ? icons.map(normalizeManualIcon).filter(Boolean) : [];
+}
+
+function setManualIconsForLoc(loc, icons, options = {}){
+  if(!loc) return false;
+  const key = String(loc.num);
+  const before = cloneData(getManualIconsForLoc(loc));
+  const validIcons = (icons || []).map(normalizeManualIcon).filter(Boolean);
+  if(stateFingerprint(before) !== stateFingerprint(validIcons) && !options.skipUndo){
+    pushUndoSnapshot('icons', loc);
+  }
+  if(validIcons.length){
+    manualIconSettings[key] = validIcons;
+  }else{
+    delete manualIconSettings[key];
+  }
+  const saved = saveManualIconSettings();
+  if(!saved && !options.silent){
+    setStatus('No se pudieron guardar los iconos. Intenta de nuevo.', 'error');
+  }
+  return saved;
+}
+
 function normalizeWhiteRoad(road){
   const points = Array.isArray(road?.points) ? road.points : [];
   const validPoints = points
@@ -1351,12 +1509,13 @@ function findColorAreaAtLatLng(loc, latlng){
 function updateColorControls(loc = LOCS[currentIndex]){
   if(!colorInput || !colorOpacityInput) return;
   const enabled = !!map;
-  const hasSelection = selectedAreaIndex != null || selectedTextIndex != null;
+  const hasSelection = selectedAreaIndex != null || selectedTextIndex != null || selectedIconIndex != null;
   colorInput.disabled = !enabled;
   colorOpacityInput.disabled = !enabled;
   textInput.disabled = !enabled;
+  if(manualIconSelect) manualIconSelect.disabled = !enabled;
   if(textSizeInput) textSizeInput.disabled = !enabled;
-  colorEditButton.disabled = !enabled || !loc || (getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0);
+  colorEditButton.disabled = !enabled || !loc || (getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0);
   colorEditButton.classList.toggle('active', colorEditMode || hasSelection);
   contourEditButton.disabled = !enabled || !loc || selectedAreaIndex == null;
   contourEditButton.classList.toggle('active', contourEditMode);
@@ -1375,10 +1534,14 @@ function updateColorControls(loc = LOCS[currentIndex]){
   }
   textAddButton.disabled = !enabled || !loc;
   textAddButton.classList.toggle('active', textAddMode);
+  if(iconAddButton){
+    iconAddButton.disabled = !enabled || !loc;
+    iconAddButton.classList.toggle('active', iconAddMode);
+  }
   saveChangesButton.disabled = !enabled || blockAutoBusy || !loc;
   const canUndoSavedChange = undoHistory.length > 0;
   colorUndoButton.disabled = !enabled || blockAutoBusy || ((!colorDrawMode || draftPoints.length < 1) && (!blockQuadMode || draftPoints.length < 1) && (!roadPencilMode || roadDraftPoints.length < 1) && !(contourEditMode && selectedAreaIndex != null && getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.length > 3) && !canUndoSavedChange);
-  colorClearButton.disabled = !enabled || !loc || (!draftPoints.length && !roadDraftPoints.length && getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0);
+  colorClearButton.disabled = !enabled || !loc || (!draftPoints.length && !roadDraftPoints.length && getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0);
   colorOpacityValue.textContent = Math.round(getFillOpacity() * 100) + '%';
   updateTextSizeValue();
 }
@@ -1396,7 +1559,7 @@ function renderColorAreas(loc){
     }).addTo(colorLayer);
     polygon.on('click', event => {
       if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
-      if(textAddMode || colorDrawMode || contourEditMode || blockQuadMode || roadPencilMode){
+      if(textAddMode || iconAddMode || colorDrawMode || contourEditMode || blockQuadMode || roadPencilMode){
         handleColorMapClick(event);
         return;
       }
@@ -1636,11 +1799,27 @@ function referenceMarkerShort(ref){
     Restaurante:'R',
     Cafe:'C',
     Comida:'C',
+    Bar:'B',
+    Helado:'H',
     Banco:'B',
     Cajero:'$',
     Estacionamiento:'E',
     Hotel:'H',
-    Comercio:'C'
+    Comercio:'C',
+    Tienda:'T',
+    Super:'S',
+    Abarrotes:'A',
+    Ferreteria:'F',
+    Panaderia:'P',
+    Carniceria:'C',
+    Papeleria:'P',
+    Taller:'T',
+    Estetica:'E',
+    Lavanderia:'L',
+    Gimnasio:'G',
+    Biblioteca:'B',
+    Dentista:'D',
+    Veterinaria:'V'
   };
   return map[kind] || 'R';
 }
@@ -1664,10 +1843,10 @@ function referenceIconSvg(ref){
   if(kind === 'Monumento' || kind === 'Mirador' || kind === 'Palacio'){
     return svg('<path d="M4 9l8-5 8 5"></path><path d="M6 10h12"></path><path d="M7 10v8"></path><path d="M12 10v8"></path><path d="M17 10v8"></path><path d="M5 19h14"></path>');
   }
-  if(kind === 'Mercado' || kind === 'Comercio'){
+  if(kind === 'Mercado' || kind === 'Comercio' || kind === 'Tienda' || kind === 'Super' || kind === 'Abarrotes' || kind === 'Panaderia' || kind === 'Carniceria' || kind === 'Papeleria'){
     return svg('<path d="M4 10h16l-1-5H5z"></path><path d="M6 10v10h12V10"></path><path d="M9 20v-5h6v5"></path>');
   }
-  if(kind === 'Clinica' || kind === 'Hospital' || kind === 'Farmacia'){
+  if(kind === 'Clinica' || kind === 'Hospital' || kind === 'Farmacia' || kind === 'Dentista' || kind === 'Veterinaria'){
     return svg('<path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5z"></path>');
   }
   if(kind === 'Gasolinera'){
@@ -1685,7 +1864,7 @@ function referenceIconSvg(ref){
   if(kind === 'Correo'){
     return svg('<rect x="4" y="6" width="16" height="12" rx="2"></rect><path d="M4 8l8 6 8-6"></path>');
   }
-  if(kind === 'Restaurante' || kind === 'Comida'){
+  if(kind === 'Restaurante' || kind === 'Comida' || kind === 'Bar' || kind === 'Helado'){
     return svg('<path d="M7 3v8"></path><path d="M5 3v4a2 2 0 0 0 4 0V3"></path><path d="M17 3v18"></path><path d="M14 3h3a3 3 0 0 1 0 6h-3"></path>');
   }
   if(kind === 'Cafe'){
@@ -1700,27 +1879,31 @@ function referenceIconSvg(ref){
   if(kind === 'Hotel'){
     return svg('<path d="M4 20V8"></path><path d="M4 14h16v6"></path><path d="M8 14V9h4a3 3 0 0 1 3 3v2"></path>');
   }
+  if(kind === 'Taller' || kind === 'Ferreteria'){
+    return svg('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-3-3z"></path>');
+  }
+  if(kind === 'Estetica'){
+    return svg('<path d="M4 7a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"></path><path d="M4 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"></path><path d="M8 8l12 9"></path><path d="M8 16l12-9"></path>');
+  }
+  if(kind === 'Lavanderia'){
+    return svg('<rect x="5" y="3" width="14" height="18" rx="2"></rect><circle cx="12" cy="13" r="4"></circle><path d="M9 7h.01"></path><path d="M13 7h2"></path>');
+  }
+  if(kind === 'Gimnasio'){
+    return svg('<path d="M6 7v10"></path><path d="M18 7v10"></path><path d="M3 10v4"></path><path d="M21 10v4"></path><path d="M6 12h12"></path>');
+  }
+  if(kind === 'Biblioteca'){
+    return svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path>');
+  }
   if(kind === 'Panteon'){
     return svg('<path d="M12 4v17"></path><path d="M8 8h8"></path><path d="M7 21h10"></path>');
   }
   return letter(referenceMarkerShort(ref));
 }
 
-function getRuntimeReferenceScale(){
-  const zoom = Number(map?.getZoom?.());
-  if(!Number.isFinite(zoom)) return 1.35;
-  if(zoom <= 15) return 1.8;
-  if(zoom <= 16) return 1.62;
-  if(zoom <= 17) return 1.42;
-  if(zoom <= 18) return 1.22;
-  if(zoom <= 19) return 1.06;
-  return .96;
-}
-
-function referenceLabelHtml(ref, printMode = false, runtimeScale = 1){
+function referenceLabelHtml(ref, printMode = false){
   const text = referenceLabelText(ref);
   const prefix = printMode ? 'print' : 'runtime';
-  const scaleStyle = printMode ? ' style="--print-label-scale:' + PRINT_RENDER_SCALE + '"' : ' style="--runtime-reference-scale:' + runtimeScale.toFixed(2) + '"';
+  const scaleStyle = printMode ? ' style="--print-label-scale:' + PRINT_RENDER_SCALE + '"' : '';
   const title = text ? ' title="' + escapeHtml(text) + '"' : '';
   const nameHtml = printMode && text ? '<span class="' + prefix + '-reference-name">' + escapeHtml(text) + '</span>' : '';
   return '<div class="' + prefix + '-reference-label"' + scaleStyle + title + '><span class="' + prefix + '-reference-icon">' + referenceIconSvg(ref) + '</span>' + nameHtml + '</div>';
@@ -1763,7 +1946,6 @@ function drawRuntimeReferences(references){
   if(!Array.isArray(references) || !references.length) return;
   const hasAreas = getColorAreasForLoc(LOCS[currentIndex]).length > 0;
   const opacity = hasAreas ? 1 : .9;
-  const iconScale = getRuntimeReferenceScale();
   const placedBoxes = [];
   references.slice(0, 140).forEach(ref => {
     const lat = Number(ref.lat);
@@ -1771,8 +1953,8 @@ function drawRuntimeReferences(references){
     const text = referenceLabelText(ref);
     if(!text || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
     const point = map.latLngToLayerPoint([lat, lng]);
-    const box = referenceIconBoxForPoint(point, iconScale);
-    if(!canPlaceLabel(box, placedBoxes, 7 * iconScale)) return;
+    const box = referenceIconBoxForPoint(point);
+    if(!canPlaceLabel(box, placedBoxes, 7)) return;
     placedBoxes.push(box);
     L.marker([lat, lng], {
       interactive:false,
@@ -1781,7 +1963,7 @@ function drawRuntimeReferences(references){
       zIndexOffset:1100,
       icon:L.divIcon({
         className:'runtime-reference-marker',
-        html:referenceLabelHtml(ref, false, iconScale),
+        html:referenceLabelHtml(ref, false),
         iconSize:[0,0],
         iconAnchor:[0,0]
       })
@@ -2019,6 +2201,51 @@ function renderTextLabels(loc){
   });
 }
 
+function createManualIcon(icon, selected = false, scale = 1){
+  const kind = String(icon?.kind || 'Referencia').trim() || 'Referencia';
+  const selectedClass = selected ? ' is-selected' : '';
+  const scaleStyle = scale !== 1 ? ' style="--manual-icon-scale:' + scale + '"' : '';
+  return L.divIcon({
+    className:'manual-icon-marker',
+    html:'<div class="manual-map-icon' + selectedClass + '"' + scaleStyle + '>' + referenceIconSvg({ kind }) + '</div>',
+    iconAnchor:[0,0]
+  });
+}
+
+function renderManualIcons(loc){
+  if(!manualIconLayer || !window.L) return;
+  manualIconLayer.clearLayers();
+  getManualIconsForLoc(loc).forEach((icon, index) => {
+    const lat = Number(icon.lat);
+    const lng = Number(icon.lng);
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const marker = L.marker([lat, lng], {
+      draggable:true,
+      icon:createManualIcon(icon, selectedIconIndex === index),
+      interactive:true,
+      riseOnHover:true,
+      zIndexOffset:1300
+    }).addTo(manualIconLayer);
+    marker.on('click', event => {
+      if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
+      selectManualIcon(index);
+    });
+    marker.on('dblclick', event => {
+      if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
+      selectManualIcon(index);
+    });
+    marker.on('dragend', () => {
+      const icons = getManualIconsForLoc(loc).slice();
+      const next = marker.getLatLng();
+      if(icons[index]){
+        icons[index] = { ...icons[index], lat:Number(next.lat.toFixed(6)), lng:Number(next.lng.toFixed(6)) };
+        setManualIconsForLoc(loc, icons);
+        renderManualIcons(loc);
+      }
+    });
+  });
+}
+
 function renderDraftArea(){
   if(!draftLayer || !window.L) return;
   draftLayer.clearLayers();
@@ -2103,8 +2330,10 @@ function setRoadPencilMode(active, showMessage = true){
     setContourEditMode(false, false);
     selectedAreaIndex = null;
     selectedTextIndex = null;
+    selectedIconIndex = null;
     renderColorAreas(LOCS[currentIndex]);
     renderTextLabels(LOCS[currentIndex]);
+    renderManualIcons(LOCS[currentIndex]);
   }
   resetRoadDraft();
   document.querySelector('.map-wrap')?.classList.toggle('is-road-pencil', roadPencilMode);
@@ -2123,6 +2352,7 @@ function setColorDrawMode(active){
   if(colorDrawMode) setTerritoryAddMode(false, false);
   if(colorDrawMode) setRoadPencilMode(false, false);
   if(colorDrawMode) setTextAddMode(false, false);
+  if(colorDrawMode) setIconAddMode(false, false);
   if(colorDrawMode) setContourEditMode(false, false);
   if(colorDrawMode) setBlockQuadMode(false, false);
   resetDraftArea();
@@ -2141,9 +2371,11 @@ function setBlockAutoMode(active, showMessage = true){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
     setTextAddMode(false, false);
+    setIconAddMode(false, false);
     setContourEditMode(false, false);
     selectedAreaIndex = null;
     selectedTextIndex = null;
+    selectedIconIndex = null;
     renderColorAreas(LOCS[currentIndex]);
     renderTextLabels(LOCS[currentIndex]);
   }
@@ -2165,9 +2397,11 @@ function setBlockQuadMode(active, showMessage = true){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
     setTextAddMode(false, false);
+    setIconAddMode(false, false);
     setContourEditMode(false, false);
     selectedAreaIndex = null;
     selectedTextIndex = null;
+    selectedIconIndex = null;
     renderColorAreas(LOCS[currentIndex]);
     renderTextLabels(LOCS[currentIndex]);
   }
@@ -2191,11 +2425,13 @@ function setColorEditMode(active){
     setRoadPencilMode(false, false);
     setBlockQuadMode(false, false);
     setTextAddMode(false, false);
+    setIconAddMode(false, false);
     setStatus('Modo edicion: toca una pintada para seleccionarla. Doble clic en un texto para editarlo.', 'warn');
   }else{
     setContourEditMode(false, false);
     selectedAreaIndex = null;
     selectedTextIndex = null;
+    selectedIconIndex = null;
     renderColorAreas(LOCS[currentIndex]);
     renderTextLabels(LOCS[currentIndex]);
     if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Modo edicion')) setStatus('', '');
@@ -2212,6 +2448,7 @@ function setContourEditMode(active, showMessage = true){
     setRoadPencilMode(false, false);
     setBlockQuadMode(false, false);
     setTextAddMode(false, false);
+    setIconAddMode(false, false);
     document.querySelector('.map-wrap')?.classList.add('is-contour-editing');
     if(showMessage) setStatus('Editando contorno: arrastra puntos blancos. Clic en la zona agrega un punto al borde cercano; flecha quita el ultimo.', 'warn');
   }else{
@@ -2230,11 +2467,14 @@ function setTextAddMode(active, showMessage = true){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
     setBlockQuadMode(false, false);
+    setIconAddMode(false, false);
     setContourEditMode(false, false);
     selectedAreaIndex = null;
     selectedTextIndex = null;
+    selectedIconIndex = null;
     renderColorAreas(LOCS[currentIndex]);
     renderTextLabels(LOCS[currentIndex]);
+    renderManualIcons(LOCS[currentIndex]);
   }
   document.querySelector('.map-wrap')?.classList.toggle('is-text-placing', textAddMode);
   if(showMessage){
@@ -2247,18 +2487,47 @@ function setTextAddMode(active, showMessage = true){
   updateColorControls();
 }
 
+function setIconAddMode(active, showMessage = true){
+  iconAddMode = !!active;
+  if(iconAddMode){
+    setTerritoryAddMode(false, false);
+    setColorDrawMode(false);
+    setRoadPencilMode(false, false);
+    setBlockQuadMode(false, false);
+    setTextAddMode(false, false);
+    setContourEditMode(false, false);
+    selectedAreaIndex = null;
+    selectedTextIndex = null;
+    selectedIconIndex = null;
+    renderColorAreas(LOCS[currentIndex]);
+    renderTextLabels(LOCS[currentIndex]);
+    renderManualIcons(LOCS[currentIndex]);
+  }
+  document.querySelector('.map-wrap')?.classList.toggle('is-icon-placing', iconAddMode);
+  if(showMessage){
+    if(iconAddMode){
+      setStatus('Icono: elige el tipo y toca el mapa donde quieres colocarlo.', 'warn');
+    }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Icono:')){
+      setStatus('', '');
+    }
+  }
+  updateColorControls();
+}
+
 function selectColorArea(index){
   const loc = LOCS[currentIndex];
   const area = getColorAreasForLoc(loc)[index];
   if(!area) return;
   selectedAreaIndex = index;
   selectedTextIndex = null;
+  selectedIconIndex = null;
   colorEditMode = true;
   colorInput.value = sanitizeColor(area.color);
   colorOpacityInput.value = String(Math.round((Number(area.opacity) || getFillOpacity()) * 100));
   textInput.value = '';
   renderColorAreas(loc);
   renderTextLabels(loc);
+  renderManualIcons(loc);
   renderContourEditHandles(loc);
   setStatus(contourEditMode ? 'Editando contorno: arrastra puntos blancos. Clic en la zona agrega un punto al borde cercano; flecha quita el ultimo.' : 'Pintada seleccionada. Cambia color/transparencia, edita contorno o usa la basura para borrarla.', 'warn');
   updateColorControls(loc);
@@ -2270,6 +2539,7 @@ function selectTextLabel(index){
   if(!label) return;
   selectedTextIndex = index;
   selectedAreaIndex = null;
+  selectedIconIndex = null;
   setContourEditMode(false, false);
   colorEditMode = true;
   colorInput.value = sanitizeColor(label.color);
@@ -2278,7 +2548,25 @@ function selectTextLabel(index){
   updateTextSizeValue();
   renderColorAreas(loc);
   renderTextLabels(loc);
+  renderManualIcons(loc);
   setStatus('Texto seleccionado. Edita el campo Texto o el tamaño; usa la basura o Supr para borrarlo.', 'warn');
+  updateColorControls(loc);
+}
+
+function selectManualIcon(index){
+  const loc = LOCS[currentIndex];
+  const icon = getManualIconsForLoc(loc)[index];
+  if(!icon) return;
+  selectedIconIndex = index;
+  selectedAreaIndex = null;
+  selectedTextIndex = null;
+  setContourEditMode(false, false);
+  colorEditMode = true;
+  if(manualIconSelect) manualIconSelect.value = String(icon.kind || 'Referencia');
+  renderColorAreas(loc);
+  renderTextLabels(loc);
+  renderManualIcons(loc);
+  setStatus('Icono seleccionado. Cambia el tipo en la lista, arrastralo o usa la basura/Supr para borrarlo.', 'warn');
   updateColorControls(loc);
 }
 
@@ -2317,7 +2605,9 @@ function addColorAreaForCurrent(points){
   const saved = setColorAreasForLoc(loc, areas);
   selectedAreaIndex = areas.length - 1;
   selectedTextIndex = null;
+  selectedIconIndex = null;
   renderColorAreas(loc);
+  renderManualIcons(loc);
   if(saved) setStatus('Area guardada.', 'warn');
   updateColorControls(loc);
 }
@@ -2873,8 +3163,10 @@ function addBlockAreaAndStayReady(points, message){
   resetDraftArea();
   selectedAreaIndex = null;
   selectedTextIndex = null;
+  selectedIconIndex = null;
   renderColorAreas(loc);
   renderTextLabels(loc);
+  renderManualIcons(loc);
   setStatus(message, 'warn');
   updateColorControls(loc);
 }
@@ -2947,10 +3239,11 @@ function saveAllChanges(){
   }
   const colorsSaved = saveColorAreaSettings();
   const textsSaved = saveTextLabelSettings();
+  const iconsSaved = saveManualIconSettings();
   const roadsSaved = saveWhiteRoadSettings();
   const frameSaved = saveFrameScaleSettings();
   saveUndoHistory();
-  if(colorsSaved && textsSaved && roadsSaved && frameSaved){
+  if(colorsSaved && textsSaved && iconsSaved && roadsSaved && frameSaved){
     setStatus(closedArea ? 'Area y cambios guardados.' : (closedRoad ? 'Calle blanca y cambios guardados.' : 'Cambios guardados.'), 'warn');
   }else{
     setStatus('No se pudieron guardar todos los cambios. Intenta otra vez.', 'error');
@@ -2958,6 +3251,7 @@ function saveAllChanges(){
   renderColorAreas(LOCS[currentIndex]);
   renderManualWhiteRoads(LOCS[currentIndex]);
   renderTextLabels(LOCS[currentIndex]);
+  renderManualIcons(LOCS[currentIndex]);
   updateColorControls(LOCS[currentIndex]);
 }
 
@@ -2983,6 +3277,7 @@ function buildBackupPayload(){
     data:{
       colorAreas:safeObject(colorAreaSettings),
       textLabels:safeObject(textLabelSettings),
+      manualIcons:safeObject(manualIconSettings),
       whiteRoads:safeObject(whiteRoadSettings),
       frameScales:safeObject(frameScaleSettings),
       customTerritories:loadCustomTerritorySettings(),
@@ -3016,6 +3311,7 @@ function getBackupData(payload){
   return {
     colorAreas:safeObject(data.colorAreas || data[COLOR_AREAS_STORAGE_KEY]),
     textLabels:safeObject(data.textLabels || data[TEXT_LABELS_STORAGE_KEY]),
+    manualIcons:safeObject(data.manualIcons || data[MANUAL_ICONS_STORAGE_KEY]),
     whiteRoads:safeObject(data.whiteRoads || data[WHITE_ROADS_STORAGE_KEY]),
     frameScales:safeObject(data.frameScales || data[FRAME_SCALE_STORAGE_KEY]),
     customTerritories:safeArray(data.customTerritories || data[CUSTOM_TERRITORIES_STORAGE_KEY]).map(normalizeCustomTerritory).filter(Boolean),
@@ -3046,27 +3342,31 @@ function importBackupPayload(payload){
   const previousNum = LOCS[currentIndex]?.num;
   colorAreaSettings = data.colorAreas;
   textLabelSettings = data.textLabels;
+  manualIconSettings = data.manualIcons;
   whiteRoadSettings = data.whiteRoads;
   frameScaleSettings = data.frameScales;
   undoHistory = [];
   const colorsSaved = saveColorAreaSettings();
   const textsSaved = saveTextLabelSettings();
+  const iconsSaved = saveManualIconSettings();
   const roadsSaved = saveWhiteRoadSettings();
   const framesSaved = saveFrameScaleSettings();
   const customSaved = saveCustomTerritorySettings(data.customTerritories);
   const hiddenSaved = saveHiddenTerritorySettings(data.hiddenTerritories);
   saveUndoHistory();
-  if(!(colorsSaved && textsSaved && roadsSaved && framesSaved && customSaved && hiddenSaved)){
+  if(!(colorsSaved && textsSaved && iconsSaved && roadsSaved && framesSaved && customSaved && hiddenSaved)){
     setStatus('No se pudo importar todo el respaldo. Revisa espacio o permisos del navegador.', 'error');
     return false;
   }
   selectedAreaIndex = null;
   selectedTextIndex = null;
+  selectedIconIndex = null;
   draftPoints = [];
   setColorDrawMode(false);
   setBlockQuadMode(false, false);
   setRoadPencilMode(false, false);
   setTextAddMode(false, false);
+  setIconAddMode(false, false);
   setContourEditMode(false, false);
   setTerritoryAddMode(false, false);
   refreshAfterBackupImport(previousNum);
@@ -3153,15 +3453,24 @@ function clearColorAreasForCurrent(){
     setTextLabelsForLoc(loc, labels);
     renderTextLabels(loc);
     setStatus('Texto borrado.', 'warn');
+  }else if(selectedIconIndex != null){
+    const icons = getManualIconsForLoc(loc).slice();
+    icons.splice(selectedIconIndex, 1);
+    selectedIconIndex = null;
+    setManualIconsForLoc(loc, icons);
+    renderManualIcons(loc);
+    setStatus('Icono borrado.', 'warn');
   }else{
     pushUndoSnapshot('clear-all', loc);
     setContourEditMode(false, false);
     setColorAreasForLoc(loc, [], {skipUndo:true});
     setTextLabelsForLoc(loc, [], {skipUndo:true});
+    setManualIconsForLoc(loc, [], {skipUndo:true});
     setWhiteRoadsForLoc(loc, [], {skipUndo:true});
     renderColorAreas(loc);
     renderManualWhiteRoads(loc);
     renderTextLabels(loc);
+    renderManualIcons(loc);
   }
   updateColorControls(loc);
 }
@@ -3178,6 +3487,10 @@ async function handleColorMapClick(event){
   }
   if(textAddMode){
     addTextLabelForCurrent(event.latlng);
+    return;
+  }
+  if(iconAddMode){
+    addManualIconForCurrent(event.latlng);
     return;
   }
   if(contourEditMode && selectedAreaIndex != null){
@@ -3217,9 +3530,11 @@ async function handleColorMapClick(event){
       }
       selectedAreaIndex = null;
       selectedTextIndex = null;
+      selectedIconIndex = null;
       setContourEditMode(false, false);
       renderColorAreas(LOCS[currentIndex]);
       renderTextLabels(LOCS[currentIndex]);
+      renderManualIcons(LOCS[currentIndex]);
       updateColorControls();
     }
     return;
@@ -3259,6 +3574,25 @@ function addTextLabelForCurrent(latlng){
   selectedAreaIndex = null;
   setTextAddMode(false);
   renderTextLabels(loc);
+  updateColorControls(loc);
+}
+
+function addManualIconForCurrent(latlng){
+  const loc = LOCS[currentIndex];
+  if(!loc || !latlng) return;
+  const kind = String(manualIconSelect?.value || 'Referencia').trim() || 'Referencia';
+  const icons = getManualIconsForLoc(loc).slice();
+  icons.push({
+    kind,
+    lat:Number(latlng.lat.toFixed(6)),
+    lng:Number(latlng.lng.toFixed(6))
+  });
+  setManualIconsForLoc(loc, icons);
+  selectedIconIndex = icons.length - 1;
+  selectedAreaIndex = null;
+  selectedTextIndex = null;
+  setIconAddMode(false);
+  renderManualIcons(loc);
   updateColorControls(loc);
 }
 
@@ -3404,6 +3738,7 @@ function initApp(){
   colorLayer = L.layerGroup().addTo(map);
   draftLayer = L.layerGroup().addTo(map);
   textLayer = L.layerGroup().addTo(map);
+  manualIconLayer = L.layerGroup().addTo(map);
   editHandleLayer = L.layerGroup().addTo(map);
   vectorRoadLayer = L.layerGroup().addTo(map);
   runtimeReferenceLayer = L.layerGroup().addTo(map);
@@ -3567,12 +3902,15 @@ function goTo(index, silent){
   if(blockQuadMode) setBlockQuadMode(false, false);
   if(roadPencilMode) setRoadPencilMode(false, false);
   if(textAddMode) setTextAddMode(false, false);
+  if(iconAddMode) setIconAddMode(false, false);
   if(contourEditMode) setContourEditMode(false, false);
   selectedAreaIndex = null;
   selectedTextIndex = null;
+  selectedIconIndex = null;
   renderColorAreas(loc);
   renderManualWhiteRoads(loc);
   renderTextLabels(loc);
+  renderManualIcons(loc);
   updateColorControls(loc);
   updateButtons();
 }
@@ -4227,6 +4565,19 @@ function drawPrintTextLabels(targetMap, loc){
   });
 }
 
+function drawPrintManualIcons(targetMap, loc){
+  getManualIconsForLoc(loc).forEach(icon => {
+    const lat = Number(icon.lat);
+    const lng = Number(icon.lng);
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    L.marker([lat, lng], {
+      interactive:false,
+      zIndexOffset:1300,
+      icon:createManualIcon(icon, false, PRINT_MANUAL_ICON_SCALE)
+    }).addTo(targetMap);
+  });
+}
+
 function printRoadWeight(highway){
   const key = String(highway || '').replace(/_link$/, '');
   const base = {
@@ -4247,7 +4598,7 @@ function printRoadWeight(highway){
     road:5.6,
     service:4.2
   }[key] || 5.4;
-  return base * PRINT_RENDER_SCALE;
+  return base * PRINT_VECTOR_ROAD_SCALE;
 }
 
 function drawPrintVectorRoads(targetMap, roadWays){
@@ -4260,8 +4611,8 @@ function drawPrintVectorRoads(targetMap, roadWays){
     L.polyline(latLngs, {
       pane:roadPane,
       color:'#5f7771',
-      weight:weight + (3.8 * PRINT_RENDER_SCALE),
-      opacity:.72,
+      weight:weight + (2.6 * PRINT_VECTOR_ROAD_SCALE),
+      opacity:.62,
       lineCap:'round',
       lineJoin:'round',
       interactive:false
@@ -4269,8 +4620,8 @@ function drawPrintVectorRoads(targetMap, roadWays){
     L.polyline(latLngs, {
       pane:roadPane,
       color:'#ffffff',
-      weight:Math.max(2.6 * PRINT_RENDER_SCALE, weight - (1.3 * PRINT_RENDER_SCALE)),
-      opacity:.98,
+      weight:Math.max(1.8 * PRINT_VECTOR_ROAD_SCALE, weight - (.9 * PRINT_VECTOR_ROAD_SCALE)),
+      opacity:.96,
       lineCap:'round',
       lineJoin:'round',
       interactive:false
@@ -4283,7 +4634,7 @@ function drawPrintManualWhiteRoads(targetMap, loc){
   const roadPane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
   getWhiteRoadsForLoc(loc).forEach(road => {
     const latLngs = pointsToLatLngs(road.points);
-    drawWhiteRoadPolyline(targetMap, latLngs, road.width, roadPane, PRINT_RENDER_SCALE);
+    drawWhiteRoadPolyline(targetMap, latLngs, road.width, roadPane, PRINT_VECTOR_ROAD_SCALE);
   });
 }
 
@@ -4308,11 +4659,11 @@ function getPrintRoadLabelPlacement(targetMap, latLngs){
   return best;
 }
 
-function roadLabelBoxForPlacement(targetMap, placement, name, fontSize){
+function roadLabelBoxForPlacement(targetMap, placement, name, fontSize, labelScale = PRINT_RENDER_SCALE){
   const point = targetMap.latLngToLayerPoint(placement.latlng);
-  const finalSize = fontSize / PRINT_RENDER_SCALE;
-  const width = Math.min(170, Math.max(42, String(name || '').length * finalSize * .52 + 14)) * PRINT_RENDER_SCALE;
-  const height = Math.max(9, finalSize + 5) * PRINT_RENDER_SCALE;
+  const finalSize = fontSize / labelScale;
+  const width = Math.min(170, Math.max(42, String(name || '').length * finalSize * .52 + 14)) * labelScale;
+  const height = Math.max(9, finalSize + 5) * labelScale;
   return {
     left:point.x - width / 2,
     right:point.x + width / 2,
@@ -4329,12 +4680,12 @@ function drawPrintVectorRoadLabels(targetMap, roadWays){
     const name = String(way.name || '').trim();
     if(!name || name.length > 42) return;
     const placement = getPrintRoadLabelPlacement(targetMap, way.latLngs);
-    if(!placement || placement.length < 16 * PRINT_RENDER_SCALE) return;
+    if(!placement || placement.length < 20 * PRINT_VECTOR_LABEL_SCALE) return;
     const key = name.toLowerCase() + ':' + Math.round(placement.latlng.lat * 1000) + ':' + Math.round(placement.latlng.lng * 1000);
     if(seen.has(key)) return;
-    const fontSize = Math.max(7.2, Math.min(9.2, 7.4 + name.length * .024)) * PRINT_RENDER_SCALE;
-    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize);
-    if(!canPlaceLabel(box, placedBoxes, 4 * PRINT_RENDER_SCALE)) return;
+    const fontSize = Math.max(6.2, Math.min(7.6, 6.3 + name.length * .018)) * PRINT_VECTOR_LABEL_SCALE;
+    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_VECTOR_LABEL_SCALE);
+    if(!canPlaceLabel(box, placedBoxes, 5 * PRINT_VECTOR_LABEL_SCALE)) return;
     seen.add(key);
     placedBoxes.push(box);
     L.marker(placement.latlng, {
@@ -4342,34 +4693,7 @@ function drawPrintVectorRoadLabels(targetMap, roadWays){
       pane:'territoryLabelPane',
       icon:L.divIcon({
         className:'print-vector-road-label',
-        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;--print-label-scale:' + PRINT_RENDER_SCALE + ';font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(name) + '</span>',
-        iconSize:[0,0],
-        iconAnchor:[0,0]
-      })
-    }).addTo(targetMap);
-  });
-}
-
-function drawPrintReferences(targetMap, references){
-  if(!targetMap || !Array.isArray(references) || !references.length) return;
-  const placedBoxes = [];
-  references.slice(0, 160).forEach(ref => {
-    const lat = Number(ref.lat);
-    const lng = Number(ref.lng);
-    const text = referenceLabelText(ref);
-    if(!text || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    const point = targetMap.latLngToLayerPoint([lat, lng]);
-    const box = labelBoxForPoint(point, text, PRINT_RENDER_SCALE);
-    if(!canPlaceLabel(box, placedBoxes, 7 * PRINT_RENDER_SCALE)) return;
-    placedBoxes.push(box);
-    L.marker([lat, lng], {
-      interactive:false,
-      pane:'territoryPoiPane',
-      opacity:1,
-      zIndexOffset:1200,
-      icon:L.divIcon({
-        className:'print-reference-marker',
-        html:referenceLabelHtml(ref, true),
+        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;--print-label-scale:' + PRINT_VECTOR_LABEL_SCALE.toFixed(2) + ';font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(name) + '</span>',
         iconSize:[0,0],
         iconAnchor:[0,0]
       })
@@ -4583,7 +4907,7 @@ async function imprimir(){
 
   $('print-close-button').addEventListener('click', resetPrintSheet);
   $('print-ready-button').addEventListener('click', printPreparedSheet);
-  $('print-wait-text').textContent = 'Preparando PDF con calles blancas, iconos grandes y recorte coloreado...';
+  $('print-wait-text').textContent = 'Preparando PDF con calles blancas, referencias manuales y recorte coloreado...';
   console.info('Croquis build', APP_BUILD);
 
   try{
@@ -4654,8 +4978,6 @@ async function imprimir(){
     let poiTiles = null;
     let roadSource = null;
     let poiSource = null;
-    let printRoadWays = [];
-    let printReferences = [];
     roadSource = usingColorMask ? getPrintRoadTileSource(screenSrc) : null;
     roadTiles = roadSource ? addPrintTiles(roadSource, {
       attribution:'',
@@ -4730,24 +5052,10 @@ async function imprimir(){
       throw new Error('No se pudieron cargar teselas del mapa para imprimir.');
     }
     frameMap();
-    try{
-      $('print-wait-text').textContent = 'Reforzando calles, nombres e iconos...';
-      const overlayResults = await Promise.allSettled([
-        fetchRoadWaysForBounds(bounds, { timeoutMs:30000 }),
-        fetchReferencesForBounds(bounds, { timeoutMs:30000 })
-      ]);
-      if(overlayResults[0].status === 'fulfilled') printRoadWays = overlayResults[0].value;
-      if(overlayResults[1].status === 'fulfilled') printReferences = overlayResults[1].value;
-      if(overlayResults[0].status === 'rejected') console.warn('No se pudieron cargar calles vectoriales para PDF.', overlayResults[0].reason);
-      if(overlayResults[1].status === 'rejected') console.warn('No se pudieron cargar referencias vectoriales para PDF.', overlayResults[1].reason);
-      drawPrintVectorRoads(printMap, printRoadWays);
-      drawPrintVectorRoadLabels(printMap, printRoadWays);
-      drawPrintReferences(printMap, printReferences);
-    }catch(err){
-      console.warn('No se pudieron reforzar calles o referencias para PDF.', err);
-    }
+    $('print-wait-text').textContent = 'Preparando detalles manuales...';
     drawPrintManualWhiteRoads(printMap, loc);
     drawPrintTextLabels(printMap, loc);
+    drawPrintManualIcons(printMap, loc);
     if(usingColorMask){
       $('print-wait-text').textContent = 'Aplicando recorte de zonas pintadas...';
       renderPrintColorMask(printMap, loc);
@@ -4787,6 +5095,15 @@ textSizeInput?.addEventListener('input', () => {
   updateTextSizeValue();
   if(selectedTextIndex != null) applySelectedStyleChange();
 });
+manualIconSelect?.addEventListener('change', () => {
+  const loc = LOCS[currentIndex];
+  if(!loc || selectedIconIndex == null) return;
+  const icons = getManualIconsForLoc(loc).slice();
+  if(!icons[selectedIconIndex]) return;
+  icons[selectedIconIndex] = { ...icons[selectedIconIndex], kind:String(manualIconSelect.value || 'Referencia') };
+  setManualIconsForLoc(loc, icons);
+  renderManualIcons(loc);
+});
 colorEditButton.addEventListener('click', () => setColorEditMode(!colorEditMode));
 contourEditButton.addEventListener('click', () => {
   if(selectedAreaIndex == null){
@@ -4807,6 +5124,7 @@ textAddButton.addEventListener('click', () => {
     addTextLabelForCurrent(map ? map.getCenter() : null);
   }
 });
+iconAddButton?.addEventListener('click', () => setIconAddMode(!iconAddMode));
 saveChangesButton.addEventListener('click', saveAllChanges);
 backupExportButton?.addEventListener('click', exportBackup);
 backupImportButton?.addEventListener('click', chooseBackupFile);
@@ -4846,16 +5164,20 @@ document.addEventListener('keydown', event => {
     setTextAddMode(false);
     return;
   }
+  if(event.key === 'Escape' && iconAddMode){
+    setIconAddMode(false);
+    return;
+  }
   if(event.key === 'Escape' && contourEditMode){
     setContourEditMode(false);
     return;
   }
-  if(event.key === 'Escape' && (colorEditMode || selectedAreaIndex != null || selectedTextIndex != null)){
+  if(event.key === 'Escape' && (colorEditMode || selectedAreaIndex != null || selectedTextIndex != null || selectedIconIndex != null)){
     setColorEditMode(false);
     return;
   }
   if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(event.target.tagName)) return;
-  if((event.key === 'Delete' || event.key === 'Backspace') && selectedTextIndex != null){
+  if((event.key === 'Delete' || event.key === 'Backspace') && (selectedTextIndex != null || selectedIconIndex != null)){
     event.preventDefault();
     clearColorAreasForCurrent();
     return;
@@ -4870,6 +5192,7 @@ document.addEventListener('keydown', event => {
 });
 
 applyCustomTerritories();
+populateManualIconSelect();
 populateSelect();
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', loadLeaflet);
