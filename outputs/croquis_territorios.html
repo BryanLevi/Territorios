@@ -241,6 +241,8 @@ body.print-preview{overflow:hidden}
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores, textos e iconos del territorio actual.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg></span><span><b>Exportar respaldo</b><span>Descarga un archivo con colores, textos y territorios agregados.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg></span><span><b>Importar respaldo</b><span>Carga un archivo de respaldo para recuperar el trabajo en otra pagina o equipo.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg></span><span><b>Guardar GitHub</b><span>Sube colores, textos e iconos a un archivo real del repositorio.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg></span><span><b>Cargar GitHub</b><span>Trae en este dispositivo los cambios guardados en el repositorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg></span><span><b>Deshacer</b><span>Regresa el ultimo punto o cambio guardado si necesitas corregir.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></span><span><b>Borrar</b><span>Elimina colores o textos del territorio que estas editando.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg></span><span><b>PDF</b><span>Prepara la hoja del croquis para imprimir o guardar.</span></span></div>
@@ -350,6 +352,14 @@ body.print-preview{overflow:hidden}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
     Importar respaldo
   </button>
+  <button class="btn primary" id="btn-cloud-save" type="button" title="Guardar cambios en GitHub" aria-label="Guardar cambios en GitHub">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg>
+    Guardar GitHub
+  </button>
+  <button class="btn ghost" id="btn-cloud-load" type="button" title="Cargar cambios desde GitHub" aria-label="Cargar cambios desde GitHub">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg>
+    Cargar GitHub
+  </button>
   <input id="backup-file-input" type="file" accept="application/json,.json" hidden>
 </div>
 
@@ -387,7 +397,7 @@ const MUNICIPIO = 'Ixhuatlán del Café';
 const ESTADO = 'Veracruz de Ignacio de la Llave';
 const FUENTE_INEGI = 'INEGI CPV 2010 / cartografía base en línea 2026';
 const FUENTE_IFT = 'IFT localidades / cartografía base en línea 2026';
-const APP_BUILD = 'default-purple-color-2026-07-01-17';
+const APP_BUILD = 'github-sync-backup-2026-07-01-18';
 const DETAIL_ZOOM = 20;
 const DETAIL_PAD = 2;
 const PRINT_ASPECT = 297 / 189;
@@ -582,6 +592,8 @@ const iconAddButton = $('btn-icon-add');
 const saveChangesButton = $('btn-save-changes');
 const backupExportButton = $('btn-backup-export');
 const backupImportButton = $('btn-backup-import');
+const cloudSaveButton = $('btn-cloud-save');
+const cloudLoadButton = $('btn-cloud-load');
 const backupFileInput = $('backup-file-input');
 const colorUndoButton = $('btn-color-undo');
 const colorClearButton = $('btn-color-clear');
@@ -595,6 +607,11 @@ const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
 const CUSTOM_TERRITORIES_STORAGE_KEY = 'croquis-custom-territories-v1';
 const HIDDEN_TERRITORIES_STORAGE_KEY = 'croquis-hidden-territories-v1';
+const CLOUD_SYNC_TOKEN_STORAGE_KEY = 'croquis-territory-github-token-v1';
+const CLOUD_SYNC_OWNER = 'BryanLevi';
+const CLOUD_SYNC_REPO = 'Territorios';
+const CLOUD_SYNC_BRANCH = 'main';
+const CLOUD_SYNC_FILE_PATH = 'data/croquis-sync.json';
 const BACKUP_FILE_VERSION = 1;
 const UNDO_HISTORY_LIMIT = 80;
 const FRAME_SCALE_MIN = 55;
@@ -3407,6 +3424,187 @@ function chooseBackupFile(){
   backupFileInput?.click();
 }
 
+function cloudSyncEncodedPath(){
+  return CLOUD_SYNC_FILE_PATH.split('/').map(part => encodeURIComponent(part)).join('/');
+}
+
+function cloudSyncApiUrl(){
+  return 'https://api.github.com/repos/' + CLOUD_SYNC_OWNER + '/' + CLOUD_SYNC_REPO + '/contents/' + cloudSyncEncodedPath();
+}
+
+function cloudSyncRawUrl(){
+  return 'https://raw.githubusercontent.com/' + CLOUD_SYNC_OWNER + '/' + CLOUD_SYNC_REPO + '/' + CLOUD_SYNC_BRANCH + '/' + cloudSyncEncodedPath() + '?v=' + Date.now();
+}
+
+function githubHeaders(token, json = false){
+  const headers = {
+    Accept:'application/vnd.github+json',
+    'X-GitHub-Api-Version':'2022-11-28'
+  };
+  if(token) headers.Authorization = 'Bearer ' + token;
+  if(json) headers['Content-Type'] = 'application/json';
+  return headers;
+}
+
+function getGithubToken(forcePrompt = false){
+  const saved = localStorage.getItem(CLOUD_SYNC_TOKEN_STORAGE_KEY) || '';
+  if(saved && !forcePrompt) return saved;
+  const token = window.prompt('Pega tu token de GitHub para guardar en BryanLevi/Territorios. Debe tener permiso de Contents: read and write.');
+  if(token == null) return null;
+  const clean = token.trim();
+  if(!clean){
+    localStorage.removeItem(CLOUD_SYNC_TOKEN_STORAGE_KEY);
+    return null;
+  }
+  localStorage.setItem(CLOUD_SYNC_TOKEN_STORAGE_KEY, clean);
+  return clean;
+}
+
+function encodeBase64Utf8(value){
+  const bytes = new TextEncoder().encode(String(value || ''));
+  let binary = '';
+  bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+  return btoa(binary);
+}
+
+function decodeBase64Utf8(value){
+  const binary = atob(String(value || '').replace(/\s/g, ''));
+  const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+async function githubErrorMessage(response){
+  try{
+    const data = await response.json();
+    if(data?.message) return data.message;
+  }catch(e){}
+  return response.status + ' ' + response.statusText;
+}
+
+function hasSavedDataObject(value){
+  return Object.values(safeObject(value)).some(item => {
+    if(Array.isArray(item)) return item.length > 0;
+    if(item && typeof item === 'object') return Object.keys(item).length > 0;
+    return Boolean(item);
+  });
+}
+
+function hasLocalSavedWork(){
+  return hasSavedDataObject(colorAreaSettings)
+    || hasSavedDataObject(textLabelSettings)
+    || hasSavedDataObject(manualIconSettings)
+    || hasSavedDataObject(whiteRoadSettings)
+    || hasSavedDataObject(frameScaleSettings)
+    || loadCustomTerritorySettings().length > 0
+    || loadHiddenTerritorySettings().length > 0;
+}
+
+function setCloudButtonsBusy(isBusy){
+  if(cloudSaveButton) cloudSaveButton.disabled = isBusy;
+  if(cloudLoadButton) cloudLoadButton.disabled = isBusy;
+}
+
+async function fetchCloudBackupPayload(options = {}){
+  const publicOnly = Boolean(options.publicOnly);
+  const rawResponse = await fetch(cloudSyncRawUrl(), { cache:'no-store' });
+  if(rawResponse.ok){
+    return rawResponse.json();
+  }
+  if(publicOnly) throw new Error('No hay respaldo en GitHub.');
+
+  const token = getGithubToken(false);
+  if(!token) throw new Error('Operacion cancelada.');
+  const response = await fetch(cloudSyncApiUrl() + '?ref=' + encodeURIComponent(CLOUD_SYNC_BRANCH), {
+    headers:githubHeaders(token)
+  });
+  if(!response.ok){
+    if(response.status === 404) throw new Error('Aun no hay respaldo guardado en GitHub.');
+    throw new Error(await githubErrorMessage(response));
+  }
+  const data = await response.json();
+  return JSON.parse(decodeBase64Utf8(data.content || ''));
+}
+
+async function fetchCloudFileSha(token){
+  const response = await fetch(cloudSyncApiUrl() + '?ref=' + encodeURIComponent(CLOUD_SYNC_BRANCH), {
+    headers:githubHeaders(token)
+  });
+  if(response.status === 404) return null;
+  if(!response.ok) throw new Error(await githubErrorMessage(response));
+  const data = await response.json();
+  return data.sha || null;
+}
+
+async function saveCloudBackup(){
+  if((colorDrawMode || blockQuadMode) && draftPoints.length > 0 && draftPoints.length < 3){
+    setStatus('Termina el area con al menos 3 puntos o cancela antes de guardar en GitHub.', 'warn');
+    return;
+  }
+  const token = getGithubToken(false);
+  if(!token){
+    setStatus('No se guardo en GitHub porque falta el token.', 'warn');
+    return;
+  }
+  setCloudButtonsBusy(true);
+  setStatus('Guardando colores, textos e iconos en GitHub...', 'warn');
+  try{
+    saveAllChanges();
+    const payload = buildBackupPayload();
+    payload.syncedAt = new Date().toISOString();
+    payload.syncTarget = CLOUD_SYNC_OWNER + '/' + CLOUD_SYNC_REPO + '/' + CLOUD_SYNC_FILE_PATH;
+    const content = encodeBase64Utf8(JSON.stringify(payload, null, 2));
+    const sha = await fetchCloudFileSha(token);
+    const body = {
+      message:'Actualiza respaldo de territorios',
+      branch:CLOUD_SYNC_BRANCH,
+      content
+    };
+    if(sha) body.sha = sha;
+    const response = await fetch(cloudSyncApiUrl(), {
+      method:'PUT',
+      headers:githubHeaders(token, true),
+      body:JSON.stringify(body)
+    });
+    if(!response.ok){
+      if(response.status === 401 || response.status === 403) localStorage.removeItem(CLOUD_SYNC_TOKEN_STORAGE_KEY);
+      throw new Error(await githubErrorMessage(response));
+    }
+    setStatus('Cambios guardados en GitHub. En otro dispositivo usa Cargar GitHub.', 'warn');
+  }catch(err){
+    console.error('No se pudo guardar en GitHub.', err);
+    setStatus('No se pudo guardar en GitHub: ' + err.message, 'error');
+  }finally{
+    setCloudButtonsBusy(false);
+  }
+}
+
+async function loadCloudBackup(options = {}){
+  const auto = Boolean(options.auto);
+  if(auto && hasLocalSavedWork()) return false;
+  if(!auto){
+    const ok = window.confirm('Esto reemplazara en este dispositivo los colores, textos e iconos locales por lo guardado en GitHub. Continuar?');
+    if(!ok) return false;
+  }
+  setCloudButtonsBusy(true);
+  if(!auto) setStatus('Cargando respaldo desde GitHub...', 'warn');
+  try{
+    const payload = await fetchCloudBackupPayload({ publicOnly:auto });
+    const loaded = importBackupPayload(payload);
+    if(loaded) setStatus(auto ? 'Cambios cargados automaticamente desde GitHub.' : 'Cambios cargados desde GitHub.', 'warn');
+    return loaded;
+  }catch(err){
+    if(!auto){
+      console.error('No se pudo cargar desde GitHub.', err);
+      setStatus('No se pudo cargar desde GitHub: ' + err.message, 'error');
+    }else{
+      console.info('No se cargo respaldo automatico desde GitHub.', err);
+    }
+    return false;
+  }finally{
+    setCloudButtonsBusy(false);
+  }
+}
+
 function undoDraftColorPoint(){
   if(roadPencilMode && roadDraftPoints.length){
     roadDraftPoints.pop();
@@ -3756,6 +3954,7 @@ function initApp(){
   recoverIxcatlaBlueIfMissing();
   changeView(currentView, true);
   goTo(currentIndex, true);
+  setTimeout(() => loadCloudBackup({ auto:true }), 700);
   setTimeout(() => map.invalidateSize(), 150);
 }
 
@@ -5134,6 +5333,8 @@ iconAddButton?.addEventListener('click', () => setIconAddMode(!iconAddMode));
 saveChangesButton.addEventListener('click', saveAllChanges);
 backupExportButton?.addEventListener('click', exportBackup);
 backupImportButton?.addEventListener('click', chooseBackupFile);
+cloudSaveButton?.addEventListener('click', saveCloudBackup);
+cloudLoadButton?.addEventListener('click', () => loadCloudBackup());
 backupFileInput?.addEventListener('change', handleBackupFileSelected);
 colorUndoButton.addEventListener('click', undoDraftColorPoint);
 colorClearButton.addEventListener('click', clearColorAreasForCurrent);
