@@ -1,7 +1,7 @@
 {
   "type": "croquis-territorios-backup",
   "version": 1,
-  "exportedAt": "2026-07-01T23:31:18.316Z",
+  "exportedAt": "2026-07-01T23:32:18.493Z",
   "pageUrl": "https://bryanlevi.github.io/Territorios/outputs/croquis_territorios.html",
   "data": {
     "colorAreas": {
@@ -48422,6 +48422,6 @@
     "customTerritories": [],
     "hiddenTerritories": []
   },
-  "syncedAt": "2026-07-01T23:31:18.316Z",
+  "syncedAt": "2026-07-01T23:32:18.493Z",
   "syncTarget": "BryanLevi/Territorios/data/croquis-sync.json"
 }
