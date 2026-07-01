@@ -1,7 +1,7 @@
 {
   "type": "croquis-territorios-backup",
   "version": 1,
-  "exportedAt": "2026-07-01T23:28:38.072Z",
+  "exportedAt": "2026-07-01T23:29:40.833Z",
   "pageUrl": "https://bryanlevi.github.io/Territorios/outputs/croquis_territorios.html",
   "data": {
     "colorAreas": {
@@ -48388,6 +48388,11 @@
           "kind": "Salon del Reino",
           "lat": 19.05112,
           "lng": -96.980288
+        },
+        {
+          "kind": "Palacio",
+          "lat": 19.048968,
+          "lng": -96.978928
         }
       ]
     },
@@ -48417,6 +48422,6 @@
     "customTerritories": [],
     "hiddenTerritories": []
   },
-  "syncedAt": "2026-07-01T23:28:38.072Z",
+  "syncedAt": "2026-07-01T23:29:40.833Z",
   "syncTarget": "BryanLevi/Territorios/data/croquis-sync.json"
 }
