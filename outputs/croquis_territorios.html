@@ -8,9 +8,9 @@
 <link rel="preconnect" href="https://tile.openstreetmap.org">
 <link rel="preconnect" href="https://unpkg.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous"></noscript>
 <style>
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -607,7 +607,8 @@ const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
 const CUSTOM_TERRITORIES_STORAGE_KEY = 'croquis-custom-territories-v1';
 const HIDDEN_TERRITORIES_STORAGE_KEY = 'croquis-hidden-territories-v1';
-const CLOUD_SYNC_TOKEN_STORAGE_KEY = 'croquis-territory-github-token-v1';
+const CLOUD_SYNC_TOKEN_SESSION_KEY = 'croquis-territory-github-token-v2';
+const LEGACY_CLOUD_SYNC_TOKEN_STORAGE_KEY = 'croquis-territory-github-token-v1';
 const CLOUD_SYNC_OWNER = 'BryanLevi';
 const CLOUD_SYNC_REPO = 'Territorios';
 const CLOUD_SYNC_BRANCH = 'main';
@@ -3446,17 +3447,38 @@ function githubHeaders(token, json = false){
   return headers;
 }
 
+function purgeLegacyGithubToken(){
+  try{
+    if(!localStorage.getItem(LEGACY_CLOUD_SYNC_TOKEN_STORAGE_KEY)) return;
+    localStorage.removeItem(LEGACY_CLOUD_SYNC_TOKEN_STORAGE_KEY);
+    console.warn('Se borro el token de GitHub que estaba guardado de forma permanente en este navegador. Revocalo en GitHub y genera uno nuevo.');
+  }catch(e){}
+}
+
+function clearGithubToken(){
+  try{ sessionStorage.removeItem(CLOUD_SYNC_TOKEN_SESSION_KEY); }catch(e){}
+}
+
+function looksLikeGithubToken(value){
+  return /^(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})$/.test(value);
+}
+
 function getGithubToken(forcePrompt = false){
-  const saved = localStorage.getItem(CLOUD_SYNC_TOKEN_STORAGE_KEY) || '';
+  let saved = '';
+  try{ saved = sessionStorage.getItem(CLOUD_SYNC_TOKEN_SESSION_KEY) || ''; }catch(e){}
   if(saved && !forcePrompt) return saved;
-  const token = window.prompt('Pega tu token de GitHub para guardar en BryanLevi/Territorios. Debe tener permiso de Contents: read and write.');
+  const token = window.prompt('Pega tu token de GitHub para guardar en BryanLevi/Territorios.\n\nUsa un token de acceso personal detallado (fine-grained) limitado solo al repositorio Territorios, con permiso Contents: read and write y con fecha de expiracion.\n\nSolo se guarda mientras esta abierta esta pestana.');
   if(token == null) return null;
   const clean = token.trim();
   if(!clean){
-    localStorage.removeItem(CLOUD_SYNC_TOKEN_STORAGE_KEY);
+    clearGithubToken();
     return null;
   }
-  localStorage.setItem(CLOUD_SYNC_TOKEN_STORAGE_KEY, clean);
+  if(!looksLikeGithubToken(clean)){
+    setStatus('Ese texto no parece un token de GitHub. Genera uno en GitHub > Settings > Developer settings > Personal access tokens.', 'error');
+    return null;
+  }
+  try{ sessionStorage.setItem(CLOUD_SYNC_TOKEN_SESSION_KEY, clean); }catch(e){}
   return clean;
 }
 
@@ -3519,6 +3541,7 @@ async function fetchCloudBackupPayload(options = {}){
   });
   if(!response.ok){
     if(response.status === 404) throw new Error('Aun no hay respaldo guardado en GitHub.');
+    if(response.status === 401 || response.status === 403) clearGithubToken();
     throw new Error(await githubErrorMessage(response));
   }
   const data = await response.json();
@@ -3566,7 +3589,7 @@ async function saveCloudBackup(){
       body:JSON.stringify(body)
     });
     if(!response.ok){
-      if(response.status === 401 || response.status === 403) localStorage.removeItem(CLOUD_SYNC_TOKEN_STORAGE_KEY);
+      if(response.status === 401 || response.status === 403) clearGithubToken();
       throw new Error(await githubErrorMessage(response));
     }
     setStatus('Cambios guardados en GitHub. En otro dispositivo usa Cargar GitHub.', 'warn');
@@ -3885,6 +3908,7 @@ function loadLeaflet(){
     initApp();
     return;
   }
+  const LEAFLET_INTEGRITY = 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH';
   const sources = [
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
     'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'
@@ -3901,6 +3925,8 @@ function loadLeaflet(){
     }
     const script = document.createElement('script');
     script.src = sources[sourceIndex++];
+    script.integrity = LEAFLET_INTEGRITY;
+    script.crossOrigin = 'anonymous';
     script.async = true;
     script.onload = initApp;
     script.onerror = tryNextSource;
@@ -5398,6 +5424,7 @@ document.addEventListener('keydown', event => {
   if(event.key === 'ArrowRight') navigate(1);
 });
 
+purgeLegacyGithubToken();
 applyCustomTerritories();
 populateManualIconSelect();
 populateSelect();

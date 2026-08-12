@@ -15,6 +15,15 @@ Los colores, textos y territorios agregados se guardan en el navegador. Para mov
 - `Exportar respaldo`: descarga un archivo `.json` con el trabajo guardado.
 - `Importar respaldo`: carga ese archivo `.json` para recuperar colores, textos, recuadros y territorios agregados.
 
+## Token de GitHub
+
+`Guardar GitHub` y `Cargar GitHub` piden un token para escribir en `data/croquis-sync.json`.
+
+- El token se guarda solo en `sessionStorage`: se borra al cerrar la pestana. Hay que pegarlo de nuevo en cada sesion.
+- Usa un token detallado (fine-grained) en `Settings` > `Developer settings` > `Personal access tokens` > `Fine-grained tokens`, limitado **solo** al repositorio `Territorios`, con permiso `Contents: read and write` y con fecha de expiracion.
+- No uses un token clasico con permiso `repo`: ese da acceso a todos tus repositorios.
+- Si alguna vez pegaste un token en una computadora prestada, revocalo en GitHub y genera otro.
+
 ## Publicar en GitHub Pages
 
 1. Sube este repositorio a GitHub.
