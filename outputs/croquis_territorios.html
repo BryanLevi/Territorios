@@ -17,7 +17,7 @@ html,body{height:100%;margin:0}
 body{font-family:"Segoe UI",Arial,sans-serif;background:#f3f6f4;color:#17251c;display:flex;flex-direction:column;overflow:hidden}
 html,body,.print-sheet,.print-paper,#print-map{print-color-adjust:exact;-webkit-print-color-adjust:exact}
 button,select{font:inherit}
-.bar{flex:0 0 auto;min-height:62px;background:#fff;border-bottom:1px solid #d9e1dc;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(20,40,28,.08);z-index:20}
+.bar{flex:0 0 auto;min-height:62px;background:#fff;border-bottom:1px solid #d9e1dc;padding:11px 14px 13px;display:flex;align-items:center;gap:12px 14px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(20,40,28,.08);z-index:20}
 .brand{display:flex;flex-direction:column;gap:1px;min-width:190px}
 .brand strong{font-size:15px;color:#183d25}
 .brand span{font-size:11px;color:#64766b}
@@ -30,8 +30,18 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .frame-control{height:38px;display:flex;align-items:center;gap:8px;width:220px}
 .frame-control input[type=range]{flex:1;min-width:0;accent-color:#1f7a47}
 .frame-value{width:43px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
-.color-field{min-width:1055px}
-.color-control{height:38px;display:flex;align-items:center;gap:7px;width:1055px}
+.color-field{flex:1 1 100%;align-items:center;gap:10px;background:#f7faf8;border:1px solid #e4ede8;border-radius:11px;padding:7px 11px}
+.color-control{min-height:38px;display:flex;align-items:center;gap:0;flex:1;flex-wrap:wrap;row-gap:8px}
+.tool-group{display:flex;align-items:center;gap:6px}
+.tool-group+.tool-group{margin-left:9px;padding-left:9px;border-left:1px solid #dde7e1}
+.color-field .icon-btn{background:#fff;border-color:#d5e2db}
+.color-field .icon-btn.active{background:#1f7a47;border-color:#1f7a47}
+.tool-group.tools-actions .icon-btn{background:#eef4f0}
+#btn-color-clear:hover:not(:disabled){background:#fbeceb;border-color:#e0b3ae;color:#b63b32}
+.bar-group{display:flex;align-items:center;gap:7px}
+.bar-group+.bar-group{padding-left:12px;border-left:1px solid #e2eae5}
+.bar-actions{flex:1 1 100%;display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap}
+.bar-actions .bar-spacer{flex:1;min-width:0}
 .color-swatch{width:38px;height:38px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;padding:3px;cursor:pointer}
 .color-control input[type=range]{width:86px;accent-color:#1f7a47}
 .text-input{height:38px;width:150px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;color:#17251c;padding:0 9px;font-size:13px;font-weight:700}
@@ -44,7 +54,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .icon-btn.active{background:#1f7a47;color:#fff;border-color:#1f7a47}
 .icon-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.04)}
 .icon-btn:disabled{cursor:not-allowed;opacity:.45;transform:none}
-.btn{height:38px;border:0;border-radius:8px;padding:0 13px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;white-space:nowrap;transition:transform .15s,filter .15s,background .15s}
+.btn{height:38px;border:0;border-radius:8px;padding:0 11px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;white-space:nowrap;transition:transform .15s,filter .15s,background .15s}
 .btn svg{width:16px;height:16px;flex:0 0 auto}
 .btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.04)}
 .btn:disabled{cursor:not-allowed;opacity:.48;transform:none}
@@ -185,9 +195,15 @@ body.print-preview{overflow:hidden}
   .field{width:100%;align-items:flex-start;flex-direction:column;gap:4px}
   .field select,.grow{width:100%;max-width:none}
   .frame-control{width:100%}
-  .color-field{min-width:100%}
+  .color-field{min-width:100%;padding:8px 9px}
   .color-control{width:100%;flex-wrap:wrap;height:auto}
   .color-control input[type=range]{flex:1;min-width:96px}
+  .tool-group+.tool-group{margin-left:0;padding-left:0;border-left:0}
+  .tool-group{flex:1 1 100%}
+  .tool-group.tools-edit,.tool-group.tools-draw,.tool-group.tools-actions{flex:0 1 auto}
+  .bar-group+.bar-group{padding-left:0;border-left:0}
+  .bar-group{flex:1 1 100%;gap:8px}
+  .bar-spacer{display:none}
   .btn{flex:1;min-width:0}
   .map-wrap{min-height:calc(100vh - 232px)}
   .legend{display:none}
@@ -286,19 +302,28 @@ body.print-preview{overflow:hidden}
   <div class="field color-field">
     <label for="fill-color">Color</label>
     <div class="color-control">
+      <span class="tool-group">
       <input class="color-swatch" id="fill-color" type="color" value="#8b2cff" disabled title="Color de relleno" aria-label="Color de relleno">
       <input id="fill-opacity" type="range" min="10" max="85" step="5" value="35" disabled title="Transparencia" aria-label="Transparencia">
       <output class="opacity-value" id="fill-opacity-value" for="fill-opacity">35%</output>
+      </span>
+      <span class="tool-group">
       <input class="text-input" id="text-value" type="text" value="" placeholder="Texto" disabled title="Texto. Usa / para separar renglones" aria-label="Texto">
       <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de texto" aria-label="Tamaño de texto">
       <output class="text-size-value" id="text-size-value" for="text-size">22</output>
+      </span>
+      <span class="tool-group">
       <select class="manual-icon-select" id="manual-icon-kind" disabled title="Icono de referencia" aria-label="Icono de referencia"></select>
+      </span>
+      <span class="tool-group tools-edit">
       <button class="icon-btn" id="btn-color-edit" type="button" disabled title="Editar pintada o texto" aria-label="Editar pintada o texto">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
       </button>
       <button class="icon-btn" id="btn-contour-edit" type="button" disabled title="Editar contorno" aria-label="Editar contorno">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10l4 7-4 7H7l-4-7z"></path><path d="M7 5v14"></path><path d="M17 5v14"></path></svg>
       </button>
+      </span>
+      <span class="tool-group tools-draw">
       <button class="icon-btn" id="btn-color-draw" type="button" disabled title="Seleccionar area con color" aria-label="Seleccionar area con color">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 4 10 7 4-8 1-8-1z"></path></svg>
       </button>
@@ -314,6 +339,8 @@ body.print-preview{overflow:hidden}
       <button class="icon-btn" id="btn-icon-add" type="button" disabled title="Agregar icono" aria-label="Agregar icono">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
       </button>
+      </span>
+      <span class="tool-group tools-actions">
       <button class="icon-btn" id="btn-save-changes" type="button" disabled title="Guardar cambios" aria-label="Guardar cambios">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
       </button>
@@ -323,8 +350,11 @@ body.print-preview{overflow:hidden}
       <button class="icon-btn" id="btn-color-clear" type="button" disabled title="Borrar colores del territorio" aria-label="Borrar colores del territorio">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
       </button>
+      </span>
     </div>
   </div>
+  <div class="bar-actions">
+  <div class="bar-group">
   <button class="btn ghost" id="btn-prev" type="button" disabled title="Territorio anterior" aria-label="Territorio anterior">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
     Anterior
@@ -333,14 +363,18 @@ body.print-preview{overflow:hidden}
     Siguiente
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
   </button>
+  </div>
+  <div class="bar-group">
   <button class="btn secondary" id="btn-pr" type="button" disabled>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
     PDF
   </button>
   <button class="btn info" id="btn-menu-help" type="button" title="Regresar a menu con instrucciones" aria-label="Regresar a menu con instrucciones">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg>
-    Menu / instrucciones
+    Instrucciones
   </button>
+  </div>
+  <div class="bar-group">
   <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
     Agregar territorio
@@ -349,14 +383,19 @@ body.print-preview{overflow:hidden}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg>
     Eliminar territorio
   </button>
+  </div>
+  <span class="bar-spacer"></span>
+  <div class="bar-group">
   <button class="btn ghost" id="btn-backup-export" type="button" title="Exportar respaldo" aria-label="Exportar respaldo">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>
-    Exportar respaldo
+    Exportar
   </button>
   <button class="btn ghost" id="btn-backup-import" type="button" title="Importar respaldo" aria-label="Importar respaldo">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
-    Importar respaldo
+    Importar
   </button>
+  </div>
+  <div class="bar-group">
   <button class="btn primary" id="btn-cloud-save" type="button" title="Guardar cambios en GitHub" aria-label="Guardar cambios en GitHub">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg>
     Guardar GitHub
@@ -365,7 +404,9 @@ body.print-preview{overflow:hidden}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg>
     Cargar GitHub
   </button>
+  </div>
   <input id="backup-file-input" type="file" accept="application/json,.json" hidden>
+  </div>
 </div>
 
 <div class="map-wrap">
