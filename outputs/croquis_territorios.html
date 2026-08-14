@@ -38,11 +38,30 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .color-field .icon-btn{background:#fff;border-color:#d5e2db}
 .color-field .icon-btn.active{background:#1f7a47;border-color:#1f7a47}
 .tool-group.tools-actions .icon-btn{background:#f1f6f3}
+/* Selector de icono: muestra el dibujo real junto al nombre */
+.manual-icon-select{position:absolute;left:0;top:0;width:1px;min-width:0;max-width:1px;height:1px;min-height:0;padding:0;margin:-1px;border:0;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;pointer-events:none;opacity:0}
+.icon-picker{position:relative}
+.icon-picker-trigger{height:38px;min-width:206px;display:inline-flex;align-items:center;gap:8px;padding:0 8px 0 6px;border:1px solid #d5e2db;border-radius:9px 0 0 9px;background:#fff;color:#17251c;font:inherit;font-size:13px;cursor:pointer;text-align:left}
+.icon-picker-trigger:hover:not(:disabled){background:#f2f8f5}
+.icon-picker-trigger:disabled{cursor:not-allowed;opacity:.45}
+.icon-picker-trigger[aria-expanded=true]{border-color:#217142;box-shadow:0 0 0 3px rgba(33,113,66,.18)}
+.icon-picker-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.icon-picker-caret{width:15px;height:15px;flex:0 0 auto;color:#5c7069}
+.icon-picker-glyph{width:26px;height:26px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px}
+.icon-picker-glyph svg{width:76%;height:76%;display:block;fill:none;stroke:currentColor}
+.icon-picker-glyph .reference-icon-letter{font-size:12px}
+.icon-picker-list{position:absolute;top:calc(100% + 6px);left:0;z-index:60;width:268px;max-height:342px;overflow-y:auto;background:#fff;border:1px solid #cfdcd5;border-radius:11px;box-shadow:0 14px 34px rgba(16,40,26,.22);padding:5px}
+.icon-picker-option{width:100%;display:flex;align-items:center;gap:9px;padding:5px 7px;border:0;border-radius:8px;background:transparent;color:#17251c;font:inherit;font-size:13px;font-weight:700;text-align:left;cursor:pointer}
+.icon-picker-option:hover,.icon-picker-option.is-marked{background:#eaf3ee}
+.icon-picker-option[aria-selected=true]{background:#1f7a47;color:#fff}
+.icon-picker-option .icon-picker-glyph{width:24px;height:24px}
 /* Cada grupo de botones se ve como una sola pieza segmentada */
 .tools-edit,.tools-draw,.tools-actions{gap:0}
 .tools-edit .icon-btn,.tools-draw .icon-btn,.tools-actions .icon-btn{position:relative;border-radius:0;margin-left:-1px}
 .tools-edit .icon-btn:first-of-type,.tools-draw .icon-btn:first-of-type,.tools-actions .icon-btn:first-of-type{margin-left:0;border-radius:9px 0 0 9px}
 .tools-edit .icon-btn:last-of-type,.tools-draw .icon-btn:last-of-type,.tools-actions .icon-btn:last-of-type{border-radius:0 9px 9px 0}
+.tools-icon{gap:0;position:relative}
+.tools-icon .icon-btn{position:relative;margin-left:-1px;border-radius:0 9px 9px 0}
 .color-field .icon-btn:hover:not(:disabled){transform:none;filter:none;background:#e8f2ec;border-color:#b9d2c4;z-index:2}
 .color-field .icon-btn.active,.color-field .icon-btn:focus-visible{z-index:3}
 #btn-color-clear:hover:not(:disabled){background:#fbeceb;border-color:#dfaea9;color:#b63b32}
@@ -321,8 +340,19 @@ body.print-preview{overflow:hidden}
       <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de texto" aria-label="Tamaño de texto">
       <output class="text-size-value" id="text-size-value" for="text-size">22</output>
       </span>
-      <span class="tool-group">
-      <select class="manual-icon-select" id="manual-icon-kind" disabled title="Icono de referencia" aria-label="Icono de referencia"></select>
+      <span class="tool-group tools-icon">
+      <div class="icon-picker" id="icon-picker">
+        <button class="icon-picker-trigger" id="icon-picker-trigger" type="button" disabled aria-haspopup="listbox" aria-expanded="false" title="Icono de referencia">
+          <span class="icon-picker-glyph" id="icon-picker-glyph"></span>
+          <span class="icon-picker-name" id="icon-picker-name">Iglesia / templo</span>
+          <svg class="icon-picker-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <div class="icon-picker-list" id="icon-picker-list" role="listbox" aria-label="Icono de referencia" hidden></div>
+      </div>
+      <select class="manual-icon-select" id="manual-icon-kind" disabled title="Icono de referencia" aria-label="Icono de referencia" tabindex="-1"></select>
+      <button class="icon-btn" id="btn-icon-add" type="button" disabled title="Agregar icono" aria-label="Agregar icono">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+      </button>
       </span>
       <span class="tool-group tools-edit">
       <button class="icon-btn" id="btn-color-edit" type="button" disabled title="Editar pintada o texto" aria-label="Editar pintada o texto">
@@ -344,9 +374,6 @@ body.print-preview{overflow:hidden}
       </button>
       <button class="icon-btn" id="btn-text-add" type="button" disabled title="Agregar texto" aria-label="Agregar texto">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg>
-      </button>
-      <button class="icon-btn" id="btn-icon-add" type="button" disabled title="Agregar icono" aria-label="Agregar icono">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
       </button>
       </span>
       <span class="tool-group tools-actions">
@@ -635,6 +662,11 @@ const textInput = $('text-value');
 const textSizeInput = $('text-size');
 const textSizeValue = $('text-size-value');
 const manualIconSelect = $('manual-icon-kind');
+const iconPicker = $('icon-picker');
+const iconPickerTrigger = $('icon-picker-trigger');
+const iconPickerGlyph = $('icon-picker-glyph');
+const iconPickerName = $('icon-picker-name');
+const iconPickerList = $('icon-picker-list');
 if(textSizeInput){
   textSizeInput.min = '12';
   textSizeInput.max = '48';
@@ -809,6 +841,77 @@ function populateManualIconSelect(){
     manualIconSelect.appendChild(option);
   });
   manualIconSelect.value = 'Iglesia';
+  buildIconPickerList();
+  syncIconPicker();
+}
+
+function iconPickerLabel(value){
+  const found = MANUAL_ICON_OPTIONS.find(([kind]) => kind === value);
+  return found ? found[1] : 'Referencia';
+}
+
+function buildIconPickerList(){
+  if(!iconPickerList) return;
+  iconPickerList.innerHTML = '';
+  MANUAL_ICON_OPTIONS.forEach(([value, label]) => {
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.className = 'icon-picker-option';
+    option.dataset.kind = value;
+    option.setAttribute('role', 'option');
+    option.innerHTML = '<span class="icon-picker-glyph">' + referenceIconSvg({ kind:value }) + '</span><span>' + escapeHtml(label) + '</span>';
+    option.addEventListener('click', () => {
+      manualIconSelect.value = value;
+      manualIconSelect.dispatchEvent(new Event('change', { bubbles:true }));
+      syncIconPicker();
+      closeIconPicker(true);
+    });
+    iconPickerList.appendChild(option);
+  });
+}
+
+function syncIconPicker(){
+  if(!iconPickerTrigger || !manualIconSelect) return;
+  const value = String(manualIconSelect.value || 'Referencia');
+  if(iconPickerGlyph) iconPickerGlyph.innerHTML = referenceIconSvg({ kind:value });
+  if(iconPickerName) iconPickerName.textContent = iconPickerLabel(value);
+  iconPickerTrigger.disabled = manualIconSelect.disabled;
+  iconPickerList?.querySelectorAll('.icon-picker-option').forEach(option => {
+    option.setAttribute('aria-selected', option.dataset.kind === value ? 'true' : 'false');
+    option.classList.remove('is-marked');
+  });
+}
+
+function openIconPicker(){
+  if(!iconPickerList || !iconPickerTrigger || iconPickerTrigger.disabled) return;
+  iconPickerList.hidden = false;
+  iconPickerTrigger.setAttribute('aria-expanded', 'true');
+  const current = iconPickerList.querySelector('[aria-selected=true]');
+  if(current) current.scrollIntoView({ block:'center' });
+}
+
+function closeIconPicker(focusTrigger = false){
+  if(!iconPickerList || !iconPickerTrigger) return;
+  iconPickerList.hidden = true;
+  iconPickerTrigger.setAttribute('aria-expanded', 'false');
+  if(focusTrigger) iconPickerTrigger.focus();
+}
+
+function iconPickerIsOpen(){
+  return !!iconPickerList && !iconPickerList.hidden;
+}
+
+function moveIconPickerMark(delta){
+  if(!iconPickerList) return;
+  const options = [...iconPickerList.querySelectorAll('.icon-picker-option')];
+  if(!options.length) return;
+  const marked = iconPickerList.querySelector('.icon-picker-option.is-marked')
+    || iconPickerList.querySelector('[aria-selected=true]');
+  const from = marked ? options.indexOf(marked) : -1;
+  const next = options[Math.max(0, Math.min(options.length - 1, from + delta))] || options[0];
+  options.forEach(option => option.classList.remove('is-marked'));
+  next.classList.add('is-marked');
+  next.scrollIntoView({ block:'nearest' });
 }
 
 function loadFrameScaleSettings(){
@@ -1676,6 +1779,7 @@ function updateColorControls(loc = LOCS[currentIndex]){
   colorOpacityInput.disabled = !enabled;
   textInput.disabled = !enabled;
   if(manualIconSelect) manualIconSelect.disabled = !enabled;
+  syncIconPicker();
   if(textSizeInput) textSizeInput.disabled = !enabled;
   colorEditButton.disabled = !enabled || !loc || (getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0);
   colorEditButton.classList.toggle('active', colorEditMode || hasSelection);
@@ -5815,7 +5919,28 @@ textSizeInput?.addEventListener('input', () => {
   updateTextSizeValue();
   if(selectedTextIndex != null) applySelectedStyleChange();
 });
+iconPickerTrigger?.addEventListener('click', event => {
+  event.stopPropagation();
+  if(iconPickerIsOpen()) closeIconPicker(); else openIconPicker();
+});
+iconPickerTrigger?.addEventListener('keydown', event => {
+  if(event.key === 'ArrowDown' || event.key === 'ArrowUp'){
+    event.preventDefault();
+    if(!iconPickerIsOpen()) openIconPicker();
+    moveIconPickerMark(event.key === 'ArrowDown' ? 1 : -1);
+  }
+});
+iconPickerList?.addEventListener('keydown', event => {
+  if(event.key === 'ArrowDown' || event.key === 'ArrowUp'){
+    event.preventDefault();
+    moveIconPickerMark(event.key === 'ArrowDown' ? 1 : -1);
+  }
+});
+document.addEventListener('click', event => {
+  if(iconPickerIsOpen() && !iconPicker?.contains(event.target)) closeIconPicker();
+});
 manualIconSelect?.addEventListener('change', () => {
+  syncIconPicker();
   const loc = LOCS[currentIndex];
   if(!loc || selectedIconIndex == null) return;
   const icons = getManualIconsForLoc(loc).slice();
@@ -5882,6 +6007,18 @@ document.addEventListener('keydown', event => {
   if(event.key === 'Escape' && roadPencilMode){
     setRoadPencilMode(false);
     return;
+  }
+  if(event.key === 'Escape' && iconPickerIsOpen()){
+    closeIconPicker(true);
+    return;
+  }
+  if(event.key === 'Enter' && iconPickerIsOpen()){
+    const marked = iconPickerList?.querySelector('.icon-picker-option.is-marked');
+    if(marked){
+      event.preventDefault();
+      marked.click();
+      return;
+    }
   }
   if(event.key === 'Escape' && riverPencilMode){
     setRiverPencilMode(false);
