@@ -90,7 +90,8 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .btn.info{background:#1769aa;color:#fff}
 .btn.danger{background:#b63b32;color:#fff}
 .btn.ghost{background:#eef4f0;color:#1d5331;border:1px solid #cfe0d6}
-.map-wrap{position:relative;flex:1;min-height:0;background:#dbe4df}
+/* z-index propio: aisla los paneles de Leaflet (llegan a 700) para que no tapen la barra */
+.map-wrap{position:relative;z-index:0;flex:1;min-height:0;background:#dbe4df}
 #map{position:absolute;inset:0;width:100%;height:100%}
 .map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-icon-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container,.map-wrap.is-river-pencil .leaflet-container{cursor:crosshair}
 .map-wrap.is-contour-editing .leaflet-container{cursor:default}
@@ -165,15 +166,6 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .map-status.warn{background:rgba(139,76,18,.94)}
 .map-status.error{background:rgba(150,38,38,.94)}
 .legend{position:absolute;left:14px;bottom:18px;z-index:620;background:rgba(255,255,255,.94);border:1px solid rgba(190,202,194,.9);border-radius:8px;padding:8px 10px;font-size:11px;color:#53645b;box-shadow:0 6px 18px rgba(22,38,28,.13);display:flex;align-items:center;gap:8px}
-.loader{position:fixed;inset:0;background:rgba(11,18,14,.74);z-index:9999;display:none;align-items:center;justify-content:center;padding:18px}
-.loader.show{display:flex}
-.loader-box{width:min(390px,100%);background:#fff;border-radius:10px;padding:24px;box-shadow:0 18px 58px rgba(0,0,0,.32);text-align:center}
-.loader-box h2{font-size:17px;margin:0 0 8px;color:#17351f}
-.count{font-size:28px;font-weight:900;color:#1f7a47;margin:8px 0}
-.progress{height:10px;border-radius:999px;background:#e6ece8;overflow:hidden}
-.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#1f7a47,#4fae70);transition:width .22s}
-.loader-msg{font-size:12px;color:#65756c;margin-top:8px}
-.loader-error{display:none;margin-top:12px;background:#fff1ee;border:1px solid #e4b2a7;color:#9e3226;border-radius:8px;padding:9px 10px;font-size:12px;line-height:1.4}
 .print-sheet{display:none}
 .print-sheet.is-open{position:fixed;inset:0;z-index:9000;background:#e8efeb;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:12px}
 body.print-preview{overflow:hidden}
@@ -250,7 +242,7 @@ body.print-preview{overflow:hidden}
   @page{size:A4 landscape;margin:0}
   html,body{width:297mm;height:210mm;overflow:hidden;background:#fff}
   body{display:block}
-  .bar,.map-wrap,.map-status,.loader,.legend,.welcome-screen{display:none!important}
+  .bar,.map-wrap,.map-status,.legend,.welcome-screen{display:none!important}
   .print-sheet,.print-sheet.is-open{display:block!important;position:static!important;inset:auto!important;width:297mm;height:210mm;padding:0;background:#fff;overflow:hidden}
   .print-paper{width:297mm;height:210mm;min-width:0;box-shadow:none}
   .print-wait{display:none!important}
@@ -464,16 +456,6 @@ body.print-preview{overflow:hidden}
   <div class="map-status" id="map-status">Cargando mapa y nombres de calles...</div>
 </div>
 
-<div class="loader" id="loader">
-  <div class="loader-box">
-    <h2 id="loader-title">Generando imagen</h2>
-    <div class="count" id="loader-count">0 / 0</div>
-    <div class="progress"><span id="loader-bar"></span></div>
-    <div class="loader-msg" id="loader-msg">Preparando descarga...</div>
-    <div class="loader-error" id="loader-error"></div>
-  </div>
-</div>
-
 <script>
 const MUNICIPIO = 'Ixhuatlán del Café';
 const ESTADO = 'Veracruz de Ignacio de la Llave';
@@ -491,14 +473,7 @@ const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .62;
 const PRINT_TILE_TIMEOUT_MS = 180000;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
-const PNG_EXPORT_SCALE = 2;
-const PNG_MAP_W = 4400 * PNG_EXPORT_SCALE;
-const PNG_MAP_H = Math.round(PNG_MAP_W / PRINT_ASPECT);
-const PNG_HEADER_H = 230 * PNG_EXPORT_SCALE;
-const PNG_FOOTER_H = 70 * PNG_EXPORT_SCALE;
-const PNG_PADDING = 120 * PNG_EXPORT_SCALE;
 const ROAD_OVERLAY_OPACITY = .96;
-const ROAD_LABEL_OPACITY = .98;
 const POI_LABEL_OPACITY = 1;
 const VECTOR_ROAD_OVERLAY_OPACITY = .82;
 const VECTOR_ROAD_LABEL_OPACITY = .98;
@@ -506,7 +481,6 @@ const WATERWAY_KINDS = 'river|stream|canal|ditch|drain';
 const WATERWAY_COLOR = '#1878c8';
 const WATERWAY_CASING_COLOR = '#ffffff';
 const WATERWAY_OVERLAY_OPACITY = .95;
-const REFERENCE_LABEL_OPACITY = .98;
 const MAP_DETAIL_RESTORE_OPACITY = 1;
 const PRINT_DETAIL_RESTORE_OPACITY = 1;
 const AUTO_BLOCK_GRID_PX = 3;
@@ -636,7 +610,6 @@ const LOCS = [
   {num:32, name:'Tecolotla', municipio:'Tomatlán', lat:19.021113, lon:-96.999114, alt:1356, pop2010:'111', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI},
   {num:33, name:'San Martín', municipio:'Tomatlán', lat:19.021200, lon:-96.975100, alt:null, pop2010:'81', pad:DETAIL_PAD, zoom:DETAIL_ZOOM, printRadiusM:700, fuente:FUENTE_INEGI}
 ].map((loc, index) => ({ municipio:MUNICIPIO, estado:ESTADO, displayNum:index + 1, ...loc }));
-const BASE_TERRITORY_COUNT = LOCS.length;
 const BASE_LOCS = LOCS.map(loc => ({...loc}));
 
 let map = null;
@@ -782,7 +755,6 @@ let runtimeReferenceCache = null;
 let runtimeReferenceRequestId = 0;
 let colorDrawMode = false;
 let blockQuadMode = false;
-let blockAutoMode = false;
 let blockAutoBusy = false;
 let autoBlockRoadCache = null;
 let colorEditMode = false;
@@ -822,13 +794,6 @@ function displayTerritoryNumber(loc){
 
 function displayTerritoryTitle(loc){
   return displayTerritoryNumber(loc) + ' ' + loc.name;
-}
-
-function safeFileName(value){
-  return String(value || 'territorio')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/[^\w.-]+/g,'_')
-    .replace(/^_+|_+$/g,'');
 }
 
 function populateManualIconSelect(){
@@ -2311,19 +2276,6 @@ function referenceIconBoxForPoint(point, scale = 1){
   };
 }
 
-function labelBoxForPoint(point, text, scale = 1){
-  const length = String(text || '').length;
-  const width = Math.min(270 * scale, Math.max(98 * scale, (length * 7.8 + 42) * scale));
-  const lines = Math.max(1, Math.ceil((length * 7.8 + 42) / 270));
-  const height = (30 + (lines - 1) * 15) * scale;
-  return {
-    left:point.x - width / 2,
-    right:point.x + width / 2,
-    top:point.y - height / 2,
-    bottom:point.y + height / 2
-  };
-}
-
 function boxesOverlap(a, b, pad = 5){
   return a.left < b.right + pad && a.right + pad > b.left && a.top < b.bottom + pad && a.bottom + pad > b.top;
 }
@@ -2382,16 +2334,6 @@ async function updateRuntimeReferenceOverlay(loc = LOCS[currentIndex]){
   }catch(err){
     if(requestId === runtimeReferenceRequestId) console.warn('No se pudieron cargar referencias.', err);
   }
-}
-
-function contourHandleIcon(kind){
-  const isMid = kind === 'mid';
-  return L.divIcon({
-    className:'',
-    html:'<div class="' + (isMid ? 'contour-midpoint' : 'contour-handle') + '"></div>',
-    iconSize:isMid ? [12,12] : [15,15],
-    iconAnchor:isMid ? [6,6] : [7.5,7.5]
-  });
 }
 
 function midpoint(a, b){
@@ -2830,32 +2772,6 @@ function setColorDrawMode(active){
     setStatus('Dibujando area de color. Marca puntos y cierra con la palomita.', 'warn');
   }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Dibujando area')){
     setStatus('', '');
-  }
-  updateColorControls();
-}
-
-function setBlockAutoMode(active, showMessage = true){
-  blockAutoMode = !!active;
-  if(blockAutoMode){
-    setColorDrawMode(false);
-    setRoadPencilMode(false, false);
-    setRiverPencilMode(false, false);
-    setTextAddMode(false, false);
-    setIconAddMode(false, false);
-    setContourEditMode(false, false);
-    selectedAreaIndex = null;
-    selectedTextIndex = null;
-    selectedIconIndex = null;
-    renderColorAreas(LOCS[currentIndex]);
-    renderTextLabels(LOCS[currentIndex]);
-  }
-  document.querySelector('.map-wrap')?.classList.toggle('is-block-auto', blockAutoMode);
-  if(showMessage){
-    if(blockAutoMode){
-      setStatus('Seleccion automatica: toca dentro de una cuadra. Se buscaran calles cercanas para no pintarlas.', 'warn');
-    }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Seleccion automatica')){
-      setStatus('', '');
-    }
   }
   updateColorControls();
 }
@@ -4573,13 +4489,6 @@ function t2ll(tx, ty, z){
   };
 }
 
-function calcBounds(lat, lon, pad, z){
-  const c = ll2t(lat, lon, z);
-  const nw = t2ll(Math.floor(c.x) - pad, Math.floor(c.y) - pad, z);
-  const se = t2ll(Math.floor(c.x) + pad + 1, Math.floor(c.y) + pad + 1, z);
-  return L.latLngBounds([se.lat, nw.lon], [nw.lat, se.lon]);
-}
-
 function updateInfo(loc){
   $('territory-badge').textContent = 'Territorio #' + displayTerritoryNumber(loc);
   $('loc-name').textContent = displayTerritoryTitle(loc);
@@ -4595,13 +4504,6 @@ function updateButtons(){
   $('btn-pr').disabled = !map;
   $('btn-add-territory').disabled = !map;
   $('btn-delete-territory').disabled = !map || LOCS.length <= 1;
-}
-
-function getDownloadSourceKey(key = currentView){
-  const src = TILES[key] || TILES['carto-light'];
-  if(src.downloadable) return key;
-  if(src.downloadAs && TILES[src.downloadAs]?.downloadable) return src.downloadAs;
-  return null;
 }
 
 function drawTerritoryFrame(loc, fitMap = true, silent = false){
@@ -4654,314 +4556,6 @@ function navigate(delta){
   goTo((currentIndex + delta + LOCS.length) % LOCS.length);
 }
 
-async function fetchBlobURL(url){
-  try{
-    const direct = await fetch(url, { mode:'cors', credentials:'omit' });
-    if(direct.ok) return URL.createObjectURL(await direct.blob());
-  }catch(e){}
-  try{
-    const proxied = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
-    if(proxied.ok) return URL.createObjectURL(await proxied.blob());
-  }catch(e){}
-  return null;
-}
-
-function drawTile(ctx, blobUrl, px, py, size){
-  if(!blobUrl) return Promise.resolve(false);
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => {
-      const previousSmoothing = ctx.imageSmoothingEnabled;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img, px, py, size, size);
-      ctx.imageSmoothingEnabled = previousSmoothing;
-      URL.revokeObjectURL(blobUrl);
-      resolve(true);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(blobUrl);
-      resolve(false);
-    };
-    img.src = blobUrl;
-  });
-}
-
-function setProgress(percent, message, done, total){
-  $('loader-bar').style.width = percent + '%';
-  $('loader-msg').textContent = message;
-  if(total != null) $('loader-count').textContent = done + ' / ' + total;
-}
-
-function roundRect(ctx, x, y, w, h, r){
-  const rr = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rr, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rr);
-  ctx.arcTo(x + w, y + h, x, y + h, rr);
-  ctx.arcTo(x, y + h, x, y, rr);
-  ctx.arcTo(x, y, x + w, y, rr);
-  ctx.closePath();
-}
-
-function drawFitText(ctx, text, x, y, maxWidth, maxSize, minSize, weight){
-  let size = maxSize;
-  do {
-    ctx.font = (weight || '700') + ' ' + size + 'px Segoe UI, Arial, sans-serif';
-    if(ctx.measureText(text).width <= maxWidth || size <= minSize) break;
-    size -= 2;
-  } while(size > minSize);
-  ctx.fillText(text, x, y, maxWidth);
-  return size;
-}
-
-function ll2px(lat, lon, z, tileSize = 256){
-  const t = ll2t(lat, lon, z);
-  return { x:t.x * tileSize, y:t.y * tileSize };
-}
-
-function getBoundsPixelBox(bounds, z, tileSize){
-  const nw = ll2px(bounds.north, bounds.west, z, tileSize);
-  const se = ll2px(bounds.south, bounds.east, z, tileSize);
-  return {
-    minX:Math.min(nw.x, se.x),
-    maxX:Math.max(nw.x, se.x),
-    minY:Math.min(nw.y, se.y),
-    maxY:Math.max(nw.y, se.y)
-  };
-}
-
-function choosePngZoom(bounds, src, tileSize){
-  const maxZ = Math.min(src.maxZ || DETAIL_ZOOM, DETAIL_ZOOM);
-  const innerW = PNG_MAP_W - PNG_PADDING * 2;
-  const innerH = PNG_MAP_H - PNG_PADDING * 2;
-  for(let z = maxZ; z >= 10; z--){
-    const box = getBoundsPixelBox(bounds, z, tileSize);
-    if((box.maxX - box.minX) <= innerW && (box.maxY - box.minY) <= innerH){
-      return z;
-    }
-  }
-  return 10;
-}
-
-function projectToPng(lat, lon, z, tileSize, topLeft, offsetY = 0){
-  const p = ll2px(lat, lon, z, tileSize);
-  return { x:p.x - topLeft.x, y:p.y - topLeft.y + offsetY };
-}
-
-function tracePngArea(ctx, area, topLeft, z, tileSize, offsetY){
-  if(!Array.isArray(area.points) || area.points.length < 3) return false;
-  let hasPoint = false;
-  area.points.forEach(point => {
-    const lat = Number(point[0]);
-    const lng = Number(point[1]);
-    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    const p = projectToPng(lat, lng, z, tileSize, topLeft, offsetY);
-    if(!hasPoint){
-      ctx.moveTo(p.x, p.y);
-      hasPoint = true;
-    }else{
-      ctx.lineTo(p.x, p.y);
-    }
-  });
-  if(hasPoint) ctx.closePath();
-  return hasPoint;
-}
-
-function tracePngColorAreas(ctx, loc, topLeft, z, tileSize, offsetY){
-  let traced = false;
-  getExportColorAreasForLoc(loc).forEach(area => {
-    if(tracePngArea(ctx, area, topLeft, z, tileSize, offsetY)) traced = true;
-  });
-  return traced;
-}
-
-function applyPngColorMask(ctx, loc, snapshot, topLeft, z, tileSize, mapY, mapW, mapH){
-  if(!snapshot || !hasColorExportMask(loc)) return false;
-  ctx.save();
-  ctx.beginPath();
-  const traced = tracePngColorAreas(ctx, loc, topLeft, z, tileSize, mapY);
-  if(!traced){
-    ctx.restore();
-    return false;
-  }
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, mapY, mapW, mapH);
-  ctx.clip();
-  ctx.drawImage(snapshot, 0, 0, mapW, mapH, 0, mapY, mapW, mapH);
-  ctx.restore();
-  return true;
-}
-
-function drawPngTerritoryFrame(ctx, bounds, topLeft, z, tileSize, offsetY){
-  const nw = projectToPng(bounds.north, bounds.west, z, tileSize, topLeft, offsetY);
-  const se = projectToPng(bounds.south, bounds.east, z, tileSize, topLeft, offsetY);
-  const x = Math.min(nw.x, se.x);
-  const y = Math.min(nw.y, se.y);
-  const w = Math.abs(se.x - nw.x);
-  const h = Math.abs(se.y - nw.y);
-  ctx.save();
-  ctx.strokeStyle = '#0f7a3b';
-  ctx.lineWidth = 7 * PNG_EXPORT_SCALE;
-  ctx.setLineDash([26 * PNG_EXPORT_SCALE, 16 * PNG_EXPORT_SCALE]);
-  ctx.strokeRect(x, y, w, h);
-  ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(31,122,71,.025)';
-  ctx.fillRect(x, y, w, h);
-  ctx.restore();
-}
-
-function hexToRgba(hex, alpha){
-  const value = sanitizeColor(hex).slice(1);
-  const r = parseInt(value.slice(0, 2), 16);
-  const g = parseInt(value.slice(2, 4), 16);
-  const b = parseInt(value.slice(4, 6), 16);
-  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
-}
-
-function drawPngColorAreas(ctx, loc, topLeft, z, tileSize, offsetY){
-  const areas = getExportColorAreasForLoc(loc);
-  if(!areas.length) return;
-  ctx.save();
-  areas.forEach(area => {
-    ctx.beginPath();
-    if(!tracePngArea(ctx, area, topLeft, z, tileSize, offsetY)) return;
-    const color = sanitizeColor(area.color);
-    const opacity = getRenderedColorOpacity(area.opacity);
-    ctx.fillStyle = hexToRgba(color, opacity);
-    ctx.fill();
-    ctx.strokeStyle = hexToRgba(color, .95);
-    ctx.lineWidth = 7 * PNG_EXPORT_SCALE;
-    ctx.stroke();
-  });
-  ctx.restore();
-}
-
-function drawPngColorAreaOutlines(ctx, loc, topLeft, z, tileSize, offsetY){
-  const areas = getExportColorAreasForLoc(loc);
-  if(!areas.length) return;
-  ctx.save();
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  areas.forEach(area => {
-    ctx.beginPath();
-    if(!tracePngArea(ctx, area, topLeft, z, tileSize, offsetY)) return;
-    const color = sanitizeColor(area.color);
-    ctx.strokeStyle = hexToRgba(color, .96);
-    ctx.lineWidth = 9 * PNG_EXPORT_SCALE;
-    ctx.stroke();
-  });
-  ctx.restore();
-}
-
-function snapshotPngMap(canvas, mapY, mapW, mapH){
-  const copy = document.createElement('canvas');
-  copy.width = mapW;
-  copy.height = mapH;
-  copy.getContext('2d').drawImage(canvas, 0, mapY, mapW, mapH, 0, 0, mapW, mapH);
-  return copy;
-}
-
-function restorePngMapDetails(ctx, snapshot, mapY, mapW, mapH, loc = null, topLeft = null, z = null, tileSize = null){
-  if(!snapshot) return;
-  ctx.save();
-  ctx.globalAlpha = .82;
-  if(loc && topLeft && Number.isFinite(Number(z)) && Number.isFinite(Number(tileSize)) && hasColorExportMask(loc)){
-    ctx.beginPath();
-    if(tracePngColorAreas(ctx, loc, topLeft, z, tileSize, mapY)) ctx.clip();
-  }
-  ctx.drawImage(snapshot, 0, 0, mapW, mapH, 0, mapY, mapW, mapH);
-  ctx.restore();
-}
-
-function drawPngTextLabels(ctx, loc, topLeft, z, tileSize, offsetY, clipToColorMask = false){
-  const labels = getTextLabelsForLoc(loc);
-  if(!labels.length) return;
-  ctx.save();
-  if(clipToColorMask && hasColorExportMask(loc)){
-    ctx.beginPath();
-    if(tracePngColorAreas(ctx, loc, topLeft, z, tileSize, offsetY)) ctx.clip();
-  }
-  labels.forEach(label => {
-    const text = String(label.text || '').trim();
-    if(!text) return;
-    const p = projectToPng(Number(label.lat), Number(label.lng), z, tileSize, topLeft, offsetY);
-    if(!Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
-    const size = Math.max(34 * PNG_EXPORT_SCALE, Math.min(110 * PNG_EXPORT_SCALE, (Number(label.size) || 18) * 3.2 * PNG_EXPORT_SCALE));
-    ctx.font = '900 ' + size + 'px Segoe UI, Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(255,255,255,.95)';
-    ctx.lineWidth = Math.max(8 * PNG_EXPORT_SCALE, size * .18);
-    ctx.strokeText(text, p.x, p.y);
-    ctx.fillStyle = sanitizeColor(label.color);
-    ctx.fillText(text, p.x, p.y);
-  });
-  ctx.restore();
-}
-
-function buildTileUrl(src, z, tx, ty, options = {}){
-  const subs = src.sub || '';
-  const sub = subs ? subs[Math.abs(tx + ty) % subs.length] : '';
-  let url = options.noLabels && (src.dlNoLabelUrl || src.noLabelUrl)
-    ? (src.dlNoLabelUrl || src.noLabelUrl)
-    : (src.dlUrl || src.url);
-  if(options.noLabels && !src.dlNoLabelUrl && src.dlTs === 512 && !String(url).includes('@2x')){
-    url = url.replace('.png', '@2x.png');
-  }
-  return url
-    .replace('{s}', sub)
-    .replace('{z}', z)
-    .replace('{x}', tx)
-    .replace('{y}', ty);
-}
-
-function buildLabelTileUrl(src, z, tx, ty){
-  if(!src?.labelUrl) return null;
-  const subs = src.labelSub || src.sub || '';
-  const sub = subs ? subs[Math.abs(tx + ty) % subs.length] : '';
-  let url = src.labelUrl;
-  if((src.labelDlTs === 512 || src.dlTs === 512) && !String(url).includes('@2x')){
-    url = url.replace('.png', '@2x.png');
-  }
-  url = url
-    .replace('{s}', sub)
-    .replace('{z}', z)
-    .replace('{x}', tx)
-    .replace('{y}', ty);
-  if(url.includes('google.com') && !url.includes('scale=')) url += '&scale=2';
-  return url;
-}
-
-async function drawPngLabelOverlay(ctx, src, z, tileSize, topLeft, offsetY, minTX, maxTX, minTY, maxTY, loc = null){
-  if(!src?.labelUrl) return;
-  ctx.save();
-  ctx.globalCompositeOperation = 'multiply';
-  if(loc && hasColorExportMask(loc)){
-    ctx.beginPath();
-    if(tracePngColorAreas(ctx, loc, topLeft, z, tileSize, offsetY)) ctx.clip();
-  }
-  const jobs = [];
-  for(let ty = minTY; ty <= maxTY; ty++){
-    for(let tx = minTX; tx <= maxTX; tx++){
-      const url = buildLabelTileUrl(src, z, tx, ty);
-      if(!url) continue;
-      jobs.push({
-        url,
-        px: tx * tileSize - topLeft.x,
-        py: offsetY + ty * tileSize - topLeft.y
-      });
-    }
-  }
-  for(let i = 0; i < jobs.length; i += 8){
-    await Promise.all(jobs.slice(i, i + 8).map(async job => {
-      const blobUrl = await fetchBlobURL(job.url);
-      await drawTile(ctx, blobUrl, job.px, job.py, tileSize);
-    }));
-  }
-  ctx.restore();
-}
-
 function getPrintTileUrl(tileSource, options = {}){
   let url = options.noLabels && (tileSource.dlNoLabelUrl || tileSource.noLabelUrl)
     ? (tileSource.dlNoLabelUrl || tileSource.noLabelUrl)
@@ -4973,31 +4567,6 @@ function getPrintTileUrl(tileSource, options = {}){
     return url + '&scale=2';
   }
   return url;
-}
-
-function getPrintLabelTileUrl(tileSource){
-  if(!tileSource?.labelUrl) return null;
-  let url = tileSource.labelUrl;
-  if((tileSource.labelDlTs === 512 || tileSource.dlTs === 512) && !String(url).includes('@2x')){
-    url = url.replace('.png', '@2x.png');
-  }
-  if(String(url).includes('google.com') && !String(url).includes('scale=')){
-    url += '&scale=2';
-  }
-  return url;
-}
-
-function getPrintDetailTileSource(tileSource){
-  const labelUrl = getPrintLabelTileUrl(tileSource);
-  if(labelUrl){
-    return {
-      url:labelUrl,
-      sub:tileSource.labelSub || tileSource.sub || '',
-      maxZ:tileSource.maxZ || PRINT_MAX_ZOOM,
-      attr:''
-    };
-  }
-  return null;
 }
 
 function getPrintPoiTileSource(tileSource){
@@ -5022,217 +4591,6 @@ function getPrintRoadTileSource(tileSource){
     };
   }
   return null;
-}
-
-async function descargarPNG(){
-  const loc = LOCS[currentIndex];
-  const downloadKey = getDownloadSourceKey();
-  const src = downloadKey ? TILES[downloadKey] : null;
-  if(!loc || !src) return;
-  const usingFallback = downloadKey !== currentView;
-  const usingColorMask = hasColorExportMask(loc);
-
-  const bounds = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
-  const TS = src.dlTs || 256;
-  const HDR = PNG_HEADER_H;
-  const FTR = PNG_FOOTER_H;
-  const W = PNG_MAP_W;
-  const H = PNG_MAP_H;
-  const Z = choosePngZoom(bounds, src, TS);
-  const box = getBoundsPixelBox(bounds, Z, TS);
-  const centerPx = {
-    x:(box.minX + box.maxX) / 2,
-    y:(box.minY + box.maxY) / 2
-  };
-  const topLeft = {
-    x:Math.round(centerPx.x - W / 2),
-    y:Math.round(centerPx.y - H / 2)
-  };
-  const minTX = Math.floor(topLeft.x / TS);
-  const maxTX = Math.floor((topLeft.x + W - 1) / TS);
-  const minTY = Math.floor(topLeft.y / TS);
-  const maxTY = Math.floor((topLeft.y + H - 1) / TS);
-  const cols = maxTX - minTX + 1;
-  const rows = maxTY - minTY + 1;
-  const total = cols * rows;
-
-  $('loader-title').textContent = 'Generando PNG: ' + displayTerritoryTitle(loc);
-  $('loader-error').style.display = 'none';
-  $('loader').classList.add('show');
-  setProgress(0, usingFallback ? 'Usando Carto Voyager para generar la zona coloreada...' : (usingColorMask ? 'Preparando zonas coloreadas...' : 'Preparando recuadro completo...'), 0, total);
-
-  try{
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = HDR + H + FTR;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const header = ctx.createLinearGradient(0, 0, W, 0);
-    header.addColorStop(0, '#17351f');
-    header.addColorStop(1, '#1f5f8a');
-    ctx.fillStyle = header;
-    ctx.fillRect(0, 0, W, HDR);
-    ctx.fillStyle = '#1f7a47';
-    ctx.fillRect(0, HDR - 6, W, 6);
-
-    const pad = Math.max(24, Math.round(W * .022));
-    ctx.fillStyle = 'rgba(255,255,255,.14)';
-    roundRect(ctx, pad, 28, Math.max(250, Math.round(W * .16)), 58, 12);
-    ctx.fill();
-    ctx.fillStyle = '#d9f4e3';
-    drawFitText(ctx, 'Territorio #' + displayTerritoryNumber(loc), pad + 22, 68, Math.round(W * .15), 44, 24, '900');
-    ctx.fillStyle = '#ffffff';
-    drawFitText(ctx, displayTerritoryTitle(loc), pad, 158, Math.round(W * .58), 92, 42, '900');
-
-    ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(255,255,255,.82)';
-    const small = Math.max(22, Math.min(30, Math.round(W / 145)));
-    ctx.font = '700 ' + small + 'px Segoe UI, Arial, sans-serif';
-    const rightX = W - pad;
-    ctx.fillText('Localidad: ' + (loc.alias ? loc.name + ' / ' + loc.alias : loc.name), rightX, 48, Math.round(W * .38));
-    ctx.fillText('Municipio: ' + loc.municipio, rightX, 84, Math.round(W * .38));
-    ctx.fillText('Estado: ' + loc.estado, rightX, 120, Math.round(W * .38));
-    ctx.fillText('Centro: ' + formatCoords(loc), rightX, 156, Math.round(W * .38));
-    ctx.textAlign = 'left';
-
-    ctx.fillStyle = '#eef3ef';
-    ctx.fillRect(0, HDR, W, H);
-
-    const jobs = [];
-    for(let ty = minTY; ty <= maxTY; ty++){
-      for(let tx = minTX; tx <= maxTX; tx++){
-        jobs.push({
-          url: buildTileUrl(src, Z, tx, ty, { noLabels:usingColorMask }),
-          px: tx * TS - topLeft.x,
-          py: HDR + ty * TS - topLeft.y
-        });
-      }
-    }
-
-    let done = 0;
-    let ok = 0;
-    for(let i = 0; i < jobs.length; i += 6){
-      await Promise.all(jobs.slice(i, i + 6).map(async job => {
-        const blobUrl = await fetchBlobURL(job.url);
-        if(await drawTile(ctx, blobUrl, job.px, job.py, TS)) ok++;
-        done++;
-        setProgress(Math.round(done / total * 86), 'Descargando mapas ' + done + '/' + total, done, total);
-      }));
-    }
-
-    if(ok < Math.max(4, Math.ceil(total * .6))){
-      throw new Error('No se pudieron descargar suficientes teselas del mapa. Prueba con PDF o cambia de capa.');
-    }
-
-    const mapSnapshot = snapshotPngMap(canvas, HDR, W, H);
-    const maskedToColor = applyPngColorMask(ctx, loc, mapSnapshot, topLeft, Z, TS, HDR, W, H);
-    drawPngColorAreas(ctx, loc, topLeft, Z, TS, HDR);
-    if(maskedToColor){
-      drawPngColorAreaOutlines(ctx, loc, topLeft, Z, TS, HDR);
-    }
-    if(!maskedToColor){
-      restorePngMapDetails(ctx, mapSnapshot, HDR, W, H, null, topLeft, Z, TS);
-    }
-    if(maskedToColor) await drawPngLabelOverlay(ctx, src, Z, TS, topLeft, HDR, minTX, maxTX, minTY, maxTY, loc);
-    if(!maskedToColor) drawPngTerritoryFrame(ctx, bounds, topLeft, Z, TS, HDR);
-    drawPngTextLabels(ctx, loc, topLeft, Z, TS, HDR, maskedToColor);
-
-    const metersPerPixel = 156543.03392 * Math.cos(loc.lat * Math.PI / 180) / Math.pow(2, Z) * (256 / TS);
-    const candidates = [25, 50, 100, 200, 250, 500, 1000];
-    const targetScalePx = Math.min(900, Math.max(380, W * .16));
-    const scaleMeters = candidates.reduce((best, next) => Math.abs(next - metersPerPixel * targetScalePx) < Math.abs(best - metersPerPixel * targetScalePx) ? next : best);
-    const scalePx = scaleMeters / metersPerPixel;
-    const sx = 28;
-    const sy = HDR + H - 38;
-    ctx.fillStyle = 'rgba(255,255,255,.96)';
-    roundRect(ctx, sx - 10, sy - 31, scalePx + 20, 42, 8);
-    ctx.fill();
-    ctx.fillStyle = '#1f7a47';
-    ctx.fillRect(sx, sy, scalePx, 8);
-    ctx.strokeStyle = '#0f4224';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(sx, sy, scalePx, 8);
-    ctx.fillStyle = '#183d25';
-    ctx.font = '700 14px Arial, sans-serif';
-    ctx.fillText('0', sx, sy - 7);
-    ctx.textAlign = 'right';
-    ctx.fillText(scaleMeters < 1000 ? scaleMeters + ' m' : (scaleMeters / 1000) + ' km', sx + scalePx, sy - 7);
-    ctx.textAlign = 'left';
-
-    const nr = 28;
-    const nx = W - nr - 28;
-    const ny = HDR + nr + 28;
-    ctx.fillStyle = 'rgba(255,255,255,.96)';
-    ctx.beginPath();
-    ctx.arc(nx, ny, nr, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#c8d2cc';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = '#17351f';
-    ctx.beginPath();
-    ctx.moveTo(nx, ny - nr * .72);
-    ctx.lineTo(nx - nr * .34, ny + nr * .42);
-    ctx.lineTo(nx, ny + nr * .16);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#77ad87';
-    ctx.beginPath();
-    ctx.moveTo(nx, ny - nr * .72);
-    ctx.lineTo(nx + nr * .34, ny + nr * .42);
-    ctx.lineTo(nx, ny + nr * .16);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#17351f';
-    ctx.textAlign = 'center';
-    ctx.font = '900 14px Arial, sans-serif';
-    ctx.fillText('N', nx, ny + nr * .95);
-    ctx.textAlign = 'left';
-
-    ctx.fillStyle = '#f6f8f7';
-    ctx.fillRect(0, HDR + H, W, FTR);
-    ctx.fillStyle = '#cbd8d1';
-    ctx.fillRect(0, HDR + H, W, 1);
-    ctx.fillStyle = '#5c6c63';
-    ctx.font = '13px Segoe UI, Arial, sans-serif';
-    const today = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
-    ctx.fillText('Croquis de territorio', 18, HDR + H + 31);
-    ctx.textAlign = 'right';
-    ctx.fillText('Predicación 2026 · ' + today + ' · Zoom ' + Z + ' · recuadro completo · ' + W + '×' + H + ' px', W - 18, HDR + H + 42);
-    ctx.fillStyle = '#f8faf8';
-    ctx.fillRect(Math.round(W * .42), HDR + H + 20, Math.round(W * .58) - 10, 30);
-    ctx.fillStyle = '#5c6c63';
-    ctx.fillText('Predicacion 2026 - ' + today + ' - Zoom ' + Z + ' - ' + (maskedToColor ? 'solo zonas coloreadas' : 'recuadro completo') + ' - ' + W + 'x' + H + ' px', W - 18, HDR + H + 42);
-    ctx.textAlign = 'left';
-
-    setProgress(96, 'Guardando imagen...', total, total);
-    await new Promise((resolve, reject) => {
-      canvas.toBlob(blob => {
-        if(!blob){
-          reject(new Error('El navegador no pudo crear el PNG.'));
-          return;
-        }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = displayTerritoryNumber(loc) + '_' + safeFileName(loc.name) + '_2026.png';
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 8000);
-        resolve();
-      }, 'image/png');
-    });
-    setProgress(100, 'Listo.', total, total);
-    setTimeout(() => $('loader').classList.remove('show'), 900);
-  }catch(err){
-    $('loader-error').textContent = err.message || String(err);
-    $('loader-error').style.display = 'block';
-    setProgress(100, 'No se pudo completar la descarga.', 0, 0);
-    setTimeout(() => $('loader').classList.remove('show'), 3200);
-  }finally{
-    updateButtons();
-  }
 }
 
 function buildPrintSheetMarkup(loc, src){
@@ -5309,57 +4667,6 @@ function drawPrintManualIcons(targetMap, loc){
       interactive:false,
       zIndexOffset:1300,
       icon:createManualIcon(icon, false, PRINT_MANUAL_ICON_SCALE)
-    }).addTo(targetMap);
-  });
-}
-
-function printRoadWeight(highway){
-  const key = String(highway || '').replace(/_link$/, '');
-  const base = {
-    motorway:9,
-    trunk:8.5,
-    primary:8,
-    secondary:7.4,
-    tertiary:6.8,
-    unclassified:6.2,
-    residential:5.8,
-    living_street:5.4,
-    pedestrian:4.8,
-    track:4.5,
-    path:4,
-    footway:4,
-    steps:3.8,
-    cycleway:4,
-    road:5.6,
-    service:4.2
-  }[key] || 5.4;
-  return base * PRINT_VECTOR_ROAD_SCALE;
-}
-
-function drawPrintVectorRoads(targetMap, roadWays){
-  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
-  const roadPane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
-  roadWays.forEach(way => {
-    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
-    if(latLngs.length < 2) return;
-    const weight = printRoadWeight(way.highway);
-    L.polyline(latLngs, {
-      pane:roadPane,
-      color:'#5f7771',
-      weight:weight + (2.6 * PRINT_VECTOR_ROAD_SCALE),
-      opacity:.62,
-      lineCap:'round',
-      lineJoin:'round',
-      interactive:false
-    }).addTo(targetMap);
-    L.polyline(latLngs, {
-      pane:roadPane,
-      color:'#ffffff',
-      weight:Math.max(1.8 * PRINT_VECTOR_ROAD_SCALE, weight - (.9 * PRINT_VECTOR_ROAD_SCALE)),
-      opacity:.96,
-      lineCap:'round',
-      lineJoin:'round',
-      interactive:false
     }).addTo(targetMap);
   });
 }
@@ -5489,35 +4796,6 @@ function roadLabelBoxForPlacement(targetMap, placement, name, fontSize, labelSca
     top:point.y - height / 2,
     bottom:point.y + height / 2
   };
-}
-
-function drawPrintVectorRoadLabels(targetMap, roadWays){
-  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
-  const seen = new Set();
-  const placedBoxes = [];
-  roadWays.forEach(way => {
-    const name = String(way.name || '').trim();
-    if(!name || name.length > 42) return;
-    const placement = getPrintRoadLabelPlacement(targetMap, way.latLngs);
-    if(!placement || placement.length < 20 * PRINT_VECTOR_LABEL_SCALE) return;
-    const key = name.toLowerCase() + ':' + Math.round(placement.latlng.lat * 1000) + ':' + Math.round(placement.latlng.lng * 1000);
-    if(seen.has(key)) return;
-    const fontSize = Math.max(6.2, Math.min(7.6, 6.3 + name.length * .018)) * PRINT_VECTOR_LABEL_SCALE;
-    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_VECTOR_LABEL_SCALE);
-    if(!canPlaceLabel(box, placedBoxes, 5 * PRINT_VECTOR_LABEL_SCALE)) return;
-    seen.add(key);
-    placedBoxes.push(box);
-    L.marker(placement.latlng, {
-      interactive:false,
-      pane:'territoryLabelPane',
-      icon:L.divIcon({
-        className:'print-vector-road-label',
-        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;--print-label-scale:' + PRINT_VECTOR_LABEL_SCALE.toFixed(2) + ';font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(name) + '</span>',
-        iconSize:[0,0],
-        iconAnchor:[0,0]
-      })
-    }).addTo(targetMap);
-  });
 }
 
 function renderPrintColorMask(targetMap, loc){
