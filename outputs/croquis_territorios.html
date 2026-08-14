@@ -95,6 +95,10 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 #map{position:absolute;inset:0;width:100%;height:100%}
 .map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-icon-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container,.map-wrap.is-river-pencil .leaflet-container{cursor:crosshair}
 .map-wrap.is-contour-editing .leaflet-container{cursor:default}
+.contour-handle{cursor:grab}
+.contour-handle:active{cursor:grabbing}
+.contour-midpoint{cursor:copy;transition:r .12s,fill-opacity .12s}
+.contour-midpoint:hover{r:6;fill-opacity:1}
 .color-area-path{mix-blend-mode:multiply;filter:saturate(1.08) contrast(1.02)}
 .color-area-path.is-selected{filter:saturate(1.16) contrast(1.04)}
 .territory-road-pane,.leaflet-territoryroad-pane{mix-blend-mode:normal;pointer-events:none}
@@ -685,6 +689,7 @@ const FRAME_SCALE_MIN = 55;
 const FRAME_SCALE_MAX = 180;
 const FRAME_SCALE_STEP = 5;
 const DEFAULT_FILL_COLOR = '#8b2cff';
+const CONTOUR_MIDPOINT_MIN_PX = 34;
 const MANUAL_ICON_OPTIONS = [
   ['Iglesia','Iglesia / templo'],
   ['Salon del Reino','Salon del Reino'],
@@ -2197,14 +2202,53 @@ function referenceIconSvg(ref){
   if(kind === 'Cancha'){
     return svg('<rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="M12 5v14"></path><circle cx="12" cy="12" r="3"></circle>');
   }
-  if(kind === 'Monumento' || kind === 'Mirador' || kind === 'Palacio'){
+  if(kind === 'Palacio'){
     return svg('<path d="M4 9l8-5 8 5"></path><path d="M6 10h12"></path><path d="M7 10v8"></path><path d="M12 10v8"></path><path d="M17 10v8"></path><path d="M5 19h14"></path>');
   }
-  if(kind === 'Mercado' || kind === 'Comercio' || kind === 'Tienda' || kind === 'Super' || kind === 'Abarrotes' || kind === 'Panaderia' || kind === 'Carniceria' || kind === 'Papeleria'){
+  if(kind === 'Monumento'){
+    return svg('<path d="M12 3 9.5 7.5v8h5v-8z"></path><path d="M7 15.5h10"></path><path d="M5.5 20h13"></path><path d="M8 15.5V20"></path><path d="M16 15.5V20"></path>');
+  }
+  if(kind === 'Mirador'){
+    return svg('<circle cx="7" cy="14" r="3.6"></circle><circle cx="17" cy="14" r="3.6"></circle><path d="M10.6 14h2.8"></path><path d="M5.5 10.4 7.5 5h3l-.6 5.2"></path><path d="M18.5 10.4 16.5 5h-3l.6 5.2"></path>');
+  }
+  if(kind === 'Mercado'){
+    return svg('<path d="M3 9h18l-1.5-4.5h-15z"></path><path d="M5 9v11h14V9"></path><path d="M3 9c0 1.4 1.1 2.5 2.5 2.5S8 10.4 8 9"></path><path d="M8 9c0 1.4 1.1 2.5 2.5 2.5S13 10.4 13 9"></path><path d="M13 9c0 1.4 1.1 2.5 2.5 2.5S18 10.4 18 9"></path>');
+  }
+  if(kind === 'Comercio'){
     return svg('<path d="M4 10h16l-1-5H5z"></path><path d="M6 10v10h12V10"></path><path d="M9 20v-5h6v5"></path>');
   }
-  if(kind === 'Clinica' || kind === 'Hospital' || kind === 'Farmacia' || kind === 'Dentista' || kind === 'Veterinaria'){
-    return svg('<path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5z"></path>');
+  if(kind === 'Tienda'){
+    return svg('<path d="M6 8h12l1.4 12H4.6z"></path><path d="M9 11V6.5a3 3 0 0 1 6 0V11"></path>');
+  }
+  if(kind === 'Super'){
+    return svg('<path d="M3 4h2.2l2.3 11h9.6"></path><path d="M6.3 7h14.2l-1.7 6H7.4"></path><circle cx="9" cy="19.5" r="1.4"></circle><circle cx="17" cy="19.5" r="1.4"></circle>');
+  }
+  if(kind === 'Abarrotes'){
+    return svg('<path d="M3 9h18l-2 11H5z"></path><path d="M8.5 9 11 3.5"></path><path d="M15.5 9 13 3.5"></path><path d="M9.5 13v3"></path><path d="M14.5 13v3"></path>');
+  }
+  if(kind === 'Panaderia'){
+    return svg('<path d="M4.5 9.5c0-2 1.6-3.5 3.5-3.5h8c1.9 0 3.5 1.5 3.5 3.5 0 1.3-.7 2.3-1.6 3l.6 5.5H5.5l.6-5.5c-.9-.7-1.6-1.7-1.6-3z"></path><path d="M9 7.5 8 12"></path><path d="M13 7.5 12 12"></path>');
+  }
+  if(kind === 'Carniceria'){
+    return svg('<path d="M15.5 4a5.5 5.5 0 0 1 2 9.5V20H7v-4.5a6 6 0 0 1 8.5-11.5z"></path><circle cx="13" cy="12" r="2.4"></circle>');
+  }
+  if(kind === 'Papeleria'){
+    return svg('<path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v4h4"></path><path d="m10 17 1.6-4.4L15 9.2"></path><path d="m13.4 7.6 2 2"></path>');
+  }
+  if(kind === 'Hospital'){
+    return svg('<path d="M4 21V8l8-4 8 4v13"></path><path d="M10 11h4"></path><path d="M12 9v4"></path><path d="M9 21v-4h6v4"></path>');
+  }
+  if(kind === 'Clinica'){
+    return svg('<path d="M6 3v6a4 4 0 0 0 8 0V3"></path><path d="M4 3h3"></path><path d="M13 3h3"></path><path d="M10 13v2a4 4 0 0 0 8 0v-1"></path><circle cx="18" cy="10.5" r="2.4"></circle>');
+  }
+  if(kind === 'Farmacia'){
+    return svg('<rect x="3.2" y="8.2" width="17.6" height="9.6" rx="4.8"></rect><path d="M12 8.2v9.6"></path><path d="M6.5 4.5h11"></path>');
+  }
+  if(kind === 'Dentista'){
+    return svg('<path d="M12 4.5c2-1.3 5.5-1.6 6.6.9 1 2.3-.4 4.4-.8 7-.3 2-.4 5.6-2.1 5.6-1.6 0-1.4-3.6-3.7-3.6s-2.1 3.6-3.7 3.6c-1.7 0-1.8-3.6-2.1-5.6-.4-2.6-1.8-4.7-.8-7C6.5 2.9 10 3.2 12 4.5z"></path>');
+  }
+  if(kind === 'Veterinaria'){
+    return svg('<ellipse cx="12" cy="15.5" rx="4.2" ry="3.6"></ellipse><ellipse cx="6.2" cy="10.5" rx="2.1" ry="2.6"></ellipse><ellipse cx="17.8" cy="10.5" rx="2.1" ry="2.6"></ellipse><ellipse cx="9.6" cy="6.4" rx="2" ry="2.5"></ellipse><ellipse cx="14.4" cy="6.4" rx="2" ry="2.5"></ellipse>');
   }
   if(kind === 'Gasolinera'){
     return svg('<path d="M7 21V4h8v17"></path><path d="M7 10h8"></path><path d="M15 7l4 4v7a2 2 0 0 1-2 2h-2"></path>');
@@ -2221,14 +2265,26 @@ function referenceIconSvg(ref){
   if(kind === 'Correo'){
     return svg('<rect x="4" y="6" width="16" height="12" rx="2"></rect><path d="M4 8l8 6 8-6"></path>');
   }
-  if(kind === 'Restaurante' || kind === 'Comida' || kind === 'Bar' || kind === 'Helado'){
+  if(kind === 'Restaurante'){
     return svg('<path d="M7 3v8"></path><path d="M5 3v4a2 2 0 0 0 4 0V3"></path><path d="M17 3v18"></path><path d="M14 3h3a3 3 0 0 1 0 6h-3"></path>');
+  }
+  if(kind === 'Comida'){
+    return svg('<path d="M3.5 11h17a8.5 8.5 0 0 1-17 0z"></path><path d="M3 20h18"></path><path d="M12 4v3"></path><path d="M9 5.5v1.5"></path><path d="M15 5.5v1.5"></path>');
+  }
+  if(kind === 'Bar'){
+    return svg('<path d="M4 4h16l-8 8z"></path><path d="M12 12v7"></path><path d="M8.5 19h7"></path>');
+  }
+  if(kind === 'Helado'){
+    return svg('<path d="M8 10a4 4 0 0 1 8 0"></path><path d="M6.5 10h11L12 21z"></path><path d="M7.6 13.6h8.8"></path>');
   }
   if(kind === 'Cafe'){
     return svg('<path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z"></path><path d="M16 9h2a2 2 0 0 1 0 4h-2"></path><path d="M4 20h15"></path>');
   }
-  if(kind === 'Banco' || kind === 'Cajero'){
-    return letter('$');
+  if(kind === 'Banco'){
+    return svg('<path d="M3 9.5 12 4l9 5.5"></path><path d="M4.5 20h15"></path><path d="M6.5 11v7"></path><path d="M10.8 11v7"></path><path d="M15.2 11v7"></path><path d="M19.5 11v7"></path>');
+  }
+  if(kind === 'Cajero'){
+    return svg('<rect x="4" y="3.5" width="16" height="17" rx="2.4"></rect><path d="M7.5 7.5h9v4h-9z"></path><path d="M8 15h4"></path><path d="M8 17.8h7"></path>');
   }
   if(kind === 'Estacionamiento'){
     return letter('P');
@@ -2236,8 +2292,11 @@ function referenceIconSvg(ref){
   if(kind === 'Hotel'){
     return svg('<path d="M4 20V8"></path><path d="M4 14h16v6"></path><path d="M8 14V9h4a3 3 0 0 1 3 3v2"></path>');
   }
-  if(kind === 'Taller' || kind === 'Ferreteria'){
+  if(kind === 'Taller'){
     return svg('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-3-3z"></path>');
+  }
+  if(kind === 'Ferreteria'){
+    return svg('<path d="M3.5 7.5 7 4l3.5 3.5-1.8 1.8L7 7.6 5.3 9.3z"></path><path d="m8.7 9.3 9 9"></path><path d="M15.5 15.5 19 12l2 2-3.5 3.5"></path><path d="m16.5 19.5 2-2"></path>');
   }
   if(kind === 'Estetica'){
     return svg('<path d="M4 7a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"></path><path d="M4 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"></path><path d="M8 8l12 9"></path><path d="M8 16l12-9"></path>');
@@ -2359,29 +2418,6 @@ function distanceToSegment(point, a, b){
   return point.distanceTo(L.point(a.x + t * dx, a.y + t * dy));
 }
 
-function insertContourPointNear(latlng){
-  const loc = LOCS[currentIndex];
-  if(!loc || selectedAreaIndex == null || !latlng || !map) return;
-  const area = getColorAreasForLoc(loc)[selectedAreaIndex];
-  if(!area || !Array.isArray(area.points) || area.points.length < 3) return;
-  const clickPoint = map.latLngToLayerPoint(latlng);
-  let bestIndex = 0;
-  let bestDistance = Infinity;
-  area.points.forEach((point, index) => {
-    const next = area.points[(index + 1) % area.points.length];
-    const a = map.latLngToLayerPoint(L.latLng(point[0], point[1]));
-    const b = map.latLngToLayerPoint(L.latLng(next[0], next[1]));
-    const distance = distanceToSegment(clickPoint, a, b);
-    if(distance < bestDistance){
-      bestDistance = distance;
-      bestIndex = index;
-    }
-  });
-  const nextPoints = area.points.slice();
-  nextPoints.splice(bestIndex + 1, 0, [Number(latlng.lat.toFixed(6)), Number(latlng.lng.toFixed(6))]);
-  updateSelectedAreaPoints(nextPoints);
-}
-
 function renderContourEditHandles(loc){
   if(!editHandleLayer || !window.L) return;
   editHandleLayer.clearLayers();
@@ -2442,14 +2478,18 @@ function renderContourEditHandles(loc){
 
   area.points.forEach((point, index) => {
     const nextPoint = area.points[(index + 1) % area.points.length];
+    // Solo en tramos con espacio: en los cortos el punto chico estorba mas de lo que sirve.
+    const a = map.latLngToLayerPoint(L.latLng(point[0], point[1]));
+    const b = map.latLngToLayerPoint(L.latLng(nextPoint[0], nextPoint[1]));
+    if(a.distanceTo(b) < CONTOUR_MIDPOINT_MIN_PX) return;
     const mid = midpoint(point, nextPoint);
     const marker = L.circleMarker(mid, {
       pane:'territoryDraftPane',
-      radius:5,
+      radius:3.6,
       color:'#ffffff',
       fillColor:'#1f7a47',
-      fillOpacity:.95,
-      weight:2,
+      fillOpacity:.55,
+      weight:1.5,
       className:'contour-midpoint'
     }).addTo(editHandleLayer);
     let inserted = false;
@@ -2839,7 +2879,7 @@ function setContourEditMode(active, showMessage = true){
     setTextAddMode(false, false);
     setIconAddMode(false, false);
     document.querySelector('.map-wrap')?.classList.add('is-contour-editing');
-    if(showMessage) setStatus('Editando contorno: arrastra puntos blancos. Clic en la zona agrega un punto al borde cercano; flecha quita el ultimo.', 'warn');
+    if(showMessage) setStatus('Editando contorno: arrastra los puntos blancos para moverlos, doble clic para quitar uno. Los puntos chicos del borde agregan un punto nuevo.', 'warn');
   }else{
     document.querySelector('.map-wrap')?.classList.remove('is-contour-editing');
     if(editHandleLayer) editHandleLayer.clearLayers();
@@ -4131,7 +4171,7 @@ async function handleColorMapClick(event){
     return;
   }
   if(contourEditMode && selectedAreaIndex != null){
-    insertContourPointNear(event.latlng);
+    // Los puntos solo se agregan desde los puntos chicos del borde, no con cualquier clic.
     return;
   }
   if(roadPencilMode){
@@ -4394,6 +4434,8 @@ function initApp(){
   map.on('click', handleColorMapClick);
   map.on('mousemove', handleMapMouseMove);
   map.on('moveend zoomend', () => updateLabelOverlayVisibility());
+  // El filtro de tramos cortos depende del zoom, asi que hay que rehacer los puntos
+  map.on('zoomend', () => { if(contourEditMode) renderContourEditHandles(LOCS[currentIndex]); });
 
   recoverIxcatlaBlueIfMissing();
   changeView(currentView, true);
