@@ -33,11 +33,19 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .color-field{flex:1 1 100%;align-items:center;gap:10px;background:#f7faf8;border:1px solid #e4ede8;border-radius:11px;padding:7px 11px}
 .color-control{min-height:38px;display:flex;align-items:center;gap:0;flex:1;flex-wrap:wrap;row-gap:8px}
 .tool-group{display:flex;align-items:center;gap:6px}
-.tool-group+.tool-group{margin-left:9px;padding-left:9px;border-left:1px solid #dde7e1}
+.tool-group+.tool-group{margin-left:13px}
+.tool-group.tools-edit{margin-left:14px;padding-left:14px;border-left:1px solid #dde7e1}
 .color-field .icon-btn{background:#fff;border-color:#d5e2db}
 .color-field .icon-btn.active{background:#1f7a47;border-color:#1f7a47}
-.tool-group.tools-actions .icon-btn{background:#eef4f0}
-#btn-color-clear:hover:not(:disabled){background:#fbeceb;border-color:#e0b3ae;color:#b63b32}
+.tool-group.tools-actions .icon-btn{background:#f1f6f3}
+/* Cada grupo de botones se ve como una sola pieza segmentada */
+.tools-edit,.tools-draw,.tools-actions{gap:0}
+.tools-edit .icon-btn,.tools-draw .icon-btn,.tools-actions .icon-btn{position:relative;border-radius:0;margin-left:-1px}
+.tools-edit .icon-btn:first-of-type,.tools-draw .icon-btn:first-of-type,.tools-actions .icon-btn:first-of-type{margin-left:0;border-radius:9px 0 0 9px}
+.tools-edit .icon-btn:last-of-type,.tools-draw .icon-btn:last-of-type,.tools-actions .icon-btn:last-of-type{border-radius:0 9px 9px 0}
+.color-field .icon-btn:hover:not(:disabled){transform:none;filter:none;background:#e8f2ec;border-color:#b9d2c4;z-index:2}
+.color-field .icon-btn.active,.color-field .icon-btn:focus-visible{z-index:3}
+#btn-color-clear:hover:not(:disabled){background:#fbeceb;border-color:#dfaea9;color:#b63b32}
 .bar-group{display:flex;align-items:center;gap:7px}
 .bar-group+.bar-group{padding-left:12px;border-left:1px solid #e2eae5}
 .bar-actions{flex:1 1 100%;display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap}
@@ -251,8 +259,9 @@ body.print-preview{overflow:hidden}
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><span><b>Restablecer recuadro</b><span>Regresa el tamano del recuadro del territorio al valor inicial.</span></span></div>
         <div class="tool-item"><span class="tool-icon color-dot"></span><span><b>Color y transparencia</b><span>Define el color de relleno y que tan visible queda sobre el mapa.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar pintada o texto</b><span>Selecciona una zona o un texto que ya habias marcado para modificarlo.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10l4 7-4 7H7l-4-7z"></path><path d="M7 5v14"></path><path d="M17 5v14"></path></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 4 10 7 4-8 1-8-1z"></path></svg></span><span><b>Pintar area</b><span>Toca varios puntos del mapa para formar la zona que quieres colorear.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 7 5-2.7 8.4H7.7L5 9z"></path><circle cx="12" cy="4" r="1.7" fill="currentColor"></circle><circle cx="19" cy="9" r="1.7" fill="currentColor"></circle><circle cx="16.3" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="7.7" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="5" cy="9" r="1.7" fill="currentColor"></circle></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg></span><span><b>Pintar area</b><span>Toca varios puntos del mapa para formar la zona que quieres colorear.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg></span><span><b>Dibujar calle blanca</b><span>Traza a mano una calle que no se distingue en el mapa. Queda en blanco sobre el color.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg></span><span><b>Dibujar rio</b><span>Traza a mano los rios y arroyos que no salen solos. Quedan en azul, guardados por territorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separarlo en dos renglones.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><b>Agregar icono</b><span>Elige el tipo de referencia, toca el boton de icono y marca el punto en el mapa.</span></span></div>
@@ -320,15 +329,15 @@ body.print-preview{overflow:hidden}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
       </button>
       <button class="icon-btn" id="btn-contour-edit" type="button" disabled title="Editar contorno" aria-label="Editar contorno">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10l4 7-4 7H7l-4-7z"></path><path d="M7 5v14"></path><path d="M17 5v14"></path></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 7 5-2.7 8.4H7.7L5 9z"></path><circle cx="12" cy="4" r="1.7" fill="currentColor"></circle><circle cx="19" cy="9" r="1.7" fill="currentColor"></circle><circle cx="16.3" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="7.7" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="5" cy="9" r="1.7" fill="currentColor"></circle></svg>
       </button>
       </span>
       <span class="tool-group tools-draw">
       <button class="icon-btn" id="btn-color-draw" type="button" disabled title="Seleccionar area con color" aria-label="Seleccionar area con color">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 4 10 7 4-8 1-8-1z"></path></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg>
       </button>
       <button class="icon-btn" id="btn-road-pencil" type="button" disabled title="Dibujar calle blanca" aria-label="Dibujar calle blanca">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16z"></path><path d="m13.5 6.5 4 4"></path><path d="M4 20h16"></path></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg>
       </button>
       <button class="icon-btn" id="btn-river-pencil" type="button" disabled title="Dibujar rio o arroyo" aria-label="Dibujar rio o arroyo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg>
