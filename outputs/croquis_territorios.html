@@ -487,14 +487,6 @@ const WATERWAY_CASING_COLOR = '#ffffff';
 const WATERWAY_OVERLAY_OPACITY = .95;
 const MAP_DETAIL_RESTORE_OPACITY = 1;
 const PRINT_DETAIL_RESTORE_OPACITY = 1;
-const AUTO_BLOCK_GRID_PX = 3;
-const AUTO_BLOCK_ROAD_WIDTH_PX = 42;
-const AUTO_BLOCK_ROAD_WIDTH_STEPS_PX = [28, 36, 46, 58, 70];
-const AUTO_BLOCK_MIN_CELLS = 18;
-const AUTO_BLOCK_MAX_RADIUS_PX = 420;
-const AUTO_BLOCK_MAX_FILL_RATIO = .32;
-const AUTO_BLOCK_MIN_AREA_PX = 700;
-const AUTO_BLOCK_EDGE_SIMPLIFY_PX = 5;
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter'
@@ -651,8 +643,6 @@ if(textSizeInput){
 }
 const colorEditButton = $('btn-color-edit');
 const contourEditButton = $('btn-contour-edit');
-const colorFrameButton = $('btn-color-frame');
-const blockQuadButton = $('btn-block-quad');
 const colorDrawButton = $('btn-color-draw');
 const roadPencilButton = $('btn-road-pencil');
 const riverPencilButton = $('btn-river-pencil');
@@ -759,9 +749,6 @@ let runtimeRoadRequestId = 0;
 let runtimeReferenceCache = null;
 let runtimeReferenceRequestId = 0;
 let colorDrawMode = false;
-let blockQuadMode = false;
-let blockAutoBusy = false;
-let autoBlockRoadCache = null;
 let colorEditMode = false;
 let contourEditMode = false;
 let textAddMode = false;
@@ -1190,7 +1177,6 @@ function setTerritoryAddMode(active, showMessage = true){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
     setRiverPencilMode(false, false);
-    setBlockQuadMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
     setContourEditMode(false, false);
@@ -1755,11 +1741,6 @@ function updateColorControls(loc = LOCS[currentIndex]){
   colorEditButton.classList.toggle('active', colorEditMode || hasSelection);
   contourEditButton.disabled = !enabled || !loc || selectedAreaIndex == null;
   contourEditButton.classList.toggle('active', contourEditMode);
-  if(colorFrameButton) colorFrameButton.disabled = !enabled || !loc;
-  if(blockQuadButton){
-    blockQuadButton.disabled = !enabled || !loc || blockAutoBusy;
-    blockQuadButton.classList.toggle('active', blockQuadMode);
-  }
   if(colorDrawButton){
     colorDrawButton.disabled = !enabled || !loc;
     colorDrawButton.classList.toggle('active', colorDrawMode);
@@ -1778,9 +1759,9 @@ function updateColorControls(loc = LOCS[currentIndex]){
     iconAddButton.disabled = !enabled || !loc;
     iconAddButton.classList.toggle('active', iconAddMode);
   }
-  saveChangesButton.disabled = !enabled || blockAutoBusy || !loc;
+  saveChangesButton.disabled = !enabled || !loc;
   const canUndoSavedChange = undoHistory.length > 0;
-  colorUndoButton.disabled = !enabled || blockAutoBusy || ((!colorDrawMode || draftPoints.length < 1) && (!blockQuadMode || draftPoints.length < 1) && (!roadPencilMode || roadDraftPoints.length < 1) && (!riverPencilMode || riverDraftPoints.length < 1) && !(contourEditMode && selectedAreaIndex != null && getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.length > 3) && !canUndoSavedChange);
+  colorUndoButton.disabled = !enabled || ((!colorDrawMode || draftPoints.length < 1) && (!roadPencilMode || roadDraftPoints.length < 1) && (!riverPencilMode || riverDraftPoints.length < 1) && !(contourEditMode && selectedAreaIndex != null && getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.length > 3) && !canUndoSavedChange);
   colorClearButton.disabled = !enabled || !loc || (!draftPoints.length && !roadDraftPoints.length && !riverDraftPoints.length && getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0 && getManualRiversForLoc(loc).length === 0);
   colorOpacityValue.textContent = Math.round(getFillOpacity() * 100) + '%';
   updateTextSizeValue();
@@ -1799,7 +1780,7 @@ function renderColorAreas(loc){
     }).addTo(colorLayer);
     polygon.on('click', event => {
       if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
-      if(textAddMode || iconAddMode || colorDrawMode || contourEditMode || blockQuadMode || roadPencilMode || riverPencilMode){
+      if(textAddMode || iconAddMode || colorDrawMode || contourEditMode || roadPencilMode || riverPencilMode){
         handleColorMapClick(event);
         return;
       }
@@ -2410,14 +2391,6 @@ function updateSelectedAreaPoints(points){
   updateColorControls(loc);
 }
 
-function distanceToSegment(point, a, b){
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  if(dx === 0 && dy === 0) return point.distanceTo(a);
-  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / (dx * dx + dy * dy)));
-  return point.distanceTo(L.point(a.x + t * dx, a.y + t * dy));
-}
-
 function renderContourEditHandles(loc){
   if(!editHandleLayer || !window.L) return;
   editHandleLayer.clearLayers();
@@ -2699,7 +2672,6 @@ function setRoadPencilMode(active, showMessage = true){
   if(roadPencilMode){
     setTerritoryAddMode(false, false);
     setColorDrawMode(false);
-    setBlockQuadMode(false, false);
     setRiverPencilMode(false, false);
     setTextAddMode(false, false);
     setContourEditMode(false, false);
@@ -2773,7 +2745,6 @@ function setRiverPencilMode(active, showMessage = true){
   if(riverPencilMode){
     setTerritoryAddMode(false, false);
     setColorDrawMode(false);
-    setBlockQuadMode(false, false);
     setRoadPencilMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
@@ -2805,41 +2776,12 @@ function setColorDrawMode(active){
   if(colorDrawMode) setTextAddMode(false, false);
   if(colorDrawMode) setIconAddMode(false, false);
   if(colorDrawMode) setContourEditMode(false, false);
-  if(colorDrawMode) setBlockQuadMode(false, false);
   resetDraftArea();
   document.querySelector('.map-wrap')?.classList.toggle('is-color-drawing', colorDrawMode);
   if(colorDrawMode){
     setStatus('Dibujando area de color. Marca puntos y cierra con la palomita.', 'warn');
   }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Dibujando area')){
     setStatus('', '');
-  }
-  updateColorControls();
-}
-
-function setBlockQuadMode(active, showMessage = true){
-  blockQuadMode = !!active;
-  if(blockQuadMode){
-    setTerritoryAddMode(false, false);
-    setColorDrawMode(false);
-    setRoadPencilMode(false, false);
-    setRiverPencilMode(false, false);
-    setTextAddMode(false, false);
-    setIconAddMode(false, false);
-    setContourEditMode(false, false);
-    selectedAreaIndex = null;
-    selectedTextIndex = null;
-    selectedIconIndex = null;
-    renderColorAreas(LOCS[currentIndex]);
-    renderTextLabels(LOCS[currentIndex]);
-  }
-  resetDraftArea();
-  document.querySelector('.map-wrap')?.classList.toggle('is-color-drawing', blockQuadMode);
-  if(showMessage){
-    if(blockQuadMode){
-      setStatus('Cuadra automatica: toca dentro de la cuadra para detectar quiebres. Si no se puede, marca puntos y cierra con la palomita.', 'warn');
-    }else if(statusBox.classList.contains('warn') && (statusBox.textContent.includes('Cuadra automatica') || statusBox.textContent.includes('Cuadra por puntos'))){
-      setStatus('', '');
-    }
   }
   updateColorControls();
 }
@@ -2851,7 +2793,6 @@ function setColorEditMode(active){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
     setRiverPencilMode(false, false);
-    setBlockQuadMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
     setStatus('Modo edicion: toca una pintada para seleccionarla. Doble clic en un texto para editarlo.', 'warn');
@@ -2875,7 +2816,6 @@ function setContourEditMode(active, showMessage = true){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
     setRiverPencilMode(false, false);
-    setBlockQuadMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
     document.querySelector('.map-wrap')?.classList.add('is-contour-editing');
@@ -2896,7 +2836,6 @@ function setTextAddMode(active, showMessage = true){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
     setRiverPencilMode(false, false);
-    setBlockQuadMode(false, false);
     setIconAddMode(false, false);
     setContourEditMode(false, false);
     selectedAreaIndex = null;
@@ -2924,7 +2863,6 @@ function setIconAddMode(active, showMessage = true){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
     setRiverPencilMode(false, false);
-    setBlockQuadMode(false, false);
     setTextAddMode(false, false);
     setContourEditMode(false, false);
     selectedAreaIndex = null;
@@ -3043,18 +2981,6 @@ function addColorAreaForCurrent(points){
   updateColorControls(loc);
 }
 
-function addFrameColorAreaForCurrent(){
-  const loc = LOCS[currentIndex];
-  if(!loc) return;
-  const b = getPrintBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
-  addColorAreaForCurrent([
-    L.latLng(b.north, b.west),
-    L.latLng(b.north, b.east),
-    L.latLng(b.south, b.east),
-    L.latLng(b.south, b.west)
-  ]);
-}
-
 function recoverIxcatlaBlueIfMissing(){
   const loc = LOCS.find(item => item.num === 5 || item.name === 'Ixcatla');
   if(!loc || getColorAreasForLoc(loc).length) return false;
@@ -3078,24 +3004,6 @@ function recoverIxcatlaBlueIfMissing(){
     localStorage.setItem(IXCATLA_RECOVERY_STORAGE_KEY, 'done');
   }catch(e){}
   return true;
-}
-
-function getAutoBlockBounds(){
-  if(!map) return null;
-  return map.getBounds().pad(.22);
-}
-
-function getAutoBlockCacheKey(bounds){
-  if(!bounds || !map) return '';
-  const round = value => Math.round(Number(value) * 10000);
-  return [
-    LOCS[currentIndex]?.num || 'x',
-    Math.round(map.getZoom() * 2) / 2,
-    round(bounds.getSouth()),
-    round(bounds.getWest()),
-    round(bounds.getNorth()),
-    round(bounds.getEast())
-  ].join(':');
 }
 
 function buildOverpassRoadQuery(bounds){
@@ -3152,25 +3060,6 @@ async function fetchOverpassRoadData(query, options = {}){
     }
   }
   throw lastError || new Error('No se pudo consultar calles.');
-}
-
-function roadSegmentsFromOverpass(data){
-  const segments = [];
-  (data?.elements || []).forEach(element => {
-    // Solo calles: los rios no cortan manzanas en el relleno automatico.
-    if(!String(element.tags?.highway || '').trim()) return;
-    const geometry = Array.isArray(element.geometry) ? element.geometry : [];
-    for(let i = 0; i < geometry.length - 1; i++){
-      const a = geometry[i];
-      const b = geometry[i + 1];
-      if(!Number.isFinite(Number(a?.lat)) || !Number.isFinite(Number(a?.lon)) || !Number.isFinite(Number(b?.lat)) || !Number.isFinite(Number(b?.lon))) continue;
-      segments.push({
-        a:L.latLng(Number(a.lat), Number(a.lon)),
-        b:L.latLng(Number(b.lat), Number(b.lon))
-      });
-    }
-  });
-  return segments;
 }
 
 function roadDisplayName(tags = {}){
@@ -3332,321 +3221,16 @@ async function fetchReferencesForBounds(bounds, options = {}){
   return referencesFromOverpass(data);
 }
 
-async function getAutoBlockRoadSegments(){
-  const bounds = getAutoBlockBounds();
-  if(!bounds) return [];
-  const key = getAutoBlockCacheKey(bounds);
-  if(autoBlockRoadCache?.key === key && Array.isArray(autoBlockRoadCache.segments)){
-    return autoBlockRoadCache.segments;
-  }
-  const data = await fetchOverpassRoadData(buildOverpassRoadQuery(bounds));
-  const segments = roadSegmentsFromOverpass(data);
-  autoBlockRoadCache = { key, segments };
-  return segments;
-}
-
-function getAutoBlockSearchRadius(){
-  const size = map?.getSize?.();
-  const base = size ? Math.max(size.x, size.y) * .62 : 520;
-  return Math.max(220, Math.min(AUTO_BLOCK_MAX_RADIUS_PX, base));
-}
-
-function pointSegmentDistance(point, a, b){
-  return distanceToSegment(point, a, b);
-}
-
-function polygonLayerMetrics(points){
-  if(!Array.isArray(points) || points.length < 3) return null;
-  let twiceArea = 0;
-  let perimeter = 0;
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for(let i = 0; i < points.length; i++){
-    const point = points[i];
-    const next = points[(i + 1) % points.length];
-    twiceArea += point.x * next.y - next.x * point.y;
-    perimeter += point.distanceTo(next);
-    minX = Math.min(minX, point.x);
-    minY = Math.min(minY, point.y);
-    maxX = Math.max(maxX, point.x);
-    maxY = Math.max(maxY, point.y);
-  }
-  const area = Math.abs(twiceArea) / 2;
-  const compactness = perimeter > 0 ? (4 * Math.PI * area) / (perimeter * perimeter) : 0;
-  return {
-    area,
-    perimeter,
-    compactness,
-    width:maxX - minX,
-    height:maxY - minY
-  };
-}
-
-function isPointInsideLayerPolygon(point, polygon){
-  if(!point || !Array.isArray(polygon) || polygon.length < 3) return false;
-  let inside = false;
-  for(let i = 0, j = polygon.length - 1; i < polygon.length; j = i++){
-    const a = polygon[i];
-    const b = polygon[j];
-    const crosses = (a.y > point.y) !== (b.y > point.y);
-    if(crosses){
-      const x = (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x;
-      if(point.x < x) inside = !inside;
-    }
-  }
-  return inside;
-}
-
-function simplifyPointRing(points, tolerance){
-  if(points.length <= 4) return points;
-  const sqTolerance = tolerance * tolerance;
-  const getSqSegDist = (point, a, b) => {
-    let x = a.x;
-    let y = a.y;
-    let dx = b.x - x;
-    let dy = b.y - y;
-    if(dx !== 0 || dy !== 0){
-      const t = ((point.x - x) * dx + (point.y - y) * dy) / (dx * dx + dy * dy);
-      if(t > 1){
-        x = b.x;
-        y = b.y;
-      }else if(t > 0){
-        x += dx * t;
-        y += dy * t;
-      }
-    }
-    dx = point.x - x;
-    dy = point.y - y;
-    return dx * dx + dy * dy;
-  };
-  const simplifyDPStep = (list, first, last, simplified) => {
-    let maxSqDist = sqTolerance;
-    let index = null;
-    for(let i = first + 1; i < last; i++){
-      const sqDist = getSqSegDist(list[i], list[first], list[last]);
-      if(sqDist > maxSqDist){
-        index = i;
-        maxSqDist = sqDist;
-      }
-    }
-    if(index != null){
-      if(index - first > 1) simplifyDPStep(list, first, index, simplified);
-      simplified.push(list[index]);
-      if(last - index > 1) simplifyDPStep(list, index, last, simplified);
-    }
-  };
-  const closed = points.concat([points[0]]);
-  const simplified = [closed[0]];
-  simplifyDPStep(closed, 0, closed.length - 1, simplified);
-  simplified.push(closed[closed.length - 1]);
-  simplified.pop();
-  return simplified.length >= 3 ? simplified : points;
-}
-
-function getNearestOpenCell(startX, startY, blocked, cols, rows){
-  const startIndex = startY * cols + startX;
-  if(startX >= 0 && startY >= 0 && startX < cols && startY < rows && !blocked[startIndex]) return { x:startX, y:startY };
-  const maxRadius = 8;
-  for(let radius = 1; radius <= maxRadius; radius++){
-    for(let dy = -radius; dy <= radius; dy++){
-      for(let dx = -radius; dx <= radius; dx++){
-        if(Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
-        const x = startX + dx;
-        const y = startY + dy;
-        if(x < 0 || y < 0 || x >= cols || y >= rows) continue;
-        if(!blocked[y * cols + x]) return { x, y };
-      }
-    }
-  }
-  return null;
-}
-
-function extractFilledBoundary(filled, cols, rows, left, top, cell){
-  const edges = [];
-  const isFilled = (x, y) => x >= 0 && y >= 0 && x < cols && y < rows && filled[y * cols + x];
-  const addEdge = (a, b) => edges.push({ a, b, used:false });
-  for(let y = 0; y < rows; y++){
-    for(let x = 0; x < cols; x++){
-      if(!isFilled(x, y)) continue;
-      if(!isFilled(x, y - 1)) addEdge([x, y], [x + 1, y]);
-      if(!isFilled(x + 1, y)) addEdge([x + 1, y], [x + 1, y + 1]);
-      if(!isFilled(x, y + 1)) addEdge([x + 1, y + 1], [x, y + 1]);
-      if(!isFilled(x - 1, y)) addEdge([x, y + 1], [x, y]);
-    }
-  }
-  if(!edges.length) return null;
-  const byStart = new Map();
-  edges.forEach((edge, index) => {
-    const key = edge.a.join(',');
-    if(!byStart.has(key)) byStart.set(key, []);
-    byStart.get(key).push(index);
-  });
-  let bestLoop = [];
-  edges.forEach((edge, index) => {
-    if(edge.used) return;
-    const loop = [];
-    let current = index;
-    let guard = 0;
-    while(current != null && guard++ < edges.length + 4){
-      const item = edges[current];
-      if(item.used) break;
-      item.used = true;
-      loop.push(item.a);
-      const nextKey = item.b.join(',');
-      const options = byStart.get(nextKey) || [];
-      current = options.find(edgeIndex => !edges[edgeIndex].used);
-      if(nextKey === loop[0].join(',')){
-        loop.push(item.b);
-        break;
-      }
-    }
-    if(loop.length > bestLoop.length) bestLoop = loop;
-  });
-  if(bestLoop.length < 4) return null;
-  bestLoop.pop();
-  return bestLoop.map(point => L.point(left + point[0] * cell, top + point[1] * cell));
-}
-
-function buildAutoBlockPolygon(latlng, roadSegments, options = {}){
-  if(!map || !latlng || !roadSegments.length) return null;
-  const origin = map.latLngToLayerPoint(latlng);
-  const radius = options.radius || getAutoBlockSearchRadius();
-  const cell = options.cell || AUTO_BLOCK_GRID_PX;
-  const left = origin.x - radius;
-  const top = origin.y - radius;
-  const cols = Math.ceil((radius * 2) / cell) + 1;
-  const rows = Math.ceil((radius * 2) / cell) + 1;
-  const roadHalfWidth = (options.roadWidthPx || AUTO_BLOCK_ROAD_WIDTH_PX) / 2;
-  const pointSegments = roadSegments.map(segment => ({
-    a:map.latLngToLayerPoint(segment.a),
-    b:map.latLngToLayerPoint(segment.b)
-  })).filter(segment => segment.a.distanceTo(segment.b) > 4);
-  const blocked = new Uint8Array(cols * rows);
-  for(let y = 0; y < rows; y++){
-    const py = top + y * cell + cell / 2;
-    for(let x = 0; x < cols; x++){
-      const px = left + x * cell + cell / 2;
-      const point = L.point(px, py);
-      for(const segment of pointSegments){
-        if(px < Math.min(segment.a.x, segment.b.x) - roadHalfWidth || px > Math.max(segment.a.x, segment.b.x) + roadHalfWidth ||
-           py < Math.min(segment.a.y, segment.b.y) - roadHalfWidth || py > Math.max(segment.a.y, segment.b.y) + roadHalfWidth){
-          continue;
-        }
-        if(pointSegmentDistance(point, segment.a, segment.b) <= roadHalfWidth){
-          blocked[y * cols + x] = 1;
-          break;
-        }
-      }
-    }
-  }
-  const startX = Math.round((origin.x - left) / cell);
-  const startY = Math.round((origin.y - top) / cell);
-  const start = getNearestOpenCell(startX, startY, blocked, cols, rows);
-  if(!start) return null;
-  const filled = new Uint8Array(cols * rows);
-  const stack = [start];
-  let cells = 0;
-  let touchesBounds = false;
-  while(stack.length){
-    const item = stack.pop();
-    if(item.x < 0 || item.y < 0 || item.x >= cols || item.y >= rows) continue;
-    const index = item.y * cols + item.x;
-    if(filled[index] || blocked[index]) continue;
-    filled[index] = 1;
-    cells++;
-    if(item.x === 0 || item.y === 0 || item.x === cols - 1 || item.y === rows - 1) touchesBounds = true;
-    stack.push({ x:item.x + 1, y:item.y });
-    stack.push({ x:item.x - 1, y:item.y });
-    stack.push({ x:item.x, y:item.y + 1 });
-    stack.push({ x:item.x, y:item.y - 1 });
-  }
-  if(cells < AUTO_BLOCK_MIN_CELLS || touchesBounds || cells > cols * rows * AUTO_BLOCK_MAX_FILL_RATIO) return null;
-  const boundary = extractFilledBoundary(filled, cols, rows, left, top, cell);
-  if(!boundary || boundary.length < 3) return null;
-  const ring = simplifyPointRing(boundary, options.simplifyPx || AUTO_BLOCK_EDGE_SIMPLIFY_PX);
-  if(!isPointInsideLayerPolygon(origin, ring)) return null;
-  const metrics = polygonLayerMetrics(ring);
-  if(!metrics || metrics.area < AUTO_BLOCK_MIN_AREA_PX) return null;
-  if(metrics.width > radius * 1.72 || metrics.height > radius * 1.72) return null;
-  return {
-    points:ring.map(point => map.layerPointToLatLng(point)),
-    metrics,
-    roadWidthPx:options.roadWidthPx || AUTO_BLOCK_ROAD_WIDTH_PX
-  };
-}
-
-function buildBestAutoBlockPolygon(latlng, roadSegments){
-  const candidates = [];
-  AUTO_BLOCK_ROAD_WIDTH_STEPS_PX.forEach(roadWidthPx => {
-    const candidate = buildAutoBlockPolygon(latlng, roadSegments, { roadWidthPx });
-    if(candidate) candidates.push(candidate);
-  });
-  if(!candidates.length) return null;
-  candidates.sort((a, b) => {
-    const compactDiff = b.metrics.compactness - a.metrics.compactness;
-    if(Math.abs(compactDiff) > .1) return compactDiff;
-    return a.metrics.area - b.metrics.area;
-  });
-  return candidates[0].points;
-}
-
-function addBlockAreaAndStayReady(points, message){
-  const loc = LOCS[currentIndex];
-  if(!loc || !Array.isArray(points) || points.length < 3) return;
-  addColorAreaForCurrent(points);
-  resetDraftArea();
-  selectedAreaIndex = null;
-  selectedTextIndex = null;
-  selectedIconIndex = null;
-  renderColorAreas(loc);
-  renderTextLabels(loc);
-  renderManualIcons(loc);
-  setStatus(message, 'warn');
-  updateColorControls(loc);
-}
-
-async function addAutoBlockColorArea(latlng){
-  if(blockAutoBusy || !latlng) return false;
-  const targetIndex = currentIndex;
-  blockAutoBusy = true;
-  updateColorControls();
-  setStatus('Detectando quiebres de la cuadra...', 'warn');
-  try{
-    const segments = await getAutoBlockRoadSegments();
-    if(currentIndex !== targetIndex || !blockQuadMode) return false;
-    if(!segments.length) throw new Error('No se encontraron calles cercanas.');
-    const points = buildBestAutoBlockPolygon(latlng, segments);
-    if(currentIndex !== targetIndex || !blockQuadMode) return false;
-    if(!points || points.length < 3) throw new Error('No se pudo cerrar una cuadra.');
-    addBlockAreaAndStayReady(points, 'Cuadra detectada con quiebres. Toca otra cuadra o marca puntos si necesitas corregir.');
-    return true;
-  }catch(err){
-    console.error(err);
-    setStatus('No pude detectar esa cuadra automaticamente. Continua marcando puntos y cierra con la palomita.', 'warn');
-    return false;
-  }finally{
-    blockAutoBusy = false;
-    updateColorControls();
-  }
-}
-
 function finishDraftColorArea(){
   if(draftPoints.length < 3) return;
   addColorAreaForCurrent(draftPoints);
   setColorDrawMode(false);
 }
 
-function finishBlockQuadArea(){
-  if(!blockQuadMode || draftPoints.length < 3) return;
-  addBlockAreaAndStayReady(draftPoints, 'Cuadra coloreada. Marca otra cuadra o desactiva el boton cuando termines.');
-}
-
 function saveAllChanges(){
   const loc = LOCS[currentIndex];
   if(!loc) return;
-  if((colorDrawMode || blockQuadMode) && draftPoints.length > 0 && draftPoints.length < 3){
+  if(colorDrawMode && draftPoints.length > 0 && draftPoints.length < 3){
     setStatus('Marca al menos 3 puntos para cerrar y guardar el area.', 'warn');
     updateColorControls(loc);
     return;
@@ -3664,9 +3248,6 @@ function saveAllChanges(){
   let closedArea = false;
   if(colorDrawMode && draftPoints.length >= 3){
     finishDraftColorArea();
-    closedArea = true;
-  }else if(blockQuadMode && draftPoints.length >= 3){
-    finishBlockQuadArea();
     closedArea = true;
   }
   let closedRoad = false;
@@ -3740,7 +3321,7 @@ function buildBackupPayload(){
 }
 
 function exportBackup(){
-  if((colorDrawMode || blockQuadMode) && draftPoints.length > 0 && draftPoints.length < 3){
+  if(colorDrawMode && draftPoints.length > 0 && draftPoints.length < 3){
     setStatus('Termina el area con al menos 3 puntos o cancela antes de exportar el respaldo.', 'warn');
     return;
   }
@@ -3819,7 +3400,6 @@ function importBackupPayload(payload){
   selectedIconIndex = null;
   draftPoints = [];
   setColorDrawMode(false);
-  setBlockQuadMode(false, false);
   setRoadPencilMode(false, false);
   setRiverPencilMode(false, false);
   setTextAddMode(false, false);
@@ -3993,7 +3573,7 @@ async function fetchCloudFileSha(token){
 }
 
 async function saveCloudBackup(){
-  if((colorDrawMode || blockQuadMode) && draftPoints.length > 0 && draftPoints.length < 3){
+  if(colorDrawMode && draftPoints.length > 0 && draftPoints.length < 3){
     setStatus('Termina el area con al menos 3 puntos o cancela antes de guardar en GitHub.', 'warn');
     return;
   }
@@ -4084,7 +3664,7 @@ function undoDraftColorPoint(){
     }
     return;
   }
-  if((colorDrawMode || blockQuadMode) && draftPoints.length){
+  if(colorDrawMode && draftPoints.length){
     draftPoints.pop();
     renderDraftArea();
     updateColorControls();
@@ -4185,23 +3765,6 @@ async function handleColorMapClick(event){
     riverDraftPoints.push(event.latlng);
     renderRiverDraft();
     setStatus('Lapiz de rio: puntos marcados ' + riverDraftPoints.length + '. Guarda para fijarlo.', 'warn');
-    updateColorControls();
-    return;
-  }
-  if(blockQuadMode){
-    if(blockAutoBusy){
-      setStatus('Detectando quiebres de la cuadra...', 'warn');
-      return;
-    }
-    if(!draftPoints.length){
-      const targetIndex = currentIndex;
-      const autoAdded = await addAutoBlockColorArea(event.latlng);
-      if(currentIndex !== targetIndex || !blockQuadMode) return;
-      if(autoAdded) return;
-    }
-    draftPoints.push(event.latlng);
-    renderDraftArea();
-    setStatus('Modo manual: puntos marcados ' + draftPoints.length + '. Marca los quiebres y cierra con la palomita.', 'warn');
     updateColorControls();
     return;
   }
@@ -4576,7 +4139,6 @@ function goTo(index, silent){
   drawTerritoryFrame(loc, true, silent);
   if(territoryAddMode) setTerritoryAddMode(false, false);
   if(colorDrawMode) setColorDrawMode(false);
-  if(blockQuadMode) setBlockQuadMode(false, false);
   if(roadPencilMode) setRoadPencilMode(false, false);
   if(riverPencilMode) setRiverPencilMode(false, false);
   if(textAddMode) setTextAddMode(false, false);
@@ -5278,8 +4840,6 @@ contourEditButton.addEventListener('click', () => {
   }
   setContourEditMode(!contourEditMode);
 });
-colorFrameButton?.addEventListener('click', addFrameColorAreaForCurrent);
-blockQuadButton?.addEventListener('click', () => setBlockQuadMode(!blockQuadMode));
 colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode));
 roadPencilButton?.addEventListener('click', () => setRoadPencilMode(!roadPencilMode));
 riverPencilButton?.addEventListener('click', () => setRiverPencilMode(!riverPencilMode));
@@ -5318,10 +4878,6 @@ document.addEventListener('keydown', event => {
   }
   if(event.key === 'Escape' && colorDrawMode){
     setColorDrawMode(false);
-    return;
-  }
-  if(event.key === 'Escape' && blockQuadMode){
-    setBlockQuadMode(false);
     return;
   }
   if(event.key === 'Escape' && roadPencilMode){
