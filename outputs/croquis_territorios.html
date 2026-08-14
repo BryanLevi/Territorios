@@ -55,7 +55,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .btn.ghost{background:#eef4f0;color:#1d5331;border:1px solid #cfe0d6}
 .map-wrap{position:relative;flex:1;min-height:0;background:#dbe4df}
 #map{position:absolute;inset:0;width:100%;height:100%}
-.map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-icon-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container{cursor:crosshair}
+.map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-icon-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container,.map-wrap.is-river-pencil .leaflet-container{cursor:crosshair}
 .map-wrap.is-contour-editing .leaflet-container{cursor:default}
 .color-area-path{mix-blend-mode:multiply;filter:saturate(1.08) contrast(1.02)}
 .color-area-path.is-selected{filter:saturate(1.16) contrast(1.04)}
@@ -79,6 +79,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .print-vector-road-label span{position:absolute;left:0;top:0;display:inline-block;transform:translate(-50%,-50%) rotate(var(--road-label-angle,0deg));transform-origin:center;white-space:nowrap;background:transparent!important;border:0!important;color:#fff!important;font-family:"Arial Narrow","Segoe UI",Arial,sans-serif;font-weight:1000;line-height:1;padding:0 calc(1.6px * var(--print-label-scale,1));box-shadow:none!important;text-shadow:calc(-1px * var(--print-label-scale,1)) 0 #07140d,calc(1px * var(--print-label-scale,1)) 0 #07140d,0 calc(-1px * var(--print-label-scale,1)) #07140d,0 calc(1px * var(--print-label-scale,1)) #07140d,calc(-.72px * var(--print-label-scale,1)) calc(-.72px * var(--print-label-scale,1)) #07140d,calc(.72px * var(--print-label-scale,1)) calc(.72px * var(--print-label-scale,1)) #07140d!important;-webkit-text-stroke:calc(.42px * var(--print-label-scale,1)) #07140d}
 .runtime-vector-road-label,.runtime-reference-marker,.print-reference-marker{background:transparent!important;border:0!important;box-shadow:none!important;pointer-events:none}
 .runtime-vector-road-label span{position:absolute;left:0;top:0;display:inline-block;transform:translate(-50%,-50%) rotate(var(--road-label-angle,0deg));transform-origin:center;white-space:nowrap;color:#07140d!important;font-family:"Arial Narrow","Segoe UI",Arial,sans-serif;font-size:13px;font-weight:950;line-height:1;background:rgba(255,255,255,.92)!important;border-radius:3px;padding:1px 3px;text-shadow:none!important;box-shadow:0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(0,0,0,.16)}
+.runtime-vector-road-label.is-waterway span{color:#08406e!important;background:rgba(230,244,255,.94)!important}
 .runtime-reference-label,.print-reference-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);max-width:260px;padding:0;border:0!important;background:transparent!important;color:#102018!important;font-family:"Segoe UI",Arial,sans-serif;font-weight:950;line-height:1.04;text-align:left;text-transform:uppercase;white-space:normal;filter:none!important;mix-blend-mode:normal!important;text-shadow:none!important}
 .print-reference-label{gap:calc(5px * var(--print-label-scale,1));max-width:calc(360px * var(--print-label-scale,1))}
 .runtime-reference-icon,.print-reference-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px;box-shadow:0 0 0 2px rgba(255,255,255,.96),0 3px 8px rgba(0,0,0,.25)}
@@ -236,6 +237,7 @@ body.print-preview{overflow:hidden}
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar pintada o texto</b><span>Selecciona una zona o un texto que ya habias marcado para modificarlo.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10l4 7-4 7H7l-4-7z"></path><path d="M7 5v14"></path><path d="M17 5v14"></path></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 4 10 7 4-8 1-8-1z"></path></svg></span><span><b>Pintar area</b><span>Toca varios puntos del mapa para formar la zona que quieres colorear.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg></span><span><b>Dibujar rio</b><span>Traza a mano los rios y arroyos que no salen solos. Quedan en azul, guardados por territorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separarlo en dos renglones.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><b>Agregar icono</b><span>Elige el tipo de referencia, toca el boton de icono y marca el punto en el mapa.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores, textos e iconos del territorio actual.</span></span></div>
@@ -302,6 +304,9 @@ body.print-preview{overflow:hidden}
       </button>
       <button class="icon-btn" id="btn-road-pencil" type="button" disabled title="Dibujar calle blanca" aria-label="Dibujar calle blanca">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16z"></path><path d="m13.5 6.5 4 4"></path><path d="M4 20h16"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-river-pencil" type="button" disabled title="Dibujar rio o arroyo" aria-label="Dibujar rio o arroyo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg>
       </button>
       <button class="icon-btn" id="btn-text-add" type="button" disabled title="Agregar texto" aria-label="Agregar texto">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg>
@@ -420,6 +425,10 @@ const ROAD_LABEL_OPACITY = .98;
 const POI_LABEL_OPACITY = 1;
 const VECTOR_ROAD_OVERLAY_OPACITY = .82;
 const VECTOR_ROAD_LABEL_OPACITY = .98;
+const WATERWAY_KINDS = 'river|stream|canal|ditch|drain';
+const WATERWAY_COLOR = '#1878c8';
+const WATERWAY_CASING_COLOR = '#ffffff';
+const WATERWAY_OVERLAY_OPACITY = .95;
 const REFERENCE_LABEL_OPACITY = .98;
 const MAP_DETAIL_RESTORE_OPACITY = 1;
 const PRINT_DETAIL_RESTORE_OPACITY = 1;
@@ -587,6 +596,7 @@ const colorFrameButton = $('btn-color-frame');
 const blockQuadButton = $('btn-block-quad');
 const colorDrawButton = $('btn-color-draw');
 const roadPencilButton = $('btn-road-pencil');
+const riverPencilButton = $('btn-river-pencil');
 const textAddButton = $('btn-text-add');
 const iconAddButton = $('btn-icon-add');
 const saveChangesButton = $('btn-save-changes');
@@ -602,6 +612,7 @@ const COLOR_AREAS_STORAGE_KEY = 'croquis-territory-color-areas-v1';
 const TEXT_LABELS_STORAGE_KEY = 'croquis-territory-text-labels-v1';
 const MANUAL_ICONS_STORAGE_KEY = 'croquis-territory-manual-icons-v1';
 const WHITE_ROADS_STORAGE_KEY = 'croquis-territory-white-roads-v1';
+const MANUAL_RIVERS_STORAGE_KEY = 'croquis-territory-manual-rivers-v1';
 const UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v2';
 const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
@@ -669,6 +680,7 @@ let colorAreaSettings = loadColorAreaSettings();
 let textLabelSettings = loadTextLabelSettings();
 let manualIconSettings = loadManualIconSettings();
 let whiteRoadSettings = loadWhiteRoadSettings();
+let manualRiverSettings = loadManualRiverSettings();
 let undoHistory = loadUndoHistory();
 let colorLayer = null;
 let draftLayer = null;
@@ -681,6 +693,7 @@ let roadOverlayLayer = null;
 let vectorRoadLayer = null;
 let runtimeReferenceLayer = null;
 let manualWhiteRoadLayer = null;
+let manualRiverLayer = null;
 let runtimeRoadCache = null;
 let runtimeRoadRequestId = 0;
 let runtimeReferenceCache = null;
@@ -696,6 +709,8 @@ let textAddMode = false;
 let iconAddMode = false;
 let roadPencilMode = false;
 let roadDraftPoints = [];
+let riverPencilMode = false;
+let riverDraftPoints = [];
 let draftPoints = [];
 let territoryAddMode = false;
 let territoryAddStart = null;
@@ -876,6 +891,32 @@ function saveWhiteRoadSettings(){
   }
 }
 
+function loadManualRiverSettings(){
+  try{
+    const raw = localStorage.getItem(MANUAL_RIVERS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveManualRiverSettings(){
+  try{
+    localStorage.setItem(MANUAL_RIVERS_STORAGE_KEY, JSON.stringify(manualRiverSettings));
+    return true;
+  }catch(e){
+    clearHeavyUndoStorage();
+    try{
+      localStorage.setItem(MANUAL_RIVERS_STORAGE_KEY, JSON.stringify(manualRiverSettings));
+      return true;
+    }catch(err){
+      console.error('No se pudieron guardar los rios dibujados.', err);
+      return false;
+    }
+  }
+}
+
 function normalizeCustomTerritory(raw, index){
   const lat = Number(raw?.lat);
   const lon = Number(raw?.lon);
@@ -1025,6 +1066,7 @@ function setTerritoryAddMode(active, showMessage = true){
   if(territoryAddMode){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
+    setRiverPencilMode(false, false);
     setBlockQuadMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
@@ -1104,11 +1146,13 @@ function clearTerritoryStoredWork(loc){
   delete textLabelSettings[key];
   delete manualIconSettings[key];
   delete whiteRoadSettings[key];
+  delete manualRiverSettings[key];
   delete frameScaleSettings[key];
   saveColorAreaSettings();
   saveTextLabelSettings();
   saveManualIconSettings();
   saveWhiteRoadSettings();
+  saveManualRiverSettings();
   saveFrameScaleSettings();
 }
 
@@ -1218,6 +1262,7 @@ function getCurrentSnapshot(reason = 'change', loc = LOCS[currentIndex]){
     labels:cloneData(getTextLabelsForLoc(loc)) || [],
     icons:cloneData(getManualIconsForLoc(loc)) || [],
     roads:cloneData(getWhiteRoadsForLoc(loc)) || [],
+    rivers:cloneData(getManualRiversForLoc(loc)) || [],
     createdAt:Date.now()
   };
 }
@@ -1231,14 +1276,16 @@ function pushUndoSnapshot(reason = 'change', loc = LOCS[currentIndex]){
     areas:snapshot.areas,
     labels:snapshot.labels,
     icons:snapshot.icons,
-    roads:snapshot.roads
+    roads:snapshot.roads,
+    rivers:snapshot.rivers
   });
   const lastKey = last ? stateFingerprint({
     locNum:last.locNum,
     areas:last.areas,
     labels:last.labels,
     icons:last.icons,
-    roads:last.roads
+    roads:last.roads,
+    rivers:last.rivers
   }) : '';
   if(nextKey && nextKey === lastKey) return;
   undoHistory.push(snapshot);
@@ -1256,17 +1303,19 @@ function restoreLastUndoSnapshot(){
   saveUndoHistory();
   suppressUndoSnapshot = true;
   try{
-    if(snapshot.colorAreaSettings || snapshot.textLabelSettings || snapshot.manualIconSettings || snapshot.whiteRoadSettings){
+    if(snapshot.colorAreaSettings || snapshot.textLabelSettings || snapshot.manualIconSettings || snapshot.whiteRoadSettings || snapshot.manualRiverSettings){
       colorAreaSettings = cloneData(snapshot.colorAreaSettings) || {};
       textLabelSettings = cloneData(snapshot.textLabelSettings) || {};
       manualIconSettings = cloneData(snapshot.manualIconSettings) || {};
       whiteRoadSettings = cloneData(snapshot.whiteRoadSettings) || {};
+      manualRiverSettings = cloneData(snapshot.manualRiverSettings) || {};
     }else{
       const key = String(snapshot.locNum);
       const areas = cloneData(snapshot.areas) || [];
       const labels = cloneData(snapshot.labels) || [];
       const icons = cloneData(snapshot.icons) || [];
       const roads = cloneData(snapshot.roads) || [];
+      const rivers = cloneData(snapshot.rivers) || [];
       if(areas.length){
         colorAreaSettings[key] = areas;
       }else{
@@ -1287,11 +1336,17 @@ function restoreLastUndoSnapshot(){
       }else{
         delete whiteRoadSettings[key];
       }
+      if(rivers.length){
+        manualRiverSettings[key] = rivers;
+      }else{
+        delete manualRiverSettings[key];
+      }
     }
     saveColorAreaSettings();
     saveTextLabelSettings();
     saveManualIconSettings();
     saveWhiteRoadSettings();
+    saveManualRiverSettings();
   }finally{
     suppressUndoSnapshot = false;
   }
@@ -1310,6 +1365,7 @@ function restoreLastUndoSnapshot(){
     renderTextLabels(LOCS[currentIndex]);
     renderManualIcons(LOCS[currentIndex]);
     renderManualWhiteRoads(LOCS[currentIndex]);
+    renderManualRivers(LOCS[currentIndex]);
     updateColorControls();
   }
   setStatus('Cambio restaurado.', 'warn');
@@ -1478,6 +1534,42 @@ function setWhiteRoadsForLoc(loc, roads, options = {}){
   return saved;
 }
 
+function normalizeManualRiver(river){
+  const points = Array.isArray(river?.points) ? river.points : [];
+  const validPoints = points
+    .map(point => [Number(point?.[0]), Number(point?.[1])])
+    .filter(point => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+  if(validPoints.length < 2) return null;
+  const width = Math.max(3, Math.min(16, Number(river.width) || 6));
+  return { points:validPoints, width };
+}
+
+function getManualRiversForLoc(loc){
+  if(!loc) return [];
+  const rivers = manualRiverSettings[String(loc.num)];
+  return Array.isArray(rivers) ? rivers.map(normalizeManualRiver).filter(Boolean) : [];
+}
+
+function setManualRiversForLoc(loc, rivers, options = {}){
+  if(!loc) return false;
+  const key = String(loc.num);
+  const before = cloneData(getManualRiversForLoc(loc));
+  const validRivers = (rivers || []).map(normalizeManualRiver).filter(Boolean);
+  if(stateFingerprint(before) !== stateFingerprint(validRivers) && !options.skipUndo){
+    pushUndoSnapshot('manual-rivers', loc);
+  }
+  if(validRivers.length){
+    manualRiverSettings[key] = validRivers;
+  }else{
+    delete manualRiverSettings[key];
+  }
+  const saved = saveManualRiverSettings();
+  if(!saved && !options.silent){
+    setStatus('No se pudieron guardar los rios dibujados. Intenta de nuevo.', 'error');
+  }
+  return saved;
+}
+
 function colorAreaStyle(area, weight = 2, selected = false, pane = 'territoryColorPane'){
   const color = sanitizeColor(area.color);
   const fillOpacity = getRenderedColorOpacity(area.opacity);
@@ -1552,6 +1644,10 @@ function updateColorControls(loc = LOCS[currentIndex]){
     roadPencilButton.disabled = !enabled || !loc;
     roadPencilButton.classList.toggle('active', roadPencilMode);
   }
+  if(riverPencilButton){
+    riverPencilButton.disabled = !enabled || !loc;
+    riverPencilButton.classList.toggle('active', riverPencilMode);
+  }
   textAddButton.disabled = !enabled || !loc;
   textAddButton.classList.toggle('active', textAddMode);
   if(iconAddButton){
@@ -1560,8 +1656,8 @@ function updateColorControls(loc = LOCS[currentIndex]){
   }
   saveChangesButton.disabled = !enabled || blockAutoBusy || !loc;
   const canUndoSavedChange = undoHistory.length > 0;
-  colorUndoButton.disabled = !enabled || blockAutoBusy || ((!colorDrawMode || draftPoints.length < 1) && (!blockQuadMode || draftPoints.length < 1) && (!roadPencilMode || roadDraftPoints.length < 1) && !(contourEditMode && selectedAreaIndex != null && getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.length > 3) && !canUndoSavedChange);
-  colorClearButton.disabled = !enabled || !loc || (!draftPoints.length && !roadDraftPoints.length && getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0);
+  colorUndoButton.disabled = !enabled || blockAutoBusy || ((!colorDrawMode || draftPoints.length < 1) && (!blockQuadMode || draftPoints.length < 1) && (!roadPencilMode || roadDraftPoints.length < 1) && (!riverPencilMode || riverDraftPoints.length < 1) && !(contourEditMode && selectedAreaIndex != null && getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.length > 3) && !canUndoSavedChange);
+  colorClearButton.disabled = !enabled || !loc || (!draftPoints.length && !roadDraftPoints.length && !riverDraftPoints.length && getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0 && getManualRiversForLoc(loc).length === 0);
   colorOpacityValue.textContent = Math.round(getFillOpacity() * 100) + '%';
   updateTextSizeValue();
 }
@@ -1579,7 +1675,7 @@ function renderColorAreas(loc){
     }).addTo(colorLayer);
     polygon.on('click', event => {
       if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
-      if(textAddMode || iconAddMode || colorDrawMode || contourEditMode || blockQuadMode || roadPencilMode){
+      if(textAddMode || iconAddMode || colorDrawMode || contourEditMode || blockQuadMode || roadPencilMode || riverPencilMode){
         handleColorMapClick(event);
         return;
       }
@@ -1620,6 +1716,38 @@ function renderManualWhiteRoads(loc){
   getWhiteRoadsForLoc(loc).forEach(road => {
     const latLngs = pointsToLatLngs(road.points);
     drawWhiteRoadPolyline(manualWhiteRoadLayer, latLngs, road.width, 'territoryRoadPane', 1);
+  });
+}
+
+function drawManualRiverPolyline(target, latLngs, width, pane = 'territoryRoadPane', scale = 1){
+  if(!target || !Array.isArray(latLngs) || latLngs.length < 2) return;
+  const weight = Math.max(3, Number(width) || 6) * scale;
+  L.polyline(latLngs, {
+    pane,
+    color:WATERWAY_CASING_COLOR,
+    weight:weight + (3 * scale),
+    opacity:.95,
+    lineCap:'round',
+    lineJoin:'round',
+    interactive:false
+  }).addTo(target);
+  L.polyline(latLngs, {
+    pane,
+    color:WATERWAY_COLOR,
+    weight,
+    opacity:1,
+    lineCap:'round',
+    lineJoin:'round',
+    interactive:false
+  }).addTo(target);
+}
+
+function renderManualRivers(loc){
+  if(!manualRiverLayer || !window.L) return;
+  manualRiverLayer.clearLayers();
+  getManualRiversForLoc(loc).forEach(river => {
+    const latLngs = pointsToLatLngs(river.points);
+    drawManualRiverPolyline(manualRiverLayer, latLngs, river.width, 'territoryRoadPane', 1);
   });
 }
 
@@ -1696,6 +1824,87 @@ function runtimeRoadWeight(highway){
   }[key] || 5.2);
 }
 
+function isWaterway(way){
+  return Boolean(String(way?.waterway || '').trim());
+}
+
+function waterwayWeight(kind){
+  return ({
+    river:5.6,
+    canal:4.8,
+    stream:4,
+    ditch:3.2,
+    drain:3.2
+  }[String(kind || '').trim()] || 4);
+}
+
+function drawRuntimeWaterways(waterways, opacity){
+  if(!vectorRoadLayer || !window.L) return;
+  waterways.forEach(way => {
+    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
+    if(latLngs.length < 2) return;
+    const weight = waterwayWeight(way.waterway);
+    L.polyline(latLngs, {
+      pane:'territoryRoadPane',
+      color:WATERWAY_CASING_COLOR,
+      weight:weight + 3.4,
+      opacity:Math.min(1, opacity + .04),
+      lineCap:'round',
+      lineJoin:'round',
+      interactive:false
+    }).addTo(vectorRoadLayer);
+    L.polyline(latLngs, {
+      pane:'territoryRoadPane',
+      color:WATERWAY_COLOR,
+      weight,
+      opacity,
+      lineCap:'round',
+      lineJoin:'round',
+      dashArray:way.intermittent ? '9,7' : null,
+      interactive:false
+    }).addTo(vectorRoadLayer);
+  });
+}
+
+function drawRuntimeWaterwayLabels(waterways, labelOpacity, seenLabels, placedLabelBoxes){
+  if(!vectorRoadLayer || !window.L || !map) return;
+  waterways.forEach(way => {
+    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
+    if(latLngs.length < 2) return;
+    const name = String(way.name || '').trim();
+    if(!name || name.length > 42) return;
+    const placement = getPrintRoadLabelPlacement(map, latLngs);
+    if(!placement || placement.length < 70) return;
+    const key = name.toLocaleLowerCase('es-MX');
+    if(seenLabels.has(key)) return;
+    const fontSize = Math.max(10.2, Math.min(12, 10.5 + name.length * .018));
+    const point = map.latLngToLayerPoint(placement.latlng);
+    const width = Math.min(170, Math.max(44, name.length * fontSize * .52 + 14));
+    const height = Math.max(14, fontSize + 6);
+    const box = {
+      left:point.x - width / 2,
+      right:point.x + width / 2,
+      top:point.y - height / 2,
+      bottom:point.y + height / 2
+    };
+    if(!canPlaceLabel(box, placedLabelBoxes, 6)) return;
+    seenLabels.add(key);
+    placedLabelBoxes.push(box);
+    L.marker(placement.latlng, {
+      interactive:false,
+      pane:'territoryLabelPane',
+      opacity:labelOpacity,
+      zIndexOffset:900,
+      icon:L.divIcon({
+        className:'runtime-vector-road-label is-waterway',
+        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(name) + '</span>',
+        iconSize:[0,0],
+        iconAnchor:[0,0]
+      })
+    }).addTo(vectorRoadLayer);
+  });
+}
+
 function drawRuntimeVectorRoads(roadWays){
   if(!vectorRoadLayer || !window.L) return;
   vectorRoadLayer.clearLayers();
@@ -1706,7 +1915,11 @@ function drawRuntimeVectorRoads(roadWays){
   const labelOpacity = hasAreas ? VECTOR_ROAD_LABEL_OPACITY : .58;
   const seenLabels = new Set();
   const placedLabelBoxes = [];
-  roadWays.forEach(way => {
+  const waterways = roadWays.filter(isWaterway);
+  const streets = roadWays.filter(way => !isWaterway(way));
+  // Los rios van primero para que los puentes y calles crucen por encima.
+  drawRuntimeWaterways(waterways, hasAreas ? WATERWAY_OVERLAY_OPACITY : .55);
+  streets.forEach(way => {
     const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
     if(latLngs.length < 2) return;
     const weight = runtimeRoadWeight(way.highway);
@@ -1761,6 +1974,7 @@ function drawRuntimeVectorRoads(roadWays){
       })
     }).addTo(vectorRoadLayer);
   });
+  drawRuntimeWaterwayLabels(waterways, labelOpacity, seenLabels, placedLabelBoxes);
 }
 
 async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
@@ -2350,6 +2564,7 @@ function setRoadPencilMode(active, showMessage = true){
     setTerritoryAddMode(false, false);
     setColorDrawMode(false);
     setBlockQuadMode(false, false);
+    setRiverPencilMode(false, false);
     setTextAddMode(false, false);
     setContourEditMode(false, false);
     selectedAreaIndex = null;
@@ -2371,10 +2586,86 @@ function setRoadPencilMode(active, showMessage = true){
   updateColorControls();
 }
 
+function renderRiverDraft(){
+  if(!draftLayer || !window.L) return;
+  draftLayer.clearLayers();
+  if(!riverDraftPoints.length) return;
+  if(riverDraftPoints.length === 1){
+    L.circleMarker(riverDraftPoints[0], {
+      radius:5,
+      color:WATERWAY_COLOR,
+      fillColor:'#ffffff',
+      fillOpacity:1,
+      weight:2,
+      pane:'territoryDraftPane'
+    }).addTo(draftLayer);
+    return;
+  }
+  drawManualRiverPolyline(draftLayer, riverDraftPoints, 6, 'territoryDraftPane', 1);
+}
+
+function resetRiverDraft(){
+  riverDraftPoints = [];
+  if(draftLayer) draftLayer.clearLayers();
+}
+
+function addManualRiverForCurrent(points){
+  const loc = LOCS[currentIndex];
+  if(!loc || !Array.isArray(points) || points.length < 2) return false;
+  const river = {
+    width:6,
+    points:points.map(point => [Number(point.lat.toFixed(6)), Number(point.lng.toFixed(6))])
+  };
+  const rivers = getManualRiversForLoc(loc).slice();
+  rivers.push(river);
+  const saved = setManualRiversForLoc(loc, rivers);
+  renderManualRivers(loc);
+  if(saved) setStatus('Rio guardado. Puedes dibujar otro o apagar el lapiz.', 'warn');
+  return saved;
+}
+
+function finishRiverDraft(){
+  if(!riverPencilMode || riverDraftPoints.length < 2) return false;
+  const saved = addManualRiverForCurrent(riverDraftPoints);
+  resetRiverDraft();
+  updateColorControls();
+  return saved;
+}
+
+function setRiverPencilMode(active, showMessage = true){
+  riverPencilMode = !!active;
+  if(riverPencilMode){
+    setTerritoryAddMode(false, false);
+    setColorDrawMode(false);
+    setBlockQuadMode(false, false);
+    setRoadPencilMode(false, false);
+    setTextAddMode(false, false);
+    setIconAddMode(false, false);
+    setContourEditMode(false, false);
+    selectedAreaIndex = null;
+    selectedTextIndex = null;
+    selectedIconIndex = null;
+    renderColorAreas(LOCS[currentIndex]);
+    renderTextLabels(LOCS[currentIndex]);
+    renderManualIcons(LOCS[currentIndex]);
+  }
+  resetRiverDraft();
+  document.querySelector('.map-wrap')?.classList.toggle('is-river-pencil', riverPencilMode);
+  if(showMessage){
+    if(riverPencilMode){
+      setStatus('Lapiz de rio: marca puntos siguiendo el cauce y guarda con el boton de guardar.', 'warn');
+    }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Lapiz de rio')){
+      setStatus('', '');
+    }
+  }
+  updateColorControls();
+}
+
 function setColorDrawMode(active){
   colorDrawMode = !!active;
   if(colorDrawMode) setTerritoryAddMode(false, false);
   if(colorDrawMode) setRoadPencilMode(false, false);
+  if(colorDrawMode) setRiverPencilMode(false, false);
   if(colorDrawMode) setTextAddMode(false, false);
   if(colorDrawMode) setIconAddMode(false, false);
   if(colorDrawMode) setContourEditMode(false, false);
@@ -2394,6 +2685,7 @@ function setBlockAutoMode(active, showMessage = true){
   if(blockAutoMode){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
+    setRiverPencilMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
     setContourEditMode(false, false);
@@ -2420,6 +2712,7 @@ function setBlockQuadMode(active, showMessage = true){
     setTerritoryAddMode(false, false);
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
+    setRiverPencilMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
     setContourEditMode(false, false);
@@ -2447,6 +2740,7 @@ function setColorEditMode(active){
     setTerritoryAddMode(false, false);
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
+    setRiverPencilMode(false, false);
     setBlockQuadMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
@@ -2470,6 +2764,7 @@ function setContourEditMode(active, showMessage = true){
     colorEditMode = true;
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
+    setRiverPencilMode(false, false);
     setBlockQuadMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
@@ -2490,6 +2785,7 @@ function setTextAddMode(active, showMessage = true){
     setTerritoryAddMode(false, false);
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
+    setRiverPencilMode(false, false);
     setBlockQuadMode(false, false);
     setIconAddMode(false, false);
     setContourEditMode(false, false);
@@ -2517,6 +2813,7 @@ function setIconAddMode(active, showMessage = true){
     setTerritoryAddMode(false, false);
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
+    setRiverPencilMode(false, false);
     setBlockQuadMode(false, false);
     setTextAddMode(false, false);
     setContourEditMode(false, false);
@@ -2699,6 +2996,7 @@ function buildOverpassRoadQuery(bounds){
   const bbox = south + ',' + west + ',' + north + ',' + east;
   return '[out:json][timeout:14];(' +
     'way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|road|track|path|footway|steps|cycleway|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link)$"](' + bbox + ');' +
+    'way["waterway"~"^(' + WATERWAY_KINDS + ')$"](' + bbox + ');' +
     ');out geom;';
 }
 
@@ -2749,6 +3047,8 @@ async function fetchOverpassRoadData(query, options = {}){
 function roadSegmentsFromOverpass(data){
   const segments = [];
   (data?.elements || []).forEach(element => {
+    // Solo calles: los rios no cortan manzanas en el relleno automatico.
+    if(!String(element.tags?.highway || '').trim()) return;
     const geometry = Array.isArray(element.geometry) ? element.geometry : [];
     for(let i = 0; i < geometry.length - 1; i++){
       const a = geometry[i];
@@ -2779,6 +3079,8 @@ function roadWaysFromOverpass(data){
     ways.push({
       name:roadDisplayName(element.tags || {}),
       highway:String(element.tags?.highway || '').trim(),
+      waterway:String(element.tags?.waterway || '').trim(),
+      intermittent:String(element.tags?.intermittent || '').trim() === 'yes',
       latLngs
     });
   });
@@ -3244,6 +3546,11 @@ function saveAllChanges(){
     updateColorControls(loc);
     return;
   }
+  if(riverPencilMode && riverDraftPoints.length === 1){
+    setStatus('Marca al menos 2 puntos para guardar un rio.', 'warn');
+    updateColorControls(loc);
+    return;
+  }
   let closedArea = false;
   if(colorDrawMode && draftPoints.length >= 3){
     finishDraftColorArea();
@@ -3257,6 +3564,11 @@ function saveAllChanges(){
     finishRoadDraft();
     closedRoad = true;
   }
+  let closedRiver = false;
+  if(riverPencilMode && riverDraftPoints.length >= 2){
+    finishRiverDraft();
+    closedRiver = true;
+  }
   if(contourEditMode) setContourEditMode(false);
   if(selectedTextIndex != null && textInput.value.trim()){
     editSelectedTextLabel();
@@ -3265,15 +3577,21 @@ function saveAllChanges(){
   const textsSaved = saveTextLabelSettings();
   const iconsSaved = saveManualIconSettings();
   const roadsSaved = saveWhiteRoadSettings();
+  const riversSaved = saveManualRiverSettings();
   const frameSaved = saveFrameScaleSettings();
   saveUndoHistory();
-  if(colorsSaved && textsSaved && iconsSaved && roadsSaved && frameSaved){
-    setStatus(closedArea ? 'Area y cambios guardados.' : (closedRoad ? 'Calle blanca y cambios guardados.' : 'Cambios guardados.'), 'warn');
+  if(colorsSaved && textsSaved && iconsSaved && roadsSaved && riversSaved && frameSaved){
+    let mensaje = 'Cambios guardados.';
+    if(closedArea) mensaje = 'Area y cambios guardados.';
+    else if(closedRoad) mensaje = 'Calle blanca y cambios guardados.';
+    else if(closedRiver) mensaje = 'Rio y cambios guardados.';
+    setStatus(mensaje, 'warn');
   }else{
     setStatus('No se pudieron guardar todos los cambios. Intenta otra vez.', 'error');
   }
   renderColorAreas(LOCS[currentIndex]);
   renderManualWhiteRoads(LOCS[currentIndex]);
+  renderManualRivers(LOCS[currentIndex]);
   renderTextLabels(LOCS[currentIndex]);
   renderManualIcons(LOCS[currentIndex]);
   updateColorControls(LOCS[currentIndex]);
@@ -3303,6 +3621,7 @@ function buildBackupPayload(){
       textLabels:safeObject(textLabelSettings),
       manualIcons:safeObject(manualIconSettings),
       whiteRoads:safeObject(whiteRoadSettings),
+      manualRivers:safeObject(manualRiverSettings),
       frameScales:safeObject(frameScaleSettings),
       customTerritories:loadCustomTerritorySettings(),
       hiddenTerritories:loadHiddenTerritorySettings()
@@ -3337,6 +3656,7 @@ function getBackupData(payload){
     textLabels:safeObject(data.textLabels || data[TEXT_LABELS_STORAGE_KEY]),
     manualIcons:safeObject(data.manualIcons || data[MANUAL_ICONS_STORAGE_KEY]),
     whiteRoads:safeObject(data.whiteRoads || data[WHITE_ROADS_STORAGE_KEY]),
+    manualRivers:safeObject(data.manualRivers || data[MANUAL_RIVERS_STORAGE_KEY]),
     frameScales:safeObject(data.frameScales || data[FRAME_SCALE_STORAGE_KEY]),
     customTerritories:safeArray(data.customTerritories || data[CUSTOM_TERRITORIES_STORAGE_KEY]).map(normalizeCustomTerritory).filter(Boolean),
     hiddenTerritories:safeArray(data.hiddenTerritories || data[HIDDEN_TERRITORIES_STORAGE_KEY]).map(String)
@@ -3368,17 +3688,19 @@ function importBackupPayload(payload){
   textLabelSettings = data.textLabels;
   manualIconSettings = data.manualIcons;
   whiteRoadSettings = data.whiteRoads;
+  manualRiverSettings = data.manualRivers;
   frameScaleSettings = data.frameScales;
   undoHistory = [];
   const colorsSaved = saveColorAreaSettings();
   const textsSaved = saveTextLabelSettings();
   const iconsSaved = saveManualIconSettings();
   const roadsSaved = saveWhiteRoadSettings();
+  const riversSaved = saveManualRiverSettings();
   const framesSaved = saveFrameScaleSettings();
   const customSaved = saveCustomTerritorySettings(data.customTerritories);
   const hiddenSaved = saveHiddenTerritorySettings(data.hiddenTerritories);
   saveUndoHistory();
-  if(!(colorsSaved && textsSaved && iconsSaved && roadsSaved && framesSaved && customSaved && hiddenSaved)){
+  if(!(colorsSaved && textsSaved && iconsSaved && roadsSaved && riversSaved && framesSaved && customSaved && hiddenSaved)){
     setStatus('No se pudo importar todo el respaldo. Revisa espacio o permisos del navegador.', 'error');
     return false;
   }
@@ -3389,6 +3711,7 @@ function importBackupPayload(payload){
   setColorDrawMode(false);
   setBlockQuadMode(false, false);
   setRoadPencilMode(false, false);
+  setRiverPencilMode(false, false);
   setTextAddMode(false, false);
   setIconAddMode(false, false);
   setContourEditMode(false, false);
@@ -3516,6 +3839,7 @@ function hasLocalSavedWork(){
     || hasSavedDataObject(textLabelSettings)
     || hasSavedDataObject(manualIconSettings)
     || hasSavedDataObject(whiteRoadSettings)
+    || hasSavedDataObject(manualRiverSettings)
     || hasSavedDataObject(frameScaleSettings)
     || loadCustomTerritorySettings().length > 0
     || loadHiddenTerritorySettings().length > 0;
@@ -3635,6 +3959,12 @@ function undoDraftColorPoint(){
     updateColorControls();
     return;
   }
+  if(riverPencilMode && riverDraftPoints.length){
+    riverDraftPoints.pop();
+    renderRiverDraft();
+    updateColorControls();
+    return;
+  }
   if(contourEditMode && selectedAreaIndex != null){
     const loc = LOCS[currentIndex];
     const area = getColorAreasForLoc(loc)[selectedAreaIndex];
@@ -3664,6 +3994,14 @@ function clearColorAreasForCurrent(){
     setWhiteRoadsForLoc(loc, [], {skipUndo:true});
     renderManualWhiteRoads(loc);
     setStatus('Calles blancas borradas.', 'warn');
+  }else if(riverPencilMode && riverDraftPoints.length){
+    resetRiverDraft();
+    setStatus('Trazo de rio cancelado.', 'warn');
+  }else if(riverPencilMode && getManualRiversForLoc(loc).length){
+    pushUndoSnapshot('clear-manual-rivers', loc);
+    setManualRiversForLoc(loc, [], {skipUndo:true});
+    renderManualRivers(loc);
+    setStatus('Rios dibujados borrados.', 'warn');
   }else if(draftPoints.length){
     resetDraftArea();
   }else if(selectedAreaIndex != null){
@@ -3694,8 +4032,10 @@ function clearColorAreasForCurrent(){
     setTextLabelsForLoc(loc, [], {skipUndo:true});
     setManualIconsForLoc(loc, [], {skipUndo:true});
     setWhiteRoadsForLoc(loc, [], {skipUndo:true});
+    setManualRiversForLoc(loc, [], {skipUndo:true});
     renderColorAreas(loc);
     renderManualWhiteRoads(loc);
+    renderManualRivers(loc);
     renderTextLabels(loc);
     renderManualIcons(loc);
   }
@@ -3728,6 +4068,13 @@ async function handleColorMapClick(event){
     roadDraftPoints.push(event.latlng);
     renderRoadDraft();
     setStatus('Lapiz de calle blanca: puntos marcados ' + roadDraftPoints.length + '. Guarda para fijarla.', 'warn');
+    updateColorControls();
+    return;
+  }
+  if(riverPencilMode){
+    riverDraftPoints.push(event.latlng);
+    renderRiverDraft();
+    setStatus('Lapiz de rio: puntos marcados ' + riverDraftPoints.length + '. Guarda para fijarlo.', 'warn');
     updateColorControls();
     return;
   }
@@ -3973,6 +4320,7 @@ function initApp(){
   vectorRoadLayer = L.layerGroup().addTo(map);
   runtimeReferenceLayer = L.layerGroup().addTo(map);
   manualWhiteRoadLayer = L.layerGroup().addTo(map);
+  manualRiverLayer = L.layerGroup().addTo(map);
   map.on('click', handleColorMapClick);
   map.on('mousemove', handleMapMouseMove);
   map.on('moveend zoomend', () => updateLabelOverlayVisibility());
@@ -4132,6 +4480,7 @@ function goTo(index, silent){
   if(colorDrawMode) setColorDrawMode(false);
   if(blockQuadMode) setBlockQuadMode(false, false);
   if(roadPencilMode) setRoadPencilMode(false, false);
+  if(riverPencilMode) setRiverPencilMode(false, false);
   if(textAddMode) setTextAddMode(false, false);
   if(iconAddMode) setIconAddMode(false, false);
   if(contourEditMode) setContourEditMode(false, false);
@@ -4140,6 +4489,7 @@ function goTo(index, silent){
   selectedIconIndex = null;
   renderColorAreas(loc);
   renderManualWhiteRoads(loc);
+  renderManualRivers(loc);
   renderTextLabels(loc);
   renderManualIcons(loc);
   updateColorControls(loc);
@@ -4860,6 +5210,90 @@ function drawPrintVectorRoads(targetMap, roadWays){
   });
 }
 
+function drawPrintWaterways(targetMap, waterways){
+  if(!targetMap || !Array.isArray(waterways) || !waterways.length) return;
+  const pane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
+  const dash = (8 * PRINT_VECTOR_ROAD_SCALE).toFixed(1) + ',' + (6 * PRINT_VECTOR_ROAD_SCALE).toFixed(1);
+  waterways.forEach(way => {
+    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
+    if(latLngs.length < 2) return;
+    const weight = waterwayWeight(way.waterway) * PRINT_VECTOR_ROAD_SCALE;
+    L.polyline(latLngs, {
+      pane,
+      color:WATERWAY_CASING_COLOR,
+      weight:weight + (2.6 * PRINT_VECTOR_ROAD_SCALE),
+      opacity:.95,
+      lineCap:'round',
+      lineJoin:'round',
+      interactive:false
+    }).addTo(targetMap);
+    L.polyline(latLngs, {
+      pane,
+      color:WATERWAY_COLOR,
+      weight,
+      opacity:1,
+      lineCap:'round',
+      lineJoin:'round',
+      dashArray:way.intermittent ? dash : null,
+      interactive:false
+    }).addTo(targetMap);
+  });
+}
+
+function drawPrintWaterwayLabels(targetMap, waterways){
+  if(!targetMap || !Array.isArray(waterways) || !waterways.length) return;
+  const seen = new Set();
+  const placedBoxes = [];
+  waterways.forEach(way => {
+    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
+    if(latLngs.length < 2) return;
+    const name = String(way.name || '').trim();
+    if(!name || name.length > 42) return;
+    const key = name.toLocaleLowerCase('es-MX');
+    if(seen.has(key)) return;
+    const placement = getPrintRoadLabelPlacement(targetMap, latLngs);
+    if(!placement || placement.length < 70 * PRINT_VECTOR_LABEL_SCALE) return;
+    const fontSize = 11.5 * PRINT_VECTOR_LABEL_SCALE;
+    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_VECTOR_LABEL_SCALE);
+    if(!canPlaceLabel(box, placedBoxes, 6 * PRINT_VECTOR_LABEL_SCALE)) return;
+    seen.add(key);
+    placedBoxes.push(box);
+    L.marker(placement.latlng, {
+      interactive:false,
+      pane:'territoryLabelPane',
+      zIndexOffset:900,
+      icon:L.divIcon({
+        className:'runtime-vector-road-label is-waterway',
+        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(name) + '</span>',
+        iconSize:[0,0],
+        iconAnchor:[0,0]
+      })
+    }).addTo(targetMap);
+  });
+}
+
+async function getWaterwaysForPrint(bounds){
+  const cached = Array.isArray(runtimeRoadCache?.roadWays) ? runtimeRoadCache.roadWays.filter(isWaterway) : [];
+  try{
+    const ways = await fetchRoadWaysForBounds(bounds, { timeoutMs:12000 });
+    const found = ways.filter(isWaterway);
+    if(found.length || !cached.length) return found;
+    return cached;
+  }catch(err){
+    console.warn('No se pudieron consultar rios para el PDF; se usa lo cargado en pantalla.', err);
+    return cached;
+  }
+}
+
+function drawPrintManualRivers(targetMap, loc){
+  if(!targetMap || !loc) return;
+  const pane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
+  getManualRiversForLoc(loc).forEach(river => {
+    const latLngs = pointsToLatLngs(river.points);
+    drawManualRiverPolyline(targetMap, latLngs, river.width, pane, PRINT_VECTOR_ROAD_SCALE);
+  });
+}
+
 function drawPrintManualWhiteRoads(targetMap, loc){
   if(!targetMap || !loc) return;
   const roadPane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
@@ -5283,7 +5717,12 @@ async function imprimir(){
       throw new Error('No se pudieron cargar teselas del mapa para imprimir.');
     }
     frameMap();
+    $('print-wait-text').textContent = 'Buscando rios y arroyos...';
+    const printWaterways = await getWaterwaysForPrint(bounds);
+    drawPrintWaterways(printMap, printWaterways);
+    drawPrintWaterwayLabels(printMap, printWaterways);
     $('print-wait-text').textContent = 'Preparando detalles manuales...';
+    drawPrintManualRivers(printMap, loc);
     drawPrintManualWhiteRoads(printMap, loc);
     drawPrintTextLabels(printMap, loc);
     drawPrintManualIcons(printMap, loc);
@@ -5348,6 +5787,7 @@ colorFrameButton?.addEventListener('click', addFrameColorAreaForCurrent);
 blockQuadButton?.addEventListener('click', () => setBlockQuadMode(!blockQuadMode));
 colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode));
 roadPencilButton?.addEventListener('click', () => setRoadPencilMode(!roadPencilMode));
+riverPencilButton?.addEventListener('click', () => setRiverPencilMode(!riverPencilMode));
 textAddButton.addEventListener('click', () => {
   if(selectedTextIndex != null){
     editSelectedTextLabel();
@@ -5391,6 +5831,10 @@ document.addEventListener('keydown', event => {
   }
   if(event.key === 'Escape' && roadPencilMode){
     setRoadPencilMode(false);
+    return;
+  }
+  if(event.key === 'Escape' && riverPencilMode){
+    setRiverPencilMode(false);
     return;
   }
   if(event.key === 'Escape' && textAddMode){
