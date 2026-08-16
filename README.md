@@ -8,6 +8,23 @@ Creada por Bryan Levi.
 
 Abre `index.html` o publica el repositorio con GitHub Pages. La pagina principal redirige al generador ubicado en `outputs/croquis_territorios.html`.
 
+## Mapa sin internet
+
+En `Menu / instrucciones` esta la seccion **Mapa sin internet**. Descarga el mapa antes de salir a campo y despues la pagina funciona sin senal.
+
+- **Detalle manzanas**: 3.791 teselas, unos 141 MB, ~8 minutos.
+- **Detalle calles**: 14.628 teselas, unos 543 MB, ~30 minutos.
+
+Puedes detener la descarga y continuarla despues: lo bajado se conserva. El boton de borrar libera el espacio sin tocar tus colores ni textos.
+
+Detalles a tener en cuenta:
+
+- Solo funciona desde la pagina publicada en GitHub Pages, no abriendo el archivo directamente: los service workers no corren en `file://`.
+- Se guarda el mapa **Carto**, no el de Google: los terminos de Google no permiten almacenar sus teselas. Cuando no hay internet la pagina cambia sola a Carto.
+- El **PDF si necesita internet**: se arma con un nivel de acercamiento mas cerrado que no se descarga.
+- Tus colores, textos, iconos y rios ya funcionaban sin internet desde antes; viven en el navegador.
+- La descarga va despacio a proposito, de dos en dos y con pausas. Pedirle teselas en masa al servidor hace que corte con error 429.
+
 ## Rios y arroyos
 
 Los rios se marcan en azul, en pantalla y en el PDF, de dos maneras:
