@@ -95,6 +95,18 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 #map{position:absolute;inset:0;width:100%;height:100%}
 .map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-icon-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container,.map-wrap.is-river-pencil .leaflet-container{cursor:crosshair}
 .map-wrap.is-contour-editing .leaflet-container{cursor:default}
+.offline-card{margin-top:18px;padding:14px 16px;border:1px solid #dbe6e0;border-radius:12px;background:#f6faf8}
+.offline-card h3{margin:0 0 6px;font-size:15px;color:#183d25}
+.offline-card p{margin:0 0 10px;font-size:13px;line-height:1.45;color:#42574b}
+.offline-card .offline-note{margin:10px 0 0;font-size:11.5px;color:#6a7d72}
+.offline-actions{display:flex;flex-wrap:wrap;gap:8px}
+.offline-detail{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.offline-detail label{font-size:11px;font-weight:700;text-transform:uppercase;color:#607068;letter-spacing:.04em}
+.offline-detail select{height:34px;min-width:0;flex:1;font-size:13px}
+.offline-progress{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.offline-bar{flex:1;height:9px;border-radius:999px;background:#e2ebe6;overflow:hidden}
+.offline-bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,#1f7a47,#4fae70);transition:width .2s}
+.offline-count{font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap;min-width:46px;text-align:right}
 .contour-handle{cursor:grab}
 .contour-handle:active{cursor:grabbing}
 .contour-midpoint{cursor:copy;transition:r .12s,fill-opacity .12s}
@@ -267,6 +279,27 @@ body.print-preview{overflow:hidden}
         <div class="welcome-step"><b>3</b><span>Cuando el croquis este listo, usa PDF para preparar la hoja de impresion.</span></div>
       </div>
       <button class="welcome-start" id="welcome-start" type="button">Continuar a generar croquis del territorio</button>
+      <section class="offline-card" id="offline-card">
+        <h3>Mapa sin internet</h3>
+        <p id="offline-state">Revisando lo guardado...</p>
+        <div class="offline-progress" id="offline-progress" hidden>
+          <div class="offline-bar"><span id="offline-bar-fill"></span></div>
+          <span class="offline-count" id="offline-count">0 %</span>
+        </div>
+        <div class="offline-detail">
+          <label for="offline-zoom">Detalle</label>
+          <select id="offline-zoom">
+            <option value="18">Ver manzanas y calles principales</option>
+            <option value="19" selected>Ver cada calle de cerca</option>
+          </select>
+        </div>
+        <div class="offline-actions">
+          <button class="btn primary" id="btn-offline-download" type="button" disabled>Descargar los 20 territorios</button>
+          <button class="btn ghost" id="btn-offline-cancel" type="button" hidden>Detener</button>
+          <button class="btn ghost" id="btn-offline-clear" type="button" disabled>Borrar lo guardado</button>
+        </div>
+        <p class="offline-note">Descarga el mapa mientras tengas internet para poder consultarlo en campo. Se guarda el mapa Carto, que es el que permite guardarse; el de Google no. El PDF si necesita internet.</p>
+      </section>
     </div>
     <div class="welcome-guide">
       <h3>Guia rapida de herramientas</h3>
@@ -311,6 +344,7 @@ body.print-preview{overflow:hidden}
     <select id="view-sel" disabled>
       <option value="g-road" selected>Google Calles - principal</option>
       <option value="g-sat">Google Satélite - vista previa</option>
+      <option value="carto-voyager">Carto Voyager - funciona sin internet</option>
     </select>
   </div>
   <div class="field frame-field">
@@ -3460,6 +3494,210 @@ function githubHeaders(token, json = false){
   return headers;
 }
 
+const OFFLINE_TILE_SOURCE = 'carto-voyager';
+const OFFLINE_TILE_KB = 38;
+function offlineZooms(){
+  const hasta = Number($('offline-zoom')?.value) || 19;
+  return [16, 17, 18, 19].filter(z => z <= hasta);
+}
+let offlineWorker = null;
+let offlineCancel = false;
+let offlineBusy = false;
+
+function offlineSupported(){
+  return 'serviceWorker' in navigator && 'caches' in window && location.protocol.startsWith('http');
+}
+
+function formatMB(bytes){
+  const kb = Number(bytes || 0) / 1024;
+  if(kb < 1024) return Math.round(kb) + ' KB';
+  const mb = kb / 1024;
+  if(mb >= 1024) return (mb / 1024).toFixed(1) + ' GB';
+  return Math.round(mb) + ' MB';
+}
+
+function tileRangeForBounds(bounds, zoom){
+  const n = Math.pow(2, zoom);
+  const toX = lon => Math.floor((lon + 180) / 360 * n);
+  const toY = lat => {
+    const rad = lat * Math.PI / 180;
+    return Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n);
+  };
+  return {
+    x0:Math.min(toX(bounds.west), toX(bounds.east)),
+    x1:Math.max(toX(bounds.west), toX(bounds.east)),
+    y0:Math.min(toY(bounds.north), toY(bounds.south)),
+    y1:Math.max(toY(bounds.north), toY(bounds.south))
+  };
+}
+
+function offlineTileUrls(){
+  const source = TILES[OFFLINE_TILE_SOURCE];
+  const subs = source.sub || 'abcd';
+  const urls = [];
+  LOCS.forEach(loc => {
+    const bounds = getPrintBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+    offlineZooms().forEach(zoom => {
+      const range = tileRangeForBounds(bounds, zoom);
+      for(let x = range.x0; x <= range.x1; x++){
+        for(let y = range.y0; y <= range.y1; y++){
+          const sub = subs[(x + y) % subs.length];
+          urls.push(source.url.replace('{s}', sub).replace('{z}', zoom).replace('{x}', x).replace('{y}', y));
+        }
+      }
+    });
+  });
+  return [...new Set(urls)];
+}
+
+function setOfflineState(texto){
+  const nodo = $('offline-state');
+  if(nodo) nodo.textContent = texto;
+}
+
+function setOfflineProgress(hechas, total, guardadoBytes){
+  const caja = $('offline-progress');
+  const barra = $('offline-bar-fill');
+  const cuenta = $('offline-count');
+  if(!caja) return;
+  caja.hidden = !offlineBusy;
+  const porcentaje = total ? Math.round(hechas / total * 100) : 0;
+  if(barra) barra.style.width = porcentaje + '%';
+  if(cuenta) cuenta.textContent = porcentaje + ' %';
+  setOfflineState('Descargando ' + hechas.toLocaleString('es-MX') + ' de ' + total.toLocaleString('es-MX') + ' teselas' + (guardadoBytes ? ' (' + formatMB(guardadoBytes) + ' en el dispositivo)' : '') + '...');
+}
+
+async function refreshOfflineState(){
+  const boton = $('btn-offline-download');
+  const borrar = $('btn-offline-clear');
+  if(!offlineSupported()){
+    setOfflineState('El mapa sin internet solo funciona desde la pagina publicada en GitHub Pages, no abriendo el archivo directamente.');
+    if(boton) boton.disabled = true;
+    if(borrar) borrar.disabled = true;
+    return;
+  }
+  if(offlineBusy) return;
+  let guardadas = 0;
+  try{
+    const cache = await caches.open('croquis-teselas-v1');
+    guardadas = (await cache.keys()).length;
+  }catch(e){}
+  let uso = 0;
+  try{
+    const estimacion = await navigator.storage?.estimate?.();
+    uso = estimacion?.usage || 0;
+  }catch(e){}
+  const total = offlineTileUrls().length;
+  if(boton) boton.disabled = false;
+  if(borrar) borrar.disabled = guardadas === 0;
+  const peso = formatMB(total * OFFLINE_TILE_KB * 1024);
+  if(guardadas === 0){
+    setOfflineState('No hay mapa guardado. Con este detalle son ' + total.toLocaleString('es-MX') + ' teselas para los ' + LOCS.length + ' territorios, unos ' + peso + '.');
+  }else{
+    setOfflineState('Guardadas ' + guardadas.toLocaleString('es-MX') + ' teselas' + (uso ? ', ' + formatMB(uso) + ' en el dispositivo' : '') + '. Con este detalle se necesitan ' + total.toLocaleString('es-MX') + ' (' + peso + ').');
+  }
+}
+
+async function downloadOfflineMap(){
+  if(!offlineSupported() || offlineBusy) return;
+  const urls = offlineTileUrls();
+  offlineBusy = true;
+  offlineCancel = false;
+  $('btn-offline-download').disabled = true;
+  $('btn-offline-clear').disabled = true;
+  $('btn-offline-cancel').hidden = false;
+  try{ await navigator.storage?.persist?.(); }catch(e){}
+  const cache = await caches.open('croquis-teselas-v1');
+  let hechas = 0;
+  let fallidas = 0;
+  let frenados = 0;
+  let cortadoPorLimite = false;
+  const espera = ms => new Promise(res => setTimeout(res, ms));
+
+  // Despacio y de dos en dos: el servidor de mapas corta si se le pide en masa
+  const bajarUna = async url => {
+    if(await cache.match(url, { ignoreVary:true })) return;
+    let pausa = 2000;
+    for(let intento = 0; intento < 3; intento++){
+      if(offlineCancel) return;
+      try{
+        const respuesta = await fetch(url, { mode:'cors', cache:'no-cache' });
+        if(respuesta.status === 429){
+          frenados++;
+          const cabecera = Number(respuesta.headers.get('Retry-After'));
+          await espera(Number.isFinite(cabecera) && cabecera > 0 ? cabecera * 1000 : pausa);
+          pausa = Math.min(30000, pausa * 2);
+          continue;
+        }
+        if(respuesta.ok){
+          await cache.put(url, respuesta);
+          frenados = 0;
+        }else{
+          fallidas++;
+        }
+        return;
+      }catch(e){
+        await espera(pausa);
+        pausa = Math.min(30000, pausa * 2);
+      }
+    }
+    fallidas++;
+  };
+
+  setOfflineProgress(0, urls.length, 0);
+  const bloque = 2;
+  for(let i = 0; i < urls.length && !offlineCancel && !cortadoPorLimite; i += bloque){
+    await Promise.all(urls.slice(i, i + bloque).map(bajarUna));
+    if(frenados >= 8){ cortadoPorLimite = true; break; }
+    hechas = Math.min(urls.length, i + bloque);
+    if(hechas % 100 < bloque || hechas === urls.length){
+      let uso = 0;
+      try{ uso = (await navigator.storage?.estimate?.())?.usage || 0; }catch(e){}
+      setOfflineProgress(hechas, urls.length, uso);
+    }else{
+      setOfflineProgress(hechas, urls.length, 0);
+    }
+    await espera(120);
+  }
+  offlineBusy = false;
+  $('btn-offline-cancel').hidden = true;
+  $('offline-progress').hidden = true;
+  await refreshOfflineState();
+  if(cortadoPorLimite){
+    setOfflineState('El servidor de mapas corto la descarga por pedirle demasiado. Lo bajado quedo guardado. Espera un rato y vuelve a tocar descargar, o elige el detalle de manzanas, que pide cuatro veces menos.');
+  }else if(offlineCancel){
+    setOfflineState('Descarga detenida. Lo que alcanzo a bajar quedo guardado; puedes continuar despues.');
+  }else if(fallidas){
+    setOfflineState('Mapa guardado, pero ' + fallidas.toLocaleString('es-MX') + ' teselas no se pudieron bajar. Vuelve a tocar descargar para completarlas.');
+  }
+}
+
+async function clearOfflineMap(){
+  if(!offlineSupported()) return;
+  if(!window.confirm('Esto borra el mapa guardado para usar sin internet. Tus colores, textos e iconos no se tocan. Continuar?')) return;
+  try{ await caches.delete('croquis-teselas-v1'); }catch(e){}
+  await refreshOfflineState();
+}
+
+function registerOfflineWorker(){
+  if(!offlineSupported()){
+    refreshOfflineState();
+    return;
+  }
+  navigator.serviceWorker.register('../sw.js').then(registro => {
+    offlineWorker = registro;
+  }).catch(err => {
+    console.warn('No se pudo registrar el modo sin internet.', err);
+  }).finally(refreshOfflineState);
+}
+
+function handleOfflineMapSource(){
+  if(navigator.onLine || currentView === OFFLINE_TILE_SOURCE) return;
+  changeView(OFFLINE_TILE_SOURCE, true);
+  if(viewSel) viewSel.value = OFFLINE_TILE_SOURCE;
+  setStatus('Sin internet: se cambio al mapa Carto, que es el que quedo guardado.', 'warn');
+}
+
 function purgeLegacyGithubToken(){
   try{
     if(!localStorage.getItem(LEGACY_CLOUD_SYNC_TOKEN_STORAGE_KEY)) return;
@@ -4002,6 +4240,7 @@ function initApp(){
 
   recoverIxcatlaBlueIfMissing();
   changeView(currentView, true);
+  handleOfflineMapSource();
   goTo(currentIndex, true);
   setTimeout(() => loadCloudBackup({ auto:true }), 700);
   setTimeout(() => map.invalidateSize(), 150);
@@ -4931,7 +5170,14 @@ document.addEventListener('keydown', event => {
   if(event.key === 'ArrowRight') navigate(1);
 });
 
+$('offline-zoom')?.addEventListener('change', refreshOfflineState);
+$('btn-offline-download')?.addEventListener('click', downloadOfflineMap);
+$('btn-offline-clear')?.addEventListener('click', clearOfflineMap);
+$('btn-offline-cancel')?.addEventListener('click', () => { offlineCancel = true; });
+window.addEventListener('offline', () => { if(map) handleOfflineMapSource(); });
+
 purgeLegacyGithubToken();
+registerOfflineWorker();
 applyCustomTerritories();
 populateManualIconSelect();
 populateSelect();
