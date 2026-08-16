@@ -681,8 +681,8 @@ const FRAME_SCALE_STEP = 5;
 const DEFAULT_FILL_COLOR = '#8b2cff';
 const CONTOUR_MIDPOINT_MIN_PX = 34;
 const MANUAL_ICON_OPTIONS = [
-  ['Iglesia','Iglesia / templo'],
   ['Salon del Reino','Salon del Reino'],
+  ['Iglesia','Iglesia / templo'],
   ['Escuela','Escuela'],
   ['Parque','Parque'],
   ['Cancha','Cancha / deporte'],
@@ -797,7 +797,7 @@ function populateManualIconSelect(){
     option.textContent = label;
     manualIconSelect.appendChild(option);
   });
-  manualIconSelect.value = 'Iglesia';
+  manualIconSelect.value = 'Salon del Reino';
   buildIconPickerList();
   syncIconPicker();
 }
