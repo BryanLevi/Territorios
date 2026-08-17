@@ -25,6 +25,12 @@ Detalles a tener en cuenta:
 - Tus colores, textos, iconos y rios ya funcionaban sin internet desde antes; viven en el navegador.
 - La descarga va despacio a proposito, de dos en dos y con pausas. Pedirle teselas en masa al servidor hace que corte con error 429.
 
+## Calles con nombre y referencias
+
+Se traen de OpenStreetMap con Overpass, **una sola vez por territorio**, y quedan guardadas en el navegador. Moverse o acercarse ya no vuelve a pedirlas, y al reabrir la pagina se usan las guardadas sin tocar la red.
+
+Si el servidor esta saturado se reintenta hasta tres veces, alternando entre dos servidores y esperando cada vez mas. Un territorio ya cargado se sigue viendo aunque Overpass este caido.
+
 ## Rios y arroyos
 
 Los rios se marcan en azul, en pantalla y en el PDF, de dos maneras:
