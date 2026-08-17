@@ -8,6 +8,23 @@ Creada por Bryan Levi.
 
 Abre `index.html` o publica el repositorio con GitHub Pages. La pagina principal redirige al generador ubicado en `outputs/croquis_territorios.html`.
 
+## Mapa sin internet
+
+En `Menu / instrucciones` esta la seccion **Mapa sin internet**. Descarga el mapa antes de salir a campo y despues la pagina funciona sin senal.
+
+- **Detalle manzanas**: 3.791 teselas, unos 141 MB, ~8 minutos.
+- **Detalle calles**: 14.628 teselas, unos 543 MB, ~30 minutos.
+
+Puedes detener la descarga y continuarla despues: lo bajado se conserva. El boton de borrar libera el espacio sin tocar tus colores ni textos.
+
+Detalles a tener en cuenta:
+
+- Solo funciona desde la pagina publicada en GitHub Pages, no abriendo el archivo directamente: los service workers no corren en `file://`.
+- Se guarda el mapa **Carto**, no el de Google: los terminos de Google no permiten almacenar sus teselas. Cuando no hay internet la pagina cambia sola a Carto.
+- El **PDF si necesita internet**: se arma con un nivel de acercamiento mas cerrado que no se descarga.
+- Tus colores, textos, iconos y rios ya funcionaban sin internet desde antes; viven en el navegador.
+- La descarga va despacio a proposito, de dos en dos y con pausas. Pedirle teselas en masa al servidor hace que corte con error 429.
+
 ## Rios y arroyos
 
 Los rios se marcan en azul, en pantalla y en el PDF, de dos maneras:
@@ -28,9 +45,12 @@ Los colores, textos y territorios agregados se guardan en el navegador. Para mov
 
 `Guardar GitHub` y `Cargar GitHub` piden un token para escribir en `data/croquis-sync.json`.
 
-- El token se guarda solo en `sessionStorage`: se borra al cerrar la pestana. Hay que pegarlo de nuevo en cada sesion.
-- Usa un token detallado (fine-grained) en `Settings` > `Developer settings` > `Personal access tokens` > `Fine-grained tokens`, limitado **solo** al repositorio `Territorios`, con permiso `Contents: read and write` y con fecha de expiracion.
+Para no pegarlo cada vez: la primera vez que guardes, pegalo; despues entra a `Menu / instrucciones` > `Token de GitHub` y toca **Recordar en este dispositivo**. Queda guardado y ya no lo vuelve a pedir. El boton **Olvidar token** lo borra cuando quieras.
+
+- Recuerdalo solo en tu computadora o tu celular, **nunca en uno prestado**: queda en el navegador y quien lo abra podria escribir en tu repositorio.
+- Usa un token detallado (fine-grained) en `Settings` > `Developer settings` > `Personal access tokens` > `Fine-grained tokens`, limitado **solo** al repositorio `Territorios`, con permiso `Contents: read and write`.
 - No uses un token clasico con permiso `repo`: ese da acceso a todos tus repositorios.
+- Si no lo recuerdas, se guarda solo mientras este abierta la pestana.
 - Si alguna vez pegaste un token en una computadora prestada, revocalo en GitHub y genera otro.
 
 ## Publicar en GitHub Pages
