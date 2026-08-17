@@ -3130,7 +3130,7 @@ function buildOverpassRoadQuery(bounds){
   const north = bounds.getNorth().toFixed(6);
   const east = bounds.getEast().toFixed(6);
   const bbox = south + ',' + west + ',' + north + ',' + east;
-  return '[out:json][timeout:14];(' +
+  return '[out:json][timeout:40];(' +
     'way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|road|track|path|footway|steps|cycleway|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link)$"](' + bbox + ');' +
     'way["waterway"~"^(' + WATERWAY_KINDS + ')$"](' + bbox + ');' +
     ');out geom;';
@@ -3142,14 +3142,22 @@ function buildOverpassReferenceQuery(bounds){
   const north = bounds.getNorth().toFixed(6);
   const east = bounds.getEast().toFixed(6);
   const bbox = south + ',' + west + ',' + north + ',' + east;
-  return '[out:json][timeout:14];(' +
-    'nwr["historic"~"^(monument|memorial|wayside_cross|archaeological_site|castle)$"](' + bbox + ');' +
-    'nwr["tourism"~"^(attraction|viewpoint|museum|hotel|guest_house)$"](' + bbox + ');' +
-    'nwr["amenity"~"^(place_of_worship|school|college|kindergarten|hospital|clinic|doctors|dentist|townhall|marketplace|fuel|pharmacy|police|fire_station|bus_station|grave_yard|restaurant|cafe|fast_food|bar|pub|ice_cream|bank|atm|parking|post_office|library|community_centre)$"](' + bbox + ');' +
-    'nwr["healthcare"](' + bbox + ');' +
-    'nwr["leisure"~"^(park|sports_centre|pitch|playground|garden)$"](' + bbox + ');' +
-    'nwr["shop"](' + bbox + ');' +
-    ');out center tags;';
+  // Una sola barrida con regex sobre la clave, en vez de seis bloques nwr. Medido
+  // contra Overpass: la version anterior devolvia 504 a los 11 s; esta responde en
+  // 2 s y encuentra mas. Sin relaciones, que para estos puntos casi no existen.
+  return '[out:json][timeout:45];nw[~"^(amenity|shop|tourism|leisure|historic|healthcare)$"~"."](' + bbox + ');out center tags;';
+}
+
+// Cosas que OSM etiqueta con estas claves pero que no sirven de referencia en un croquis
+const REFERENCE_TAG_NOISE = new Set([
+  'bench','waste_basket','waste_disposal','recycling','drinking_water','bicycle_parking',
+  'motorcycle_parking','shelter','toilets','telephone','clock','fountain','street_lamp',
+  'hunting_stand','vending_machine','charging_station','picnic_table','fire_hydrant','tree'
+]);
+
+function referenceIsNoise(tags = {}){
+  return ['amenity','shop','tourism','leisure','historic','healthcare']
+    .some(clave => REFERENCE_TAG_NOISE.has(String(tags[clave] || '')));
 }
 
 async function fetchOverpassRoadData(query, options = {}){
@@ -3161,7 +3169,9 @@ async function fetchOverpassRoadData(query, options = {}){
   for(let vuelta = 0; vuelta < vueltas; vuelta++){
     for(const endpoint of OVERPASS_ENDPOINTS){
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), options.timeoutMs || 20000);
+      // Mas que el timeout que lleva la consulta dentro, para no cortarle al
+      // servidor justo cuando estaba por responder
+      const timer = setTimeout(() => controller.abort(), options.timeoutMs || 50000);
       try{
         const response = await fetch(endpoint, {
           method:'POST',
@@ -3322,6 +3332,7 @@ function referencesFromOverpass(data){
   const seen = new Set();
   (data?.elements || []).forEach(element => {
     const tags = element.tags || {};
+    if(referenceIsNoise(tags)) return;
     const name = String(tags.name || tags.brand || tags.operator || referenceFallbackName(tags) || '').trim();
     const lat = Number(element.lat ?? element.center?.lat);
     const lng = Number(element.lon ?? element.center?.lon);
