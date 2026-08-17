@@ -705,6 +705,7 @@ const TEXT_LABELS_STORAGE_KEY = 'croquis-territory-text-labels-v1';
 const MANUAL_ICONS_STORAGE_KEY = 'croquis-territory-manual-icons-v1';
 const WHITE_ROADS_STORAGE_KEY = 'croquis-territory-white-roads-v1';
 const MANUAL_RIVERS_STORAGE_KEY = 'croquis-territory-manual-rivers-v1';
+const OVERPASS_CACHE_STORAGE_KEY = 'croquis-territory-overpass-v1';
 const UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v2';
 const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
@@ -1933,22 +1934,83 @@ function getRuntimeRoadTileSource(src){
   return null;
 }
 
-function getRuntimeRoadBounds(){
-  if(!map) return null;
-  return map.getBounds().pad(.16);
+// Los datos se piden por territorio, no por lo que se ve en pantalla: antes cada
+// movimiento del mapa cambiaba la clave y disparaba consultas nuevas a Overpass,
+// que terminaba cortando con 504.
+function getRuntimeRoadBounds(loc = LOCS[currentIndex]){
+  if(!loc || !window.L) return null;
+  const plain = getPrintBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+  if(!plain) return null;
+  return L.latLngBounds([plain.south, plain.west], [plain.north, plain.east]).pad(.14);
 }
 
-function getRuntimeRoadCacheKey(bounds){
-  if(!bounds || !map) return '';
-  const round = value => Math.round(Number(value) * 10000);
-  return [
-    LOCS[currentIndex]?.num || 'x',
-    Math.round(map.getZoom() * 2) / 2,
-    round(bounds.getSouth()),
-    round(bounds.getWest()),
-    round(bounds.getNorth()),
-    round(bounds.getEast())
-  ].join(':');
+function getRuntimeRoadCacheKey(loc = LOCS[currentIndex]){
+  return loc ? String(loc.num) : '';
+}
+
+function loadOverpassCache(){
+  try{
+    const raw = localStorage.getItem(OVERPASS_CACHE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveOverpassCache(cache){
+  try{
+    localStorage.setItem(OVERPASS_CACHE_STORAGE_KEY, JSON.stringify(cache));
+    return true;
+  }catch(e){
+    // Si no cabe, se tiran los territorios mas viejos antes de rendirse
+    const entradas = Object.entries(cache).sort((a, b) => (a[1]?.savedAt || 0) - (b[1]?.savedAt || 0));
+    while(entradas.length > 4){
+      delete cache[entradas.shift()[0]];
+      try{
+        localStorage.setItem(OVERPASS_CACHE_STORAGE_KEY, JSON.stringify(cache));
+        return true;
+      }catch(err){}
+    }
+    return false;
+  }
+}
+
+function packRoadWays(ways){
+  return (ways || []).map(way => ({
+    n:way.name || '',
+    h:way.highway || '',
+    w:way.waterway || '',
+    i:way.intermittent ? 1 : 0,
+    p:(way.latLngs || []).map(point => [Number(point.lat.toFixed(5)), Number(point.lng.toFixed(5))])
+  }));
+}
+
+function unpackRoadWays(packed){
+  return (packed || []).map(item => ({
+    name:item.n || '',
+    highway:item.h || '',
+    waterway:item.w || '',
+    intermittent:item.i === 1,
+    latLngs:(item.p || []).map(point => L.latLng(point[0], point[1]))
+  })).filter(way => way.latLngs.length >= 2);
+}
+
+function readOverpassCache(loc, campo){
+  const entrada = loadOverpassCache()[getRuntimeRoadCacheKey(loc)];
+  if(!entrada || !entrada[campo]) return null;
+  return campo === 'roads' ? unpackRoadWays(entrada.roads) : entrada.refs;
+}
+
+function writeOverpassCache(loc, campo, valor){
+  const clave = getRuntimeRoadCacheKey(loc);
+  if(!clave) return;
+  const cache = loadOverpassCache();
+  const entrada = cache[clave] || {};
+  entrada[campo] = campo === 'roads' ? packRoadWays(valor) : valor;
+  entrada.savedAt = Date.now();
+  cache[clave] = entrada;
+  saveOverpassCache(cache);
 }
 
 function runtimeRoadWeight(highway){
@@ -2131,16 +2193,22 @@ async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
   const requestId = ++runtimeRoadRequestId;
   vectorRoadLayer.clearLayers();
   if(!loc) return;
-  const bounds = getRuntimeRoadBounds();
-  const key = getRuntimeRoadCacheKey(bounds);
+  const key = getRuntimeRoadCacheKey(loc);
   if(runtimeRoadCache?.key === key && Array.isArray(runtimeRoadCache.roadWays)){
     drawRuntimeVectorRoads(runtimeRoadCache.roadWays);
     return;
   }
+  const guardadas = readOverpassCache(loc, 'roads');
+  if(guardadas?.length){
+    runtimeRoadCache = { key, roadWays:guardadas };
+    drawRuntimeVectorRoads(guardadas);
+    return;
+  }
   try{
-    const roadWays = await fetchRoadWaysForBounds(bounds);
+    const roadWays = await fetchRoadWaysForBounds(getRuntimeRoadBounds(loc));
     if(requestId !== runtimeRoadRequestId) return;
     runtimeRoadCache = { key, roadWays };
+    writeOverpassCache(loc, 'roads', roadWays);
     drawRuntimeVectorRoads(roadWays);
   }catch(err){
     if(requestId === runtimeRoadRequestId) console.warn('No se pudieron cargar calles vectoriales.', err);
@@ -2404,16 +2472,22 @@ async function updateRuntimeReferenceOverlay(loc = LOCS[currentIndex]){
   const requestId = ++runtimeReferenceRequestId;
   runtimeReferenceLayer.clearLayers();
   if(!loc) return;
-  const bounds = getRuntimeRoadBounds();
-  const key = 'ref:' + getRuntimeRoadCacheKey(bounds);
+  const key = 'ref:' + getRuntimeRoadCacheKey(loc);
   if(runtimeReferenceCache?.key === key && Array.isArray(runtimeReferenceCache.references)){
     drawRuntimeReferences(runtimeReferenceCache.references);
     return;
   }
+  const guardadas = readOverpassCache(loc, 'refs');
+  if(Array.isArray(guardadas)){
+    runtimeReferenceCache = { key, references:guardadas };
+    drawRuntimeReferences(guardadas);
+    return;
+  }
   try{
-    const references = await fetchReferencesForBounds(bounds);
+    const references = await fetchReferencesForBounds(getRuntimeRoadBounds(loc));
     if(requestId !== runtimeReferenceRequestId) return;
     runtimeReferenceCache = { key, references };
+    writeOverpassCache(loc, 'refs', references);
     drawRuntimeReferences(references);
   }catch(err){
     if(requestId === runtimeReferenceRequestId) console.warn('No se pudieron cargar referencias.', err);
@@ -3080,28 +3154,35 @@ function buildOverpassReferenceQuery(bounds){
 
 async function fetchOverpassRoadData(query, options = {}){
   let lastError = null;
-  for(const endpoint of OVERPASS_ENDPOINTS){
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), options.timeoutMs || 16000);
-    try{
-      const response = await fetch(endpoint, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' },
-        body:'data=' + encodeURIComponent(query),
-        signal:controller.signal
-      });
-      clearTimeout(timer);
-      if(!response.ok) throw new Error('Overpass ' + response.status);
-      const data = await response.json();
-      if(options.preferElements && (!Array.isArray(data?.elements) || !data.elements.length)){
-        lastError = new Error('Overpass respondio sin elementos.');
-        continue;
+  const vueltas = options.rounds || 3;
+  const espera = ms => new Promise(res => setTimeout(res, ms));
+  // Los servidores publicos devuelven 504 cuando estan saturados; se reintenta
+  // alternando endpoints y esperando cada vez mas antes de rendirse.
+  for(let vuelta = 0; vuelta < vueltas; vuelta++){
+    for(const endpoint of OVERPASS_ENDPOINTS){
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), options.timeoutMs || 25000);
+      try{
+        const response = await fetch(endpoint, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' },
+          body:'data=' + encodeURIComponent(query),
+          signal:controller.signal
+        });
+        clearTimeout(timer);
+        if(!response.ok) throw new Error('Overpass ' + response.status);
+        const data = await response.json();
+        if(options.preferElements && (!Array.isArray(data?.elements) || !data.elements.length)){
+          lastError = new Error('Overpass respondio sin elementos.');
+          continue;
+        }
+        return data;
+      }catch(err){
+        clearTimeout(timer);
+        lastError = err;
       }
-      return data;
-    }catch(err){
-      clearTimeout(timer);
-      lastError = err;
     }
+    if(vuelta < vueltas - 1) await espera(2500 * Math.pow(2, vuelta));
   }
   throw lastError || new Error('No se pudo consultar calles.');
 }
