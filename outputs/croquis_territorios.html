@@ -3154,14 +3154,14 @@ function buildOverpassReferenceQuery(bounds){
 
 async function fetchOverpassRoadData(query, options = {}){
   let lastError = null;
-  const vueltas = options.rounds || 3;
+  const vueltas = options.rounds || 2;
   const espera = ms => new Promise(res => setTimeout(res, ms));
   // Los servidores publicos devuelven 504 cuando estan saturados; se reintenta
   // alternando endpoints y esperando cada vez mas antes de rendirse.
   for(let vuelta = 0; vuelta < vueltas; vuelta++){
     for(const endpoint of OVERPASS_ENDPOINTS){
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), options.timeoutMs || 25000);
+      const timer = setTimeout(() => controller.abort(), options.timeoutMs || 20000);
       try{
         const response = await fetch(endpoint, {
           method:'POST',
@@ -3182,7 +3182,7 @@ async function fetchOverpassRoadData(query, options = {}){
         lastError = err;
       }
     }
-    if(vuelta < vueltas - 1) await espera(2500 * Math.pow(2, vuelta));
+    if(vuelta < vueltas - 1) await espera(3000);
   }
   throw lastError || new Error('No se pudo consultar calles.');
 }
