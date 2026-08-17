@@ -73,11 +73,13 @@ self.addEventListener('fetch', event => {
   // Overpass no se guarda: sus respuestas cambian y pesan poco
   if(esOverpass(url)) return;
 
-  // La pagina y Leaflet: red primero para no quedarse con una version vieja
+  // La pagina y Leaflet: red primero, y sin pasar por el cache HTTP del
+  // navegador. Con un fetch normal se puede devolver una copia vieja y la
+  // pagina se queda clavada en una version anterior aunque ya haya uma nueva.
   if(url.origin === self.location.origin || ARCHIVOS_BASE.includes(url.href)){
     event.respondWith((async () => {
       try{
-        const respuesta = await fetch(request);
+        const respuesta = await fetch(request, { cache:'no-store' });
         if(respuesta && respuesta.ok){
           const cache = await caches.open(APP_CACHE);
           cache.put(request, respuesta.clone());

@@ -3777,6 +3777,8 @@ function registerOfflineWorker(){
   }
   navigator.serviceWorker.register('../sw.js').then(registro => {
     offlineWorker = registro;
+    // Busca version nueva en cada carga, para no quedarse pegado en una vieja
+    registro.update?.().catch(() => {});
   }).catch(err => {
     console.warn('No se pudo registrar el modo sin internet.', err);
   }).finally(refreshOfflineState);
