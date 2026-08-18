@@ -181,7 +181,8 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .map-status{position:absolute;right:14px;bottom:18px;z-index:650;max-width:min(430px,calc(100% - 28px));background:rgba(20,32,25,.88);color:#fff;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.35;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .map-status.warn{background:rgba(139,76,18,.94)}
 .map-status.error{background:rgba(150,38,38,.94)}
-.legend{position:absolute;left:14px;bottom:18px;z-index:620;background:rgba(255,255,255,.94);border:1px solid rgba(190,202,194,.9);border-radius:8px;padding:8px 10px;font-size:11px;color:#53645b;box-shadow:0 6px 18px rgba(22,38,28,.13);display:flex;align-items:center;gap:8px}
+.legend{position:absolute;left:14px;bottom:18px;z-index:620;background:rgba(255,255,255,.95);border:1px solid rgba(190,202,194,.9);border-left:5px solid #1f7a47;border-radius:8px;padding:8px 12px;font-size:12px;color:#43554b;box-shadow:0 6px 18px rgba(22,38,28,.13);display:flex;align-items:baseline;gap:7px;font-weight:650}
+#territory-counter b{font-size:20px;font-weight:900;color:#1f7a47;line-height:1}
 .print-sheet{display:none}
 .print-sheet.is-open{position:fixed;inset:0;z-index:9000;background:#e8efeb;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:12px}
 body.print-preview{overflow:hidden}
@@ -501,6 +502,10 @@ body.print-preview{overflow:hidden}
       <b>Divisiones</b><span id="meta-subterritorios"></span>
     </div>
   </section>
+  <div class="legend" id="territory-counter" aria-live="polite">
+    <b id="territory-counter-total">40</b>
+    <span id="territory-counter-text">subterritorios en 20 territorios</span>
+  </div>
   <div class="map-status" id="map-status">Cargando mapa y nombres de calles...</div>
 </div>
 
@@ -1523,6 +1528,7 @@ function restoreLastUndoSnapshot(){
     renderManualRivers(LOCS[currentIndex]);
     updateColorControls();
   }
+  refreshTerritoryCounts();
   setStatus('Cambio restaurado.', 'warn');
 }
 
@@ -1612,6 +1618,8 @@ function setTextLabelsForLoc(loc, labels, options = {}){
   if(!saved && !options.silent){
     setStatus('No se pudo guardar el texto. Se libero historial pesado; intenta de nuevo.', 'error');
   }
+  // La cuenta de subterritorios sale de los textos: se refresca en cuanto cambian
+  refreshTerritoryCounts();
   return saved;
 }
 
@@ -4507,6 +4515,28 @@ function totalSubterritorios(){
   return LOCS.reduce((suma, loc) => suma + subterritoriosDeLoc(loc).length, 0);
 }
 
+function refreshTerritoryCounts(){
+  const total = totalSubterritorios();
+  const contador = $('territory-counter-total');
+  if(contador) contador.textContent = String(total);
+  const texto = $('territory-counter-text');
+  if(texto) texto.textContent = (total === 1 ? 'subterritorio' : 'subterritorios') + ' en ' + LOCS.length + (LOCS.length === 1 ? ' territorio' : ' territorios');
+  const cabecera = $('territory-total');
+  if(cabecera) cabecera.textContent = LOCS.length + ' territorios · ' + total + ' subterritorios';
+  const fila = $('meta-subterritorios');
+  if(fila && LOCS[currentIndex]) fila.textContent = resumenSubterritorios(subterritoriosDeLoc(LOCS[currentIndex]));
+  // el listado tambien, sin rehacer el select para no perder el desplegable abierto
+  if(locSel){
+    LOCS.forEach((loc, index) => {
+      const option = locSel.options[index];
+      if(!option) return;
+      const subs = subterritoriosDeLoc(loc);
+      const sufijo = subs.length > 1 ? '  (' + subs.length + ' subterritorios)' : '';
+      option.textContent = '#' + displayTerritoryNumber(loc) + ' - ' + loc.name + (loc.alias ? ' / ' + loc.alias : '') + sufijo;
+    });
+  }
+}
+
 function updateInfo(loc){
   $('territory-badge').textContent = 'Territorio #' + displayTerritoryNumber(loc);
   $('loc-name').textContent = displayTerritoryTitle(loc);
@@ -4515,9 +4545,7 @@ function updateInfo(loc){
   $('meta-estado').textContent = loc.estado;
   $('meta-altitud').textContent = loc.alt ? loc.alt.toLocaleString('es-MX') + ' m s. n. m.' : 'Por verificar';
   $('meta-coords').textContent = formatCoords(loc);
-  $('meta-subterritorios').textContent = resumenSubterritorios(subterritoriosDeLoc(loc));
-  const total = totalSubterritorios();
-  $('territory-total').textContent = LOCS.length + ' territorios · ' + total + ' subterritorios';
+  refreshTerritoryCounts();
   $('info-card').style.display = 'block';
 }
 
