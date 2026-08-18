@@ -489,7 +489,7 @@ body.print-preview{overflow:hidden}
   <section class="info-card" id="info-card" aria-live="polite">
     <div class="info-top">
       <span class="badge" id="territory-badge">Territorio</span>
-      <span class="year">Actualización 2026</span>
+      <span class="year" id="territory-total">Actualización 2026</span>
     </div>
     <h1 id="loc-name">Localidad</h1>
     <div class="meta">
@@ -498,6 +498,7 @@ body.print-preview{overflow:hidden}
       <b>Estado</b><span id="meta-estado"></span>
       <b>Altitud</b><span id="meta-altitud"></span>
       <b>Centro</b><span id="meta-coords"></span>
+      <b>Divisiones</b><span id="meta-subterritorios"></span>
     </div>
   </section>
   <div class="map-status" id="map-status">Cargando mapa y nombres de calles...</div>
@@ -4304,7 +4305,9 @@ function populateSelect(){
   LOCS.forEach((loc, index) => {
     const option = document.createElement('option');
     option.value = String(index);
-    option.textContent = '#' + displayTerritoryNumber(loc) + ' - ' + loc.name + (loc.alias ? ' / ' + loc.alias : '');
+    const subs = subterritoriosDeLoc(loc);
+    const sufijo = subs.length > 1 ? '  (' + subs.length + ' subterritorios)' : '';
+    option.textContent = '#' + displayTerritoryNumber(loc) + ' - ' + loc.name + (loc.alias ? ' / ' + loc.alias : '') + sufijo;
     locSel.appendChild(option);
   });
   locSel.value = String(currentIndex);
@@ -4482,6 +4485,28 @@ function t2ll(tx, ty, z){
   };
 }
 
+function subterritoriosDeLoc(loc){
+  // Los subterritorios son los textos con puro numero que hay dentro del territorio
+  return getTextLabelsForLoc(loc)
+    .map(label => String(label.text || '').trim())
+    .filter(text => /^\d+$/.test(text))
+    .map(Number)
+    .sort((a, b) => a - b);
+}
+
+function resumenSubterritorios(numeros){
+  if(!numeros.length) return 'Sin subterritorios marcados';
+  const consecutivos = numeros.every((n, i) => i === 0 || n === numeros[i - 1] + 1);
+  const lista = consecutivos && numeros.length > 2
+    ? numeros[0] + ' al ' + numeros[numeros.length - 1]
+    : numeros.join(', ');
+  return numeros.length + (numeros.length === 1 ? ' subterritorio' : ' subterritorios') + ' (' + lista + ')';
+}
+
+function totalSubterritorios(){
+  return LOCS.reduce((suma, loc) => suma + subterritoriosDeLoc(loc).length, 0);
+}
+
 function updateInfo(loc){
   $('territory-badge').textContent = 'Territorio #' + displayTerritoryNumber(loc);
   $('loc-name').textContent = displayTerritoryTitle(loc);
@@ -4490,6 +4515,9 @@ function updateInfo(loc){
   $('meta-estado').textContent = loc.estado;
   $('meta-altitud').textContent = loc.alt ? loc.alt.toLocaleString('es-MX') + ' m s. n. m.' : 'Por verificar';
   $('meta-coords').textContent = formatCoords(loc);
+  $('meta-subterritorios').textContent = resumenSubterritorios(subterritoriosDeLoc(loc));
+  const total = totalSubterritorios();
+  $('territory-total').textContent = LOCS.length + ' territorios · ' + total + ' subterritorios';
   $('info-card').style.display = 'block';
 }
 
