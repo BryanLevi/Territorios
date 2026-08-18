@@ -14,6 +14,7 @@
 <style>
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
+html,body{overflow-x:hidden}
 body{font-family:"Segoe UI",Arial,sans-serif;background:#f3f6f4;color:#17251c;display:flex;flex-direction:column;overflow:hidden}
 html,body,.print-sheet,.print-paper,#print-map{print-color-adjust:exact;-webkit-print-color-adjust:exact}
 button,select{font:inherit}
@@ -65,6 +66,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .color-field .icon-btn:hover:not(:disabled){transform:none;filter:none;background:#e8f2ec;border-color:#b9d2c4;z-index:2}
 .color-field .icon-btn.active,.color-field .icon-btn:focus-visible{z-index:3}
 #btn-color-clear:hover:not(:disabled){background:#fbeceb;border-color:#dfaea9;color:#b63b32}
+#btn-tools-toggle{display:none}
 .bar-group{display:flex;align-items:center;gap:7px}
 .bar-group+.bar-group{padding-left:12px;border-left:1px solid #e2eae5}
 .bar-actions{flex:1 1 100%;display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap}
@@ -235,25 +237,63 @@ body.print-preview{overflow:hidden}
   .color-control{width:100%;flex-wrap:wrap;height:auto}
   .color-control input[type=range]{flex:1;min-width:96px}
   .tool-group+.tool-group{margin-left:0;padding-left:0;border-left:0}
-  .tool-group{flex:1 1 100%}
+  .tool-group{flex:1 1 auto;min-width:0}
+  .tool-group.tools-icon{flex:1 1 100%}
   .tool-group.tools-edit,.tool-group.tools-draw,.tool-group.tools-actions{flex:0 1 auto}
+  /* Dedos, no mouse: los botones crecen a 44px */
+  .icon-btn{width:44px;height:44px}
+  .icon-btn svg{width:19px;height:19px}
+  .btn{height:44px;flex:1 1 auto;min-width:0}
+  .color-swatch{width:44px;height:44px}
+  .text-input{flex:1 1 120px;width:auto;min-width:0;height:44px}
+  .text-size-slider,.color-control input[type=range]{flex:1 1 90px;min-width:80px}
+  .icon-picker{flex:1;min-width:0}
+  .icon-picker-trigger{width:100%;min-width:0;height:44px}
+  .icon-picker-list{width:min(300px,calc(100vw - 28px));max-height:min(50vh,300px)}
+  .icon-picker-option{padding:8px 7px}
   .bar-group+.bar-group{padding-left:0;border-left:0}
   .bar-group{flex:1 1 100%;gap:8px}
   .bar-spacer{display:none}
-  .btn{flex:1;min-width:0}
-  .map-wrap{min-height:calc(100vh - 232px)}
-  .legend{display:none}
+  .map-wrap{min-height:65vh}
+  /* El cartel del total se queda: solo se hace compacto */
+  .legend{left:10px;bottom:10px;padding:6px 10px;font-size:11px;max-width:calc(100% - 20px)}
+  #territory-counter b{font-size:17px}
   .leaflet-control-zoom{display:none}
   .info-card{top:10px;left:10px;width:calc(100% - 20px)}
-  .map-status{right:10px;left:10px;bottom:10px;max-width:none}
+  .map-status{right:10px;left:10px;bottom:56px;max-width:none}
   .welcome-panel{grid-template-columns:1fr;max-height:calc(100vh - 28px)}
   .welcome-main{border-right:0;border-bottom:1px solid #dbe6e0;padding:24px}
   .welcome-main h2{font-size:26px}
   .welcome-guide{padding:22px}
   .tool-guide{grid-template-columns:1fr}
+  /* En el celular la barra completa medía mas que la pantalla: se pliega */
+  #btn-tools-toggle{display:inline-flex;flex:0 0 auto;order:-1}
+  .bar.tools-collapsed #tools-panel,
+  .bar.tools-collapsed .frame-field,
+  .bar.tools-collapsed .grupo-terr,
+  .bar.tools-collapsed .grupo-resp,
+  .bar.tools-collapsed .grupo-sync{display:none}
+  .bar.tools-collapsed .brand span{display:none}
+  .bar.tools-collapsed .campo-mapa{display:none}
+  /* Plegada, el boton y la localidad comparten renglon */
+  .bar.tools-collapsed .grow{flex:1 1 auto;width:auto;flex-direction:row;align-items:center}
+  .bar.tools-collapsed .grow label{display:none}
+  .bar.tools-collapsed .grow select{height:44px}
+  #btn-tools-toggle.active{background:#1f7a47;color:#fff;border-color:#1f7a47}
+  .offline-actions{flex-direction:column}
+  .offline-actions .btn{width:100%;flex:0 0 auto}
+  .offline-detail{flex-direction:column;align-items:stretch;gap:5px}
+  .offline-detail select{width:100%;height:44px}
 }
-@media (max-width:360px){
-  .btn{flex:1 1 calc(50% - 6px)}
+@media (max-width:420px){
+  .btn{flex:1 1 calc(50% - 6px);font-size:12px;padding:0 8px}
+  .bar{padding:9px 10px 11px;gap:9px 10px}
+  .color-field{padding:7px 7px}
+  .tool-group{gap:5px}
+  .brand strong{font-size:14px}
+  .info-card{padding:10px 11px}
+  .info-card h1{font-size:17px}
+  .meta{grid-template-columns:74px 1fr;font-size:11.5px}
 }
 @media print{
   @page{size:A4 landscape;margin:0}
@@ -343,13 +383,17 @@ body.print-preview{overflow:hidden}
     <strong>Croquis de territorio realizado por Bryan Levi</strong>
     <span>Predicación 2026 · Ixhuatlán del Café</span>
   </div>
+  <button class="btn ghost" id="btn-tools-toggle" type="button" aria-expanded="false" aria-controls="tools-panel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg>
+    Herramientas
+  </button>
   <div class="field grow">
     <label for="loc-sel">Localidad</label>
     <select id="loc-sel" disabled>
       <option value="">Cargando localidades...</option>
     </select>
   </div>
-  <div class="field">
+  <div class="field campo-mapa">
     <label for="view-sel">Mapa</label>
     <select id="view-sel" disabled>
       <option value="g-road" selected>Google Calles - principal</option>
@@ -367,7 +411,7 @@ body.print-preview{overflow:hidden}
       </button>
     </div>
   </div>
-  <div class="field color-field">
+  <div class="field color-field" id="tools-panel">
     <label for="fill-color">Color</label>
     <div class="color-control">
       <span class="tool-group">
@@ -430,7 +474,7 @@ body.print-preview{overflow:hidden}
     </div>
   </div>
   <div class="bar-actions">
-  <div class="bar-group">
+  <div class="bar-group grupo-nav">
   <button class="btn ghost" id="btn-prev" type="button" disabled title="Territorio anterior" aria-label="Territorio anterior">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
     Anterior
@@ -440,7 +484,7 @@ body.print-preview{overflow:hidden}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
   </button>
   </div>
-  <div class="bar-group">
+  <div class="bar-group grupo-doc">
   <button class="btn secondary" id="btn-pr" type="button" disabled>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
     PDF
@@ -450,7 +494,7 @@ body.print-preview{overflow:hidden}
     Instrucciones
   </button>
   </div>
-  <div class="bar-group">
+  <div class="bar-group grupo-terr">
   <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
     Agregar territorio
@@ -461,7 +505,7 @@ body.print-preview{overflow:hidden}
   </button>
   </div>
   <span class="bar-spacer"></span>
-  <div class="bar-group">
+  <div class="bar-group grupo-resp">
   <button class="btn ghost" id="btn-backup-export" type="button" title="Exportar respaldo" aria-label="Exportar respaldo">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>
     Exportar
@@ -471,7 +515,7 @@ body.print-preview{overflow:hidden}
     Importar
   </button>
   </div>
-  <div class="bar-group">
+  <div class="bar-group grupo-sync">
   <button class="btn primary" id="btn-cloud-save" type="button" title="Guardar cambios en GitHub" aria-label="Guardar cambios en GitHub">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg>
     Guardar GitHub
@@ -5375,6 +5419,32 @@ document.addEventListener('keydown', event => {
   if(event.key === 'ArrowRight') navigate(1);
 });
 
+function esPantallaChica(){
+  return window.matchMedia('(max-width:760px)').matches;
+}
+
+function setToolsCollapsed(colapsado){
+  const barra = document.querySelector('.bar');
+  const boton = $('btn-tools-toggle');
+  if(!barra || !boton) return;
+  barra.classList.toggle('tools-collapsed', colapsado);
+  boton.classList.toggle('active', !colapsado);
+  boton.setAttribute('aria-expanded', colapsado ? 'false' : 'true');
+  if(map) setTimeout(() => map.invalidateSize(), 60);
+}
+
+function aplicarPlegadoInicial(){
+  setToolsCollapsed(esPantallaChica());
+}
+
+$('btn-tools-toggle')?.addEventListener('click', () => {
+  setToolsCollapsed(!document.querySelector('.bar')?.classList.contains('tools-collapsed'));
+});
+window.addEventListener('resize', () => {
+  // Al pasar a pantalla grande siempre se ven todas las herramientas
+  if(!esPantallaChica()) setToolsCollapsed(false);
+});
+
 $('btn-token-remember')?.addEventListener('click', () => {
   if(rememberGithubToken()) setStatus('Token recordado en este dispositivo. Guardar GitHub ya no te lo va a pedir.', 'warn');
 });
@@ -5390,6 +5460,7 @@ window.addEventListener('offline', () => { if(map) handleOfflineMapSource(); });
 
 purgeLegacyGithubToken();
 refreshTokenState();
+aplicarPlegadoInicial();
 registerOfflineWorker();
 applyCustomTerritories();
 populateManualIconSelect();
