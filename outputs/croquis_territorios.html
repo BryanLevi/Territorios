@@ -541,6 +541,7 @@ const PRINT_ASPECT = 297 / 189;
 const PRINT_RENDER_SCALE = 18;
 const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
+const PRINT_REFERENCE_SCALE = 8;
 const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .62;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
@@ -2477,7 +2478,7 @@ function referenceLabelHtml(ref, printMode = false, escala = 1){
   const text = referenceLabelText(ref);
   const prefix = printMode ? 'print' : 'runtime';
   const scaleStyle = printMode
-    ? ' style="--print-label-scale:' + PRINT_RENDER_SCALE + '"'
+    ? ' style="--print-label-scale:' + (escala !== 1 ? escala : PRINT_RENDER_SCALE) + '"'
     : (escala !== 1 ? ' style="--ref-scale:' + escala + '"' : '');
   const title = text ? ' title="' + escapeHtml(text) + '"' : '';
   const nameHtml = printMode && text ? '<span class="' + prefix + '-reference-name">' + escapeHtml(text) + '</span>' : '';
@@ -4630,6 +4631,37 @@ function drawPrintTextLabels(targetMap, loc){
   });
 }
 
+// Las tiendas y lugares de OpenStreetMap, con su nombre. El CSS de impresion
+// para esto ya existia, pero nada lo llamaba: en el PDF nunca aparecian.
+function drawPrintReferences(targetMap, references, loc){
+  if(!targetMap || !Array.isArray(references) || !references.length) return;
+  const ocultas = getHiddenReferencesForLoc(loc);
+  const colocadas = [];
+  references.filter(ref => !ocultas.has(referenceKey(ref))).forEach(ref => {
+    const lat = Number(ref.lat);
+    const lng = Number(ref.lng);
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    if(!referenceLabelText(ref)) return;
+    const punto = targetMap.latLngToLayerPoint([lat, lng]);
+    const ancho = (46 + String(ref.name || '').length * 11) * PRINT_REFERENCE_SCALE;
+    const alto = 52 * PRINT_REFERENCE_SCALE;
+    const caja = { left:punto.x - ancho / 2, right:punto.x + ancho / 2, top:punto.y - alto / 2, bottom:punto.y + alto / 2 };
+    if(!canPlaceLabel(caja, colocadas, 4 * PRINT_REFERENCE_SCALE)) return;
+    colocadas.push(caja);
+    L.marker([lat, lng], {
+      interactive:false,
+      pane:'territoryPoiPane',
+      zIndexOffset:1000,
+      icon:L.divIcon({
+        className:'print-reference-marker',
+        html:referenceLabelHtml(ref, true, PRINT_REFERENCE_SCALE),
+        iconSize:[0,0],
+        iconAnchor:[0,0]
+      })
+    }).addTo(targetMap);
+  });
+}
+
 function drawPrintManualIcons(targetMap, loc){
   getManualIconsForLoc(loc).forEach(icon => {
     const lat = Number(icon.lat);
@@ -4686,7 +4718,7 @@ function drawPrintWaterwayLabels(targetMap, waterways){
     if(seen.has(key)) return;
     const placement = getPrintRoadLabelPlacement(targetMap, latLngs);
     if(!placement) return;
-    const fontSize = 12 * PRINT_RENDER_SCALE;
+    const fontSize = 8.5 * PRINT_RENDER_SCALE;
     if(placement.length < fontSize) return;
     const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
     if(!canPlaceLabel(box, placedBoxes, 1.5 * PRINT_RENDER_SCALE)) return;
@@ -4767,9 +4799,9 @@ function drawPrintVectorRoadLabels(targetMap, roadWays){
     if(seen.has(key)) return;
     const placement = getPrintRoadLabelPlacement(targetMap, way.latLngs);
     if(!placement) return;
-    // ~9.7 pt en la hoja. El tramo recto mas largo de una calle suele ser corto,
+    // ~6.7 pt en la hoja. El tramo recto mas largo de una calle suele ser corto,
     // asi que no se exige que quepa el nombre entero: solo que no sea un resto.
-    const fontSize = 13 * PRINT_RENDER_SCALE;
+    const fontSize = 9 * PRINT_RENDER_SCALE;
     if(placement.length < fontSize) return;
     const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
     if(!canPlaceLabel(box, placedBoxes, 1.5 * PRINT_RENDER_SCALE)) return;
@@ -5101,6 +5133,15 @@ async function imprimir(){
     drawPrintVectorRoadLabels(printMap, callesPlano);
     drawPrintWaterways(printMap, printWaterways);
     drawPrintWaterwayLabels(printMap, printWaterways);
+    $('print-wait-text').textContent = 'Trayendo tiendas y lugares...';
+    let printReferences = [];
+    try{
+      printReferences = readOverpassCache(loc, 'refs') || await fetchReferencesForBounds(getRuntimeRoadBounds(loc));
+      if(printReferences.length) writeOverpassCache(loc, 'refs', printReferences);
+    }catch(err){
+      console.warn('No se pudieron traer las referencias para el plano.', err);
+    }
+    drawPrintReferences(printMap, printReferences, loc);
     $('print-wait-text').textContent = 'Preparando detalles manuales...';
     drawPrintManualRivers(printMap, loc);
     drawPrintManualWhiteRoads(printMap, loc);
