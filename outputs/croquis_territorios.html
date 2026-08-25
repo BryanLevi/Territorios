@@ -103,6 +103,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .contour-midpoint:hover{r:6;fill-opacity:1}
 .color-area-path{mix-blend-mode:multiply;filter:saturate(1.08) contrast(1.02)}
 .print-sheet .color-area-path{mix-blend-mode:normal!important;filter:none!important}
+.print-sheet .runtime-vector-road-label span,.print-sheet .territory-text-label,.print-sheet .print-reference-name,.print-sheet .print-reference-icon{box-shadow:none!important}
 .color-area-path.is-selected{filter:saturate(1.16) contrast(1.04)}
 .territory-road-pane,.leaflet-territoryroad-pane{mix-blend-mode:normal;pointer-events:none}
 .territory-road-pane .leaflet-tile,.leaflet-territoryroad-pane .leaflet-tile{display:block!important;filter:saturate(1.02) contrast(1.04) brightness(1)!important;opacity:.9!important}
@@ -4575,17 +4576,24 @@ function drawPrintColorAreaOutlines(targetMap, loc){
   });
 }
 
-function drawPrintTextLabels(targetMap, loc){
+function drawPrintTextLabels(targetMap, loc, ocupadas){
+  const reservadas = ocupadas || [];
   getTextLabelsForLoc(loc).forEach(label => {
     const lat = Number(label.lat);
     const lng = Number(label.lng);
     if(!String(label.text || '').trim() || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    // Se acota para que salga igual en todos los territorios: escribiste unos
-    // con tamano 10 y otros con 22, que en la hoja eran 7.5 pt contra 16.5.
-    const parejo = { ...label, size:Math.max(11, Math.min(15, Number(label.size) || 14)) };
+    // El numero del subterritorio manda: reserva su sitio antes que nadie
+    const punto = targetMap.latLngToLayerPoint([lat, lng]);
+    const medio = 130;
+    reservadas.push({ left:punto.x - medio, right:punto.x + medio, top:punto.y - medio, bottom:punto.y + medio });
+    // Igual en todos los territorios: escribiste unos con tamano 10 y otros con
+    // 22. Acotar el tamano no bastaba porque createTextIcon fuerza un minimo de
+    // 16, asi que se ajusta la escala para caer siempre en unos 9 pt.
+    const OBJETIVO_PX = 214;
+    const tam = Math.max(16, Math.min(54, Number(label.size) || 22));
     L.marker([lat, lng], {
       interactive:false,
-      icon:createTextIcon(parejo, false, PRINT_RENDER_SCALE)
+      icon:createTextIcon(label, false, OBJETIVO_PX / tam)
     }).addTo(targetMap);
   });
 }
@@ -5098,7 +5106,8 @@ async function imprimir(){
       printMap.invalidateSize();
       printMap.fitBounds(bounds, {
         padding:[18 * PRINT_RENDER_SCALE, 18 * PRINT_RENDER_SCALE],
-        maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM)
+        maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM),
+        animate:false
       });
     };
     printMap.whenReady(frameMap);
@@ -5122,9 +5131,7 @@ async function imprimir(){
     // Una sola lista de sitios ocupados para que ningun nombre pise a otro:
     // antes cada tipo de etiqueta solo se evitaba a si mismo.
     const ocupadas = [];
-    drawPrintVectorRoadLabels(printMap, callesPlano, ocupadas);
     drawPrintWaterways(printMap, printWaterways);
-    drawPrintWaterwayLabels(printMap, printWaterways, ocupadas);
     $('print-wait-text').textContent = 'Trayendo tiendas y lugares...';
     let printReferences = [];
     try{
@@ -5133,11 +5140,17 @@ async function imprimir(){
     }catch(err){
       console.warn('No se pudieron traer las referencias para el plano.', err);
     }
+    // Todas las etiquetas juntas y al final, con el encuadre ya fijo: si se
+    // colocan antes, el mapa aun se esta ajustando y acaban encimandose.
+    frameMap();
+    await new Promise(resolve => setTimeout(resolve, 120));
+    drawPrintTextLabels(printMap, loc, ocupadas);
+    drawPrintVectorRoadLabels(printMap, callesPlano, ocupadas);
+    drawPrintWaterwayLabels(printMap, printWaterways, ocupadas);
     drawPrintReferences(printMap, printReferences, loc, ocupadas);
     $('print-wait-text').textContent = 'Preparando detalles manuales...';
     drawPrintManualRivers(printMap, loc);
     drawPrintManualWhiteRoads(printMap, loc);
-    drawPrintTextLabels(printMap, loc);
     drawPrintManualIcons(printMap, loc);
     if(hasColorExportMask(loc)){
       $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
