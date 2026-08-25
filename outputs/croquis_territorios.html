@@ -128,7 +128,8 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .runtime-vector-road-label.is-waterway span{color:#08406e!important;background:rgba(230,244,255,.94)!important}
 .runtime-vector-road-label.is-plano span{background:rgba(255,255,255,.88)!important;color:#12201a!important;border-radius:2px;padding:0 2px}
 .runtime-reference-label,.print-reference-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);max-width:260px;padding:0;border:0!important;background:transparent!important;color:#102018!important;font-family:"Segoe UI",Arial,sans-serif;font-weight:950;line-height:1.04;text-align:left;text-transform:uppercase;white-space:normal;filter:none!important;mix-blend-mode:normal!important;text-shadow:none!important}
-.print-reference-label{gap:calc(5px * var(--print-label-scale,1));max-width:calc(360px * var(--print-label-scale,1))}
+.print-reference-label{gap:calc(5px * var(--print-label-scale,1));width:max-content;max-width:calc(360px * var(--print-label-scale,1))}
+.print-reference-name{flex:0 1 auto}
 .runtime-reference-icon,.print-reference-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px;box-shadow:0 0 0 2px rgba(255,255,255,.96),0 3px 8px rgba(0,0,0,.25)}
 .runtime-reference-icon{width:calc(31px * var(--ref-scale,1));height:calc(31px * var(--ref-scale,1));border-width:calc(2px * var(--ref-scale,1));border-radius:calc(5px * var(--ref-scale,1))}
 .print-reference-icon{width:calc(46px * var(--print-label-scale,1));height:calc(46px * var(--print-label-scale,1));border-width:calc(2.4px * var(--print-label-scale,1));border-radius:calc(8px * var(--print-label-scale,1));box-shadow:0 0 0 calc(2.8px * var(--print-label-scale,1)) rgba(255,255,255,.98),0 calc(3px * var(--print-label-scale,1)) calc(8px * var(--print-label-scale,1)) rgba(0,0,0,.27)}
@@ -138,7 +139,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .print-reference-icon .reference-icon-letter{font-size:calc(16px * var(--print-label-scale,1))}
 .runtime-reference-name,.print-reference-name{display:inline-block;color:#102018!important;background:rgba(255,255,255,.96)!important;border:1.5px solid rgba(15,42,24,.55);border-radius:4px;box-shadow:0 1px 5px rgba(0,0,0,.22);font-weight:950;line-height:1.05;max-width:140px;overflow-wrap:normal;white-space:nowrap;word-break:normal}
 .runtime-reference-name{display:none!important}
-.print-reference-name{display:inline-block!important;font-size:calc(22px * var(--print-label-scale,1));padding:calc(2px * var(--print-label-scale,1)) calc(4px * var(--print-label-scale,1));max-width:calc(120px * var(--print-label-scale,1));white-space:normal;color:#102018!important}
+.print-reference-name{display:inline-block!important;text-transform:none!important;font-weight:700!important;border:0!important;background:rgba(255,255,255,.72)!important;font-size:calc(22px * var(--print-label-scale,1));padding:calc(2px * var(--print-label-scale,1)) calc(4px * var(--print-label-scale,1));max-width:calc(430px * var(--print-label-scale,1));white-space:normal;line-height:1.12;color:#102018!important}
 .territory-text-label{color:#243129!important}
 .print-sheet .territory-text-label{color:#243129!important;text-shadow:0 1px 0 rgba(255,255,255,.9)!important}
 .contour-handle,.contour-midpoint{border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.28)}
@@ -543,7 +544,7 @@ const PRINT_RENDER_SCALE = 1.5;
 const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
 const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .42;
-const PRINT_REFERENCE_SCALE = PRINT_RENDER_SCALE * .4;
+const PRINT_REFERENCE_SCALE = PRINT_RENDER_SCALE * .32;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
 const ROAD_OVERLAY_OPACITY = .96;
@@ -4612,7 +4613,7 @@ function drawPrintReferences(targetMap, references, loc){
     const ancho = (46 + String(ref.name || '').length * 11) * PRINT_REFERENCE_SCALE;
     const alto = 52 * PRINT_REFERENCE_SCALE;
     const caja = { left:punto.x - ancho / 2, right:punto.x + ancho / 2, top:punto.y - alto / 2, bottom:punto.y + alto / 2 };
-    if(!canPlaceLabel(caja, colocadas, 4 * PRINT_REFERENCE_SCALE)) return;
+    if(!canPlaceLabel(caja, colocadas, 1.5 * PRINT_REFERENCE_SCALE)) return;
     colocadas.push(caja);
     L.marker([lat, lng], {
       interactive:false,
