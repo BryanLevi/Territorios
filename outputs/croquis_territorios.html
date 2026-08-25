@@ -539,10 +539,9 @@ const APP_BUILD = 'github-sync-backup-2026-07-01-18';
 const DETAIL_ZOOM = 20;
 const DETAIL_PAD = 2;
 const PRINT_ASPECT = 297 / 189;
-const PRINT_RENDER_SCALE = 18;
+const PRINT_RENDER_SCALE = 4;
 const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
-const PRINT_REFERENCE_SCALE = 8;
 const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .62;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
@@ -4598,40 +4597,6 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
   });
 }
 
-// Las tiendas y lugares de OpenStreetMap, con su nombre. El CSS de impresion
-// para esto ya existia, pero nada lo llamaba: en el PDF nunca aparecian.
-function drawPrintReferences(targetMap, references, loc, ocupadas){
-  if(!targetMap || !Array.isArray(references) || !references.length) return;
-  const ocultas = getHiddenReferencesForLoc(loc);
-  const colocadas = ocupadas || [];
-  references.filter(ref => !ocultas.has(referenceKey(ref))).forEach(ref => {
-    const lat = Number(ref.lat);
-    const lng = Number(ref.lng);
-    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    if(!referenceLabelText(ref)) return;
-    const punto = targetMap.latLngToLayerPoint([lat, lng]);
-    const largo = String(ref.name || '').length;
-    const anchoNombre = Math.min(120, largo * 11);
-    const renglones = Math.max(1, Math.ceil(largo * 11 / 120));
-    const ancho = (46 + anchoNombre) * PRINT_REFERENCE_SCALE;
-    const alto = Math.max(52, 24 * renglones + 12) * PRINT_REFERENCE_SCALE;
-    const caja = { left:punto.x - ancho / 2, right:punto.x + ancho / 2, top:punto.y - alto / 2, bottom:punto.y + alto / 2 };
-    if(!canPlaceLabel(caja, colocadas, 4 * PRINT_REFERENCE_SCALE)) return;
-    colocadas.push(caja);
-    L.marker([lat, lng], {
-      interactive:false,
-      pane:'territoryPoiPane',
-      zIndexOffset:1000,
-      icon:L.divIcon({
-        className:'print-reference-marker',
-        html:referenceLabelHtml(ref, true, PRINT_REFERENCE_SCALE),
-        iconSize:[0,0],
-        iconAnchor:[0,0]
-      })
-    }).addTo(targetMap);
-  });
-}
-
 function drawPrintManualIcons(targetMap, loc){
   getManualIconsForLoc(loc).forEach(icon => {
     const lat = Number(icon.lat);
@@ -4675,126 +4640,12 @@ function drawPrintWaterways(targetMap, waterways){
   });
 }
 
-function drawPrintWaterwayLabels(targetMap, waterways, ocupadas){
-  if(!targetMap || !Array.isArray(waterways) || !waterways.length) return;
-  const seen = new Set();
-  const placedBoxes = ocupadas || [];
-  waterways.forEach(way => {
-    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
-    if(latLngs.length < 2) return;
-    const name = String(way.name || '').trim();
-    if(!name || name.length > 42) return;
-    const key = name.toLocaleLowerCase('es-MX');
-    if(seen.has(key)) return;
-    const placement = getPrintRoadLabelPlacement(targetMap, latLngs);
-    if(!placement) return;
-    const fontSize = 7.2 * PRINT_RENDER_SCALE;
-    if(placement.length < fontSize) return;
-    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
-    if(!canPlaceLabel(box, placedBoxes, 1.5 * PRINT_RENDER_SCALE)) return;
-    seen.add(key);
-    placedBoxes.push(box);
-    L.marker(placement.latlng, {
-      interactive:false,
-      pane:'territoryLabelPane',
-      zIndexOffset:900,
-      icon:L.divIcon({
-        className:'runtime-vector-road-label is-waterway',
-        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(name) + '</span>',
-        iconSize:[0,0],
-        iconAnchor:[0,0]
-      })
-    }).addTo(targetMap);
-  });
-}
-
-async function getWaterwaysForPrint(bounds){
-  const cached = Array.isArray(runtimeRoadCache?.roadWays) ? runtimeRoadCache.roadWays.filter(isWaterway) : [];
-  try{
-    const ways = await fetchRoadWaysForBounds(bounds, { timeoutMs:12000 });
-    const found = ways.filter(isWaterway);
-    if(found.length || !cached.length) return found;
-    return cached;
-  }catch(err){
-    console.warn('No se pudieron consultar rios para el PDF; se usa lo cargado en pantalla.', err);
-    return cached;
-  }
-}
-
 function drawPrintManualRivers(targetMap, loc){
   if(!targetMap || !loc) return;
   const pane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
   getManualRiversForLoc(loc).forEach(river => {
     const latLngs = pointsToLatLngs(river.points);
     drawManualRiverPolyline(targetMap, latLngs, river.width, pane, PRINT_VECTOR_ROAD_SCALE);
-  });
-}
-
-function printRoadWeight(highway){
-  const key = String(highway || '').replace(/_link$/, '');
-  const base = {
-    motorway:5.6, trunk:5.2, primary:4.8, secondary:4.3, tertiary:3.8,
-    unclassified:3.3, residential:3, living_street:2.7, pedestrian:2.3,
-    track:2.1, path:1.7, footway:1.7, steps:1.6, cycleway:1.7,
-    road:3, service:2.1
-  }[key] || 2.8;
-  return base * PRINT_VECTOR_ROAD_SCALE;
-}
-
-// Dibujo del croquis sin teselas: lineas y texto, como un plano. Es lo que hace
-// que el PDF se vea nitido a cualquier zoom y pese una decima parte.
-function drawPrintVectorRoads(targetMap, roadWays){
-  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
-  const pane = targetMap.getPane?.('territoryRoadPane') ? 'territoryRoadPane' : undefined;
-  roadWays.filter(way => !isWaterway(way)).forEach(way => {
-    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
-    if(latLngs.length < 2) return;
-    const weight = printRoadWeight(way.highway);
-    const borde = { color:'#aab6ae', weight, opacity:1, lineCap:'round', lineJoin:'round', interactive:false };
-    const interior = { color:'#ffffff', weight:Math.max(1.2 * PRINT_VECTOR_ROAD_SCALE, weight - 1.6 * PRINT_VECTOR_ROAD_SCALE), opacity:1, lineCap:'round', lineJoin:'round', interactive:false };
-    if(pane){ borde.pane = pane; interior.pane = pane; }
-    L.polyline(latLngs, borde).addTo(targetMap);
-    L.polyline(latLngs, interior).addTo(targetMap);
-  });
-}
-
-function drawPrintVectorRoadLabels(targetMap, roadWays, ocupadas){
-  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
-  const seen = new Set();
-  const placedBoxes = ocupadas || [];
-  roadWays.filter(way => !isWaterway(way)).forEach(way => {
-    const name = String(way.name || '').trim();
-    if(!name || name.length > 42) return;
-    const key = name.toLocaleLowerCase('es-MX');
-    if(seen.has(key)) return;
-    const fontSize = 7.6 * PRINT_RENDER_SCALE;
-    // Si el tramo mas largo ya esta ocupado se prueba otro tramo de la misma
-    // calle, para que el nombre quede sobre su propia calle y no encimado.
-    let placement = null;
-    let box = null;
-    for(const candidato of getPrintRoadLabelCandidates(targetMap, way.latLngs)){
-      if(candidato.length < fontSize) break;
-      const posible = roadLabelBoxForPlacement(targetMap, candidato, name, fontSize, PRINT_RENDER_SCALE);
-      if(canPlaceLabel(posible, placedBoxes, 1.5 * PRINT_RENDER_SCALE)){
-        placement = candidato;
-        box = posible;
-        break;
-      }
-    }
-    if(!placement) return;
-    seen.add(key);
-    placedBoxes.push(box);
-    L.marker(placement.latlng, {
-      interactive:false,
-      pane:'territoryLabelPane',
-      zIndexOffset:800,
-      icon:L.divIcon({
-        className:'runtime-vector-road-label is-plano',
-        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(name) + '</span>',
-        iconSize:[0,0],
-        iconAnchor:[0,0]
-      })
-    }).addTo(targetMap);
   });
 }
 
@@ -4805,26 +4656,6 @@ function drawPrintManualWhiteRoads(targetMap, loc){
     const latLngs = pointsToLatLngs(road.points);
     drawWhiteRoadPolyline(targetMap, latLngs, road.width, roadPane, PRINT_VECTOR_ROAD_SCALE);
   });
-}
-
-function getPrintRoadLabelCandidates(targetMap, latLngs){
-  if(!targetMap || !Array.isArray(latLngs) || latLngs.length < 2) return [];
-  const candidatos = [];
-  for(let i = 0; i < latLngs.length - 1; i++){
-    const a = targetMap.latLngToLayerPoint(latLngs[i]);
-    const b = targetMap.latLngToLayerPoint(latLngs[i + 1]);
-    const length = a.distanceTo(b);
-    if(!length) continue;
-    let angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-    if(angle > 90) angle -= 180;
-    if(angle < -90) angle += 180;
-    candidatos.push({
-      latlng:L.latLng((latLngs[i].lat + latLngs[i + 1].lat) / 2, (latLngs[i].lng + latLngs[i + 1].lng) / 2),
-      angle,
-      length
-    });
-  }
-  return candidatos.sort((x, y) => y.length - x.length);
 }
 
 function getPrintRoadLabelPlacement(targetMap, latLngs){
@@ -4846,19 +4677,6 @@ function getPrintRoadLabelPlacement(targetMap, latLngs){
     }
   }
   return best;
-}
-
-function roadLabelBoxForPlacement(targetMap, placement, name, fontSize, labelScale = PRINT_RENDER_SCALE){
-  const point = targetMap.latLngToLayerPoint(placement.latlng);
-  const finalSize = fontSize / labelScale;
-  const width = Math.min(170, Math.max(42, String(name || '').length * finalSize * .52 + 14)) * labelScale;
-  const height = Math.max(9, finalSize + 5) * labelScale;
-  return {
-    left:point.x - width / 2,
-    right:point.x + width / 2,
-    top:point.y - height / 2,
-    bottom:point.y + height / 2
-  };
 }
 
 // Recorte del croquis: todo lo que quede fuera de las zonas pintadas se tapa
@@ -4930,6 +4748,45 @@ function renderPrintColorMask(targetMap, loc){
   cover.setAttribute('mask', 'url(#' + maskId + ')');
   svg.appendChild(cover);
   container.appendChild(svg);
+}
+
+function waitForPrintTiles(layer, timeoutMs = 8000){
+  return new Promise(resolve => {
+    let done = false;
+    let loaded = 0;
+    let failed = 0;
+    const finish = () => {
+      if(done) return;
+      done = true;
+      clearTimeout(timer);
+      layer.off('load', finish);
+      layer.off('tileload', onTileLoad);
+      layer.off('tileerror', onTileError);
+      resolve({ loaded, failed });
+    };
+    const onTileLoad = () => { loaded++; };
+    const onTileError = () => {
+      failed++;
+      setTimeout(finish, 900);
+    };
+    const timer = setTimeout(finish, timeoutMs);
+    layer.on('tileload', onTileLoad);
+    layer.on('tileerror', onTileError);
+    layer.on('load', finish);
+  });
+}
+
+function getPrintTileUrl(tileSource, options = {}){
+  let url = options.noLabels && (tileSource.dlNoLabelUrl || tileSource.noLabelUrl)
+    ? (tileSource.dlNoLabelUrl || tileSource.noLabelUrl)
+    : (tileSource.dlUrl || tileSource.url);
+  if(options.noLabels && !tileSource.dlNoLabelUrl && tileSource.dlTs === 512 && !String(url).includes('@2x')){
+    url = url.replace('.png', '@2x.png');
+  }
+  if(String(url || '').includes('google.com') && !String(url || '').includes('scale=')){
+    return url + '&scale=2';
+  }
+  return url;
 }
 
 function resetPrintSheet(){
@@ -5087,10 +4944,19 @@ async function imprimir(){
     printMap.getPane('territoryPoiPane').style.zIndex = 560;
     printMap.getPane('territoryPoiPane').style.pointerEvents = 'none';
     printMap.getPane('territoryPoiPane').classList.add('territory-poi-pane');
-    // Sin teselas: el croquis se dibuja, no se fotografia. De ahi que el PDF
-    // salga nitido a cualquier zoom y pese una fraccion de lo que pesaba.
-    const contenedorMapa = printMap.getContainer();
-    if(contenedorMapa) contenedorMapa.style.background = '#ffffff';
+    // Vuelve el mapa de fondo: es lo que da los edificios y los nombres tal
+    // como los pinta el mapa base. Se dibuja a 384 ppp, no a 1729 como antes,
+    // que multiplicaba las teselas sin ganar un apice de nitidez.
+    const fuenteImpresion = (!src.downloadable && src.downloadAs && TILES[src.downloadAs]) ? TILES[src.downloadAs] : src;
+    const capaFondo = L.tileLayer(getPrintTileUrl(fuenteImpresion, { noLabels:false }), {
+      maxZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
+      maxNativeZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
+      subdomains:fuenteImpresion.sub || '',
+      attribution:fuenteImpresion.attr || '',
+      tileSize:fuenteImpresion.dlTs || 256,
+      keepBuffer:6,
+      updateWhenIdle:false
+    }).addTo(printMap);
     drawPrintColorAreas(printMap, loc);
     if(usingColorMask){
       drawPrintColorAreaOutlines(printMap, loc);
@@ -5106,48 +4972,25 @@ async function imprimir(){
       printMap.invalidateSize();
       printMap.fitBounds(bounds, {
         padding:[18 * PRINT_RENDER_SCALE, 18 * PRINT_RENDER_SCALE],
-        maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM),
+        maxZoom:Math.min(fuenteImpresion.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM),
         animate:false
       });
     };
     printMap.whenReady(frameMap);
-    setTimeout(frameMap, 150);
-    await new Promise(resolve => setTimeout(resolve, 220));
-    $('print-wait-text').textContent = 'Trayendo calles y nombres...';
-    let callesPlano = [];
-    try{
-      callesPlano = readOverpassCache(loc, 'roads') || await fetchRoadWaysForBounds(getRuntimeRoadBounds(loc));
-      if(callesPlano.length) writeOverpassCache(loc, 'roads', callesPlano);
-    }catch(err){
-      console.warn('No se pudieron traer las calles para el plano.', err);
-    }
     frameMap();
-    drawPrintVectorRoads(printMap, callesPlano);
-    frameMap();
-    $('print-wait-text').textContent = 'Buscando rios y arroyos...';
-    const printWaterways = callesPlano.length
-      ? callesPlano.filter(isWaterway)
-      : await getWaterwaysForPrint(bounds);
-    // Una sola lista de sitios ocupados para que ningun nombre pise a otro:
-    // antes cada tipo de etiqueta solo se evitaba a si mismo.
-    const ocupadas = [];
-    drawPrintWaterways(printMap, printWaterways);
-    $('print-wait-text').textContent = 'Trayendo tiendas y lugares...';
-    let printReferences = [];
-    try{
-      printReferences = readOverpassCache(loc, 'refs') || await fetchReferencesForBounds(getRuntimeRoadBounds(loc));
-      if(printReferences.length) writeOverpassCache(loc, 'refs', printReferences);
-    }catch(err){
-      console.warn('No se pudieron traer las referencias para el plano.', err);
+    $('print-wait-text').textContent = 'Cargando el mapa de fondo...';
+    const estado = await waitForPrintTiles(capaFondo, 120000);
+    if(!estado.loaded){
+      throw new Error('No se pudieron cargar las teselas del mapa para imprimir.');
     }
-    // Todas las etiquetas juntas y al final, con el encuadre ya fijo: si se
-    // colocan antes, el mapa aun se esta ajustando y acaban encimandose.
     frameMap();
     await new Promise(resolve => setTimeout(resolve, 120));
+    // Los rios de OpenStreetMap se siguen marcando encima del mapa; se usan los
+    // ya guardados del territorio, sin volver a consultar.
+    const riosPlano = (readOverpassCache(loc, 'roads') || []).filter(isWaterway);
+    drawPrintWaterways(printMap, riosPlano);
+    const ocupadas = [];
     drawPrintTextLabels(printMap, loc, ocupadas);
-    drawPrintVectorRoadLabels(printMap, callesPlano, ocupadas);
-    drawPrintWaterwayLabels(printMap, printWaterways, ocupadas);
-    drawPrintReferences(printMap, printReferences, loc, ocupadas);
     $('print-wait-text').textContent = 'Preparando detalles manuales...';
     drawPrintManualRivers(printMap, loc);
     drawPrintManualWhiteRoads(printMap, loc);
