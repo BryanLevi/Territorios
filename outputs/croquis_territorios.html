@@ -125,7 +125,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .runtime-vector-road-label,.runtime-reference-marker,.print-reference-marker{background:transparent!important;border:0!important;box-shadow:none!important;pointer-events:none}
 .runtime-vector-road-label span{position:absolute;left:0;top:0;display:inline-block;transform:translate(-50%,-50%) rotate(var(--road-label-angle,0deg));transform-origin:center;white-space:nowrap;color:#07140d!important;font-family:"Arial Narrow","Segoe UI",Arial,sans-serif;font-size:13px;font-weight:950;line-height:1;background:rgba(255,255,255,.92)!important;border-radius:3px;padding:1px 3px;text-shadow:none!important;box-shadow:0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(0,0,0,.16)}
 .runtime-vector-road-label.is-waterway span{color:#08406e!important;background:rgba(230,244,255,.94)!important}
-.runtime-vector-road-label.is-plano span{background:transparent!important;box-shadow:none!important;color:#1b2721!important;padding:0}
+.runtime-vector-road-label.is-plano span{background:rgba(255,255,255,.88)!important;color:#12201a!important;border-radius:2px;padding:0 2px}
 .runtime-reference-label,.print-reference-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);max-width:260px;padding:0;border:0!important;background:transparent!important;color:#102018!important;font-family:"Segoe UI",Arial,sans-serif;font-weight:950;line-height:1.04;text-align:left;text-transform:uppercase;white-space:normal;filter:none!important;mix-blend-mode:normal!important;text-shadow:none!important}
 .print-reference-label{gap:calc(5px * var(--print-label-scale,1));max-width:calc(360px * var(--print-label-scale,1))}
 .runtime-reference-icon,.print-reference-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px;box-shadow:0 0 0 2px rgba(255,255,255,.96),0 3px 8px rgba(0,0,0,.25)}
@@ -192,6 +192,7 @@ body.print-preview{overflow:hidden}
 .print-badge{color:#145b32;border:1.2px solid #1f7a47;border-radius:999px;padding:1.35mm 3.7mm;font-size:10px;font-weight:900;white-space:nowrap}
 .print-title{font-size:18px;font-weight:900;line-height:1.05;flex:1;min-width:0;color:#102419}
 .print-meta{text-align:right;font-size:7.4px;line-height:1.25;color:#26372d;white-space:nowrap}
+.print-color-mask{position:absolute;inset:0;width:100%;height:100%;z-index:580;pointer-events:none}
 .print-map-stage{width:297mm;height:189mm;position:relative;overflow:hidden;background:#eef3ef}
 #print-map{width:var(--print-map-w,100%);height:var(--print-map-h,100%);position:absolute;left:0;top:0;background:#eef3ef;transform:scale(var(--print-map-scale,1));transform-origin:top left}
 .print-ftr{height:6mm;background:#fff;border-top:1px solid #d7e2dc;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4mm;color:#43544b;font-size:6.6px;white-space:nowrap}
@@ -540,7 +541,6 @@ const PRINT_ASPECT = 297 / 189;
 const PRINT_RENDER_SCALE = 18;
 const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
-const PRINT_VECTOR_LABEL_SCALE = PRINT_RENDER_SCALE * .24;
 const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .62;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
@@ -4685,10 +4685,11 @@ function drawPrintWaterwayLabels(targetMap, waterways){
     const key = name.toLocaleLowerCase('es-MX');
     if(seen.has(key)) return;
     const placement = getPrintRoadLabelPlacement(targetMap, latLngs);
-    if(!placement || placement.length < 70 * PRINT_VECTOR_LABEL_SCALE) return;
-    const fontSize = 11.5 * PRINT_VECTOR_LABEL_SCALE;
-    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_VECTOR_LABEL_SCALE);
-    if(!canPlaceLabel(box, placedBoxes, 6 * PRINT_VECTOR_LABEL_SCALE)) return;
+    if(!placement) return;
+    const fontSize = 10 * PRINT_RENDER_SCALE;
+    if(placement.length < name.length * fontSize * .55 * 1.15) return;
+    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
+    if(!canPlaceLabel(box, placedBoxes, 6 * PRINT_RENDER_SCALE)) return;
     seen.add(key);
     placedBoxes.push(box);
     L.marker(placement.latlng, {
@@ -4763,10 +4764,13 @@ function drawPrintVectorRoadLabels(targetMap, roadWays){
     const key = name.toLocaleLowerCase('es-MX');
     if(seen.has(key)) return;
     const placement = getPrintRoadLabelPlacement(targetMap, way.latLngs);
-    if(!placement || placement.length < 46 * PRINT_VECTOR_LABEL_SCALE) return;
-    const fontSize = 10.5 * PRINT_VECTOR_LABEL_SCALE;
-    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_VECTOR_LABEL_SCALE);
-    if(!canPlaceLabel(box, placedBoxes, 6 * PRINT_VECTOR_LABEL_SCALE)) return;
+    if(!placement) return;
+    // A escala de impresion 45 unidades salian en 1.9 pt: ilegible. Esto da ~8 pt.
+    const fontSize = 11 * PRINT_RENDER_SCALE;
+    const anchoTexto = name.length * fontSize * .55;
+    if(placement.length < anchoTexto * 1.15) return;
+    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
+    if(!canPlaceLabel(box, placedBoxes, 6 * PRINT_RENDER_SCALE)) return;
     seen.add(key);
     placedBoxes.push(box);
     L.marker(placement.latlng, {
@@ -4824,6 +4828,77 @@ function roadLabelBoxForPlacement(targetMap, placement, name, fontSize, labelSca
     top:point.y - height / 2,
     bottom:point.y + height / 2
   };
+}
+
+// Recorte del croquis: todo lo que quede fuera de las zonas pintadas se tapa
+// en blanco, para que la hoja muestre solo el territorio y no el resto del pueblo.
+function renderPrintColorMask(targetMap, loc){
+  const container = targetMap?.getContainer?.();
+  if(!container) return;
+  container.querySelectorAll('.print-color-mask').forEach(node => node.remove());
+  const areas = getExportColorAreasForLoc(loc);
+  if(!areas.length) return;
+  const size = targetMap.getSize();
+  if(!size?.x || !size?.y) return;
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  const maskId = 'print-color-mask-' + Date.now() + '-' + Math.round(Math.random() * 100000);
+  svg.classList.add('print-color-mask');
+  svg.setAttribute('viewBox', '0 0 ' + size.x + ' ' + size.y);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+
+  const defs = document.createElementNS(ns, 'defs');
+  const mask = document.createElementNS(ns, 'mask');
+  mask.setAttribute('id', maskId);
+  mask.setAttribute('x', '0');
+  mask.setAttribute('y', '0');
+  mask.setAttribute('width', String(size.x));
+  mask.setAttribute('height', String(size.y));
+  mask.setAttribute('maskUnits', 'userSpaceOnUse');
+
+  const full = document.createElementNS(ns, 'rect');
+  full.setAttribute('x', '0');
+  full.setAttribute('y', '0');
+  full.setAttribute('width', String(size.x));
+  full.setAttribute('height', String(size.y));
+  full.setAttribute('fill', '#fff');
+  mask.appendChild(full);
+
+  let holes = 0;
+  areas.forEach(area => {
+    const points = area.points.map(point => {
+      const lat = Number(point[0]);
+      const lng = Number(point[1]);
+      if(!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      const p = targetMap.latLngToContainerPoint([lat, lng]);
+      return Math.round(p.x * 10) / 10 + ',' + Math.round(p.y * 10) / 10;
+    }).filter(Boolean);
+    if(points.length < 3) return;
+    const polygon = document.createElementNS(ns, 'polygon');
+    polygon.setAttribute('points', points.join(' '));
+    polygon.setAttribute('fill', '#000');
+    polygon.setAttribute('stroke', '#000');
+    polygon.setAttribute('stroke-width', String(3 * PRINT_RENDER_SCALE));
+    polygon.setAttribute('stroke-linejoin', 'round');
+    polygon.setAttribute('stroke-linecap', 'round');
+    mask.appendChild(polygon);
+    holes++;
+  });
+  if(!holes) return;
+
+  defs.appendChild(mask);
+  svg.appendChild(defs);
+  const cover = document.createElementNS(ns, 'rect');
+  cover.setAttribute('x', '0');
+  cover.setAttribute('y', '0');
+  cover.setAttribute('width', String(size.x));
+  cover.setAttribute('height', String(size.y));
+  cover.setAttribute('fill', '#fff');
+  cover.setAttribute('fill-opacity', '1');
+  cover.setAttribute('mask', 'url(#' + maskId + ')');
+  svg.appendChild(cover);
+  container.appendChild(svg);
 }
 
 function resetPrintSheet(){
@@ -5018,7 +5093,9 @@ async function imprimir(){
     drawPrintVectorRoads(printMap, callesPlano);
     frameMap();
     $('print-wait-text').textContent = 'Buscando rios y arroyos...';
-    const printWaterways = callesPlano.filter(isWaterway).length ? callesPlano.filter(isWaterway) : await getWaterwaysForPrint(bounds);
+    const printWaterways = callesPlano.length
+      ? callesPlano.filter(isWaterway)
+      : await getWaterwaysForPrint(bounds);
     drawPrintVectorRoadLabels(printMap, callesPlano);
     drawPrintWaterways(printMap, printWaterways);
     drawPrintWaterwayLabels(printMap, printWaterways);
@@ -5027,6 +5104,10 @@ async function imprimir(){
     drawPrintManualWhiteRoads(printMap, loc);
     drawPrintTextLabels(printMap, loc);
     drawPrintManualIcons(printMap, loc);
+    if(hasColorExportMask(loc)){
+      $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
+      renderPrintColorMask(printMap, loc);
+    }
     $('print-wait-text').textContent = 'Listo. El territorio se imprimirá desde esta misma hoja.';
     $('print-ready-button').disabled = false;
     if(new URLSearchParams(location.search).has('noPrint')){
