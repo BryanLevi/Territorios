@@ -731,6 +731,8 @@ const WHITE_ROADS_STORAGE_KEY = 'croquis-territory-white-roads-v1';
 const MANUAL_RIVERS_STORAGE_KEY = 'croquis-territory-manual-rivers-v1';
 const OVERPASS_CACHE_STORAGE_KEY = 'croquis-territory-overpass-v1';
 const HIDDEN_REFERENCES_STORAGE_KEY = 'croquis-territory-hidden-references-v1';
+const REFERENCE_SAME_PLACE_M = 28;
+const REFERENCE_SAME_NAME_M = 70;
 const UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v2';
 const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
@@ -2028,7 +2030,8 @@ function unpackRoadWays(packed){
 function readOverpassCache(loc, campo){
   const entrada = loadOverpassCache()[getRuntimeRoadCacheKey(loc)];
   if(!entrada || !entrada[campo]) return null;
-  return campo === 'roads' ? unpackRoadWays(entrada.roads) : entrada.refs;
+  // Lo guardado antes de deduplicar por cercania se limpia al leerlo
+  return campo === 'roads' ? unpackRoadWays(entrada.roads) : dedupeReferences(entrada.refs);
 }
 
 function writeOverpassCache(loc, campo, valor){
@@ -3485,20 +3488,61 @@ function referencePriority(ref){
   }[kind] || 20);
 }
 
+function distanciaEnMetros(a, b){
+  const dLat = (a.lat - b.lat) * 111320;
+  const dLng = (a.lng - b.lng) * 111320 * Math.cos(a.lat * Math.PI / 180);
+  return Math.hypot(dLat, dLng);
+}
+
+function normalizarNombre(valor){
+  return String(valor || '')
+    .toLocaleLowerCase('es-MX')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+// OpenStreetMap suele traer el mismo sitio dos o tres veces: el punto y el
+// edificio, o varios puntos del mismo predio. Se veia uno solo de lejos porque
+// los encimados se ocultan, y al acercarse aparecian todos como si se duplicaran.
+function esMismoSitio(a, b){
+  if(a.kind !== b.kind) return false;
+  const metros = distanciaEnMetros(a, b);
+  if(metros <= REFERENCE_SAME_PLACE_M) return true;
+  if(metros > REFERENCE_SAME_NAME_M) return false;
+  const na = normalizarNombre(a.name);
+  const nb = normalizarNombre(b.name);
+  if(!na || !nb) return true;
+  return na === nb || na.startsWith(nb) || nb.startsWith(na);
+}
+
 function referencesFromOverpass(data){
-  const references = [];
-  const seen = new Set();
+  const candidatos = [];
   (data?.elements || []).forEach(element => {
     const tags = element.tags || {};
     if(referenceIsNoise(tags)) return;
-    const name = String(tags.name || tags.brand || tags.operator || referenceFallbackName(tags) || '').trim();
+    const propio = String(tags.name || tags.brand || tags.operator || '').trim();
+    const name = propio || String(referenceFallbackName(tags) || '').trim();
     const lat = Number(element.lat ?? element.center?.lat);
     const lng = Number(element.lon ?? element.center?.lon);
     if(!name || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    const key = name.toLocaleLowerCase('es-MX') + ':' + Math.round(lat * 10000) + ':' + Math.round(lng * 10000);
-    if(seen.has(key)) return;
-    seen.add(key);
-    references.push({ name, kind:referenceKind(tags), lat, lng });
+    candidatos.push({ name, kind:referenceKind(tags), lat, lng, conNombre:!!propio, esPunto:element.type === 'node' });
+  });
+  // Primero los que mejor representan el sitio, para que sea ese el que sobreviva
+  candidatos.sort((a, b) => {
+    if(a.conNombre !== b.conNombre) return a.conNombre ? -1 : 1;
+    if(a.esPunto !== b.esPunto) return a.esPunto ? -1 : 1;
+    return referencePriority(a) - referencePriority(b);
+  });
+  return dedupeReferences(candidatos);
+}
+
+function dedupeReferences(candidatos){
+  const references = [];
+  (candidatos || []).forEach(candidato => {
+    if(!candidato || !Number.isFinite(Number(candidato.lat)) || !Number.isFinite(Number(candidato.lng))) return;
+    if(references.some(guardada => esMismoSitio(guardada, candidato))) return;
+    references.push({ name:candidato.name, kind:candidato.kind, lat:candidato.lat, lng:candidato.lng });
   });
   return references.sort((a, b) => referencePriority(a) - referencePriority(b));
 }
