@@ -124,6 +124,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .runtime-vector-road-label,.runtime-reference-marker,.print-reference-marker{background:transparent!important;border:0!important;box-shadow:none!important;pointer-events:none}
 .runtime-vector-road-label span{position:absolute;left:0;top:0;display:inline-block;transform:translate(-50%,-50%) rotate(var(--road-label-angle,0deg));transform-origin:center;white-space:nowrap;color:#07140d!important;font-family:"Arial Narrow","Segoe UI",Arial,sans-serif;font-size:13px;font-weight:950;line-height:1;background:rgba(255,255,255,.92)!important;border-radius:3px;padding:1px 3px;text-shadow:none!important;box-shadow:0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(0,0,0,.16)}
 .runtime-vector-road-label.is-waterway span{color:#08406e!important;background:rgba(230,244,255,.94)!important}
+.runtime-vector-road-label.is-plano span{background:transparent!important;box-shadow:none!important;color:#1b2721!important;padding:0}
 .runtime-reference-label,.print-reference-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);max-width:260px;padding:0;border:0!important;background:transparent!important;color:#102018!important;font-family:"Segoe UI",Arial,sans-serif;font-weight:950;line-height:1.04;text-align:left;text-transform:uppercase;white-space:normal;filter:none!important;mix-blend-mode:normal!important;text-shadow:none!important}
 .print-reference-label{gap:calc(5px * var(--print-label-scale,1));max-width:calc(360px * var(--print-label-scale,1))}
 .runtime-reference-icon,.print-reference-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px;box-shadow:0 0 0 2px rgba(255,255,255,.96),0 3px 8px rgba(0,0,0,.25)}
@@ -541,11 +542,9 @@ const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
 const PRINT_VECTOR_LABEL_SCALE = PRINT_RENDER_SCALE * .24;
 const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .62;
-const PRINT_TILE_TIMEOUT_MS = 180000;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
 const ROAD_OVERLAY_OPACITY = .96;
-const POI_LABEL_OPACITY = 1;
 const VECTOR_ROAD_OVERLAY_OPACITY = .82;
 const VECTOR_ROAD_LABEL_OPACITY = .98;
 const WATERWAY_KINDS = 'river|stream|canal|ditch|drain';
@@ -553,7 +552,6 @@ const WATERWAY_COLOR = '#1878c8';
 const WATERWAY_CASING_COLOR = '#ffffff';
 const WATERWAY_OVERLAY_OPACITY = .95;
 const MAP_DETAIL_RESTORE_OPACITY = 1;
-const PRINT_DETAIL_RESTORE_OPACITY = 1;
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter'
@@ -4567,43 +4565,6 @@ function navigate(delta){
   goTo((currentIndex + delta + LOCS.length) % LOCS.length);
 }
 
-function getPrintTileUrl(tileSource, options = {}){
-  let url = options.noLabels && (tileSource.dlNoLabelUrl || tileSource.noLabelUrl)
-    ? (tileSource.dlNoLabelUrl || tileSource.noLabelUrl)
-    : (tileSource.dlUrl || tileSource.url);
-  if(options.noLabels && !tileSource.dlNoLabelUrl && tileSource.dlTs === 512 && !String(url).includes('@2x')){
-    url = url.replace('.png', '@2x.png');
-  }
-  if(String(url || '').includes('google.com') && !String(url || '').includes('scale=')){
-    return url + '&scale=2';
-  }
-  return url;
-}
-
-function getPrintPoiTileSource(tileSource){
-  if(tileSource?.roadUrl){
-    return {
-      url:tileSource.roadUrl,
-      sub:tileSource.roadSub || tileSource.sub || '',
-      maxZ:tileSource.maxZ || PRINT_MAX_ZOOM,
-      attr:''
-    };
-  }
-  return null;
-}
-
-function getPrintRoadTileSource(tileSource){
-  if(tileSource?.roadUrl){
-    return {
-      url:tileSource.roadUrl,
-      sub:tileSource.roadSub || tileSource.sub || '',
-      maxZ:tileSource.maxZ || PRINT_MAX_ZOOM,
-      attr:''
-    };
-  }
-  return null;
-}
-
 function buildPrintSheetMarkup(loc, src){
   const fecha = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
   const title = displayTerritoryNumber(loc) + ' - ' + loc.name;
@@ -4766,6 +4727,62 @@ function drawPrintManualRivers(targetMap, loc){
   });
 }
 
+function printRoadWeight(highway){
+  const key = String(highway || '').replace(/_link$/, '');
+  const base = {
+    motorway:5.6, trunk:5.2, primary:4.8, secondary:4.3, tertiary:3.8,
+    unclassified:3.3, residential:3, living_street:2.7, pedestrian:2.3,
+    track:2.1, path:1.7, footway:1.7, steps:1.6, cycleway:1.7,
+    road:3, service:2.1
+  }[key] || 2.8;
+  return base * PRINT_VECTOR_ROAD_SCALE;
+}
+
+// Dibujo del croquis sin teselas: lineas y texto, como un plano. Es lo que hace
+// que el PDF se vea nitido a cualquier zoom y pese una decima parte.
+function drawPrintVectorRoads(targetMap, roadWays){
+  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
+  const pane = targetMap.getPane?.('territoryRoadPane') ? 'territoryRoadPane' : undefined;
+  roadWays.filter(way => !isWaterway(way)).forEach(way => {
+    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
+    if(latLngs.length < 2) return;
+    const weight = printRoadWeight(way.highway);
+    const opciones = { color:'#25322c', weight, opacity:1, lineCap:'round', lineJoin:'round', interactive:false };
+    if(pane) opciones.pane = pane;
+    L.polyline(latLngs, opciones).addTo(targetMap);
+  });
+}
+
+function drawPrintVectorRoadLabels(targetMap, roadWays){
+  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
+  const seen = new Set();
+  const placedBoxes = [];
+  roadWays.filter(way => !isWaterway(way)).forEach(way => {
+    const name = String(way.name || '').trim();
+    if(!name || name.length > 42) return;
+    const key = name.toLocaleLowerCase('es-MX');
+    if(seen.has(key)) return;
+    const placement = getPrintRoadLabelPlacement(targetMap, way.latLngs);
+    if(!placement || placement.length < 46 * PRINT_VECTOR_LABEL_SCALE) return;
+    const fontSize = 10.5 * PRINT_VECTOR_LABEL_SCALE;
+    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_VECTOR_LABEL_SCALE);
+    if(!canPlaceLabel(box, placedBoxes, 6 * PRINT_VECTOR_LABEL_SCALE)) return;
+    seen.add(key);
+    placedBoxes.push(box);
+    L.marker(placement.latlng, {
+      interactive:false,
+      pane:'territoryLabelPane',
+      zIndexOffset:800,
+      icon:L.divIcon({
+        className:'runtime-vector-road-label is-plano',
+        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(name) + '</span>',
+        iconSize:[0,0],
+        iconAnchor:[0,0]
+      })
+    }).addTo(targetMap);
+  });
+}
+
 function drawPrintManualWhiteRoads(targetMap, loc){
   if(!targetMap || !loc) return;
   const roadPane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
@@ -4891,32 +4908,6 @@ function resetPrintSheet(){
   updateButtons();
 }
 
-function waitForPrintTiles(layer, timeoutMs = 8000){
-  return new Promise(resolve => {
-    let done = false;
-    let loaded = 0;
-    let failed = 0;
-    const finish = () => {
-      if(done) return;
-      done = true;
-      clearTimeout(timer);
-      layer.off('load', finish);
-      layer.off('tileload', onTileLoad);
-      layer.off('tileerror', onTileError);
-      resolve({ loaded, failed });
-    };
-    const onTileLoad = () => { loaded++; };
-    const onTileError = () => {
-      failed++;
-      setTimeout(finish, 900);
-    };
-    const timer = setTimeout(finish, timeoutMs);
-    layer.on('tileload', onTileLoad);
-    layer.on('tileerror', onTileError);
-    layer.on('load', finish);
-  });
-}
-
 function printPreparedSheet(){
   const wait = $('print-wait');
   if(wait) wait.style.display = 'none';
@@ -5015,7 +5006,7 @@ async function imprimir(){
 
   $('print-close-button').addEventListener('click', resetPrintSheet);
   $('print-ready-button').addEventListener('click', printPreparedSheet);
-  $('print-wait-text').textContent = 'Preparando PDF con calles blancas, referencias manuales y recorte coloreado...';
+  $('print-wait-text').textContent = 'Dibujando el croquis: calles, nombres, rios y tus marcas...';
   console.info('Croquis build', APP_BUILD);
 
   try{
@@ -5059,109 +5050,45 @@ async function imprimir(){
     printMap.getPane('territoryPoiPane').style.zIndex = 560;
     printMap.getPane('territoryPoiPane').style.pointerEvents = 'none';
     printMap.getPane('territoryPoiPane').classList.add('territory-poi-pane');
-    const addPrintTiles = (tileSource, options = {}) => {
-      const layerOptions = {
-        maxZoom:tileSource.maxZ || PRINT_MAX_ZOOM,
-        maxNativeZoom:tileSource.maxZ || PRINT_MAX_ZOOM,
-        subdomains:tileSource.sub || '',
-        attribution:options.attribution ?? tileSource.attr ?? '',
-        opacity:options.opacity ?? 1,
-        tileSize:256,
-        keepBuffer:8,
-        updateWhenIdle:false
-      };
-      if(options.pane) layerOptions.pane = options.pane;
-      return L.tileLayer(getPrintTileUrl(tileSource, { noLabels:!!options.noLabels }), layerOptions).addTo(printMap);
-    };
-    const baseTileOpacity = 1;
-    let tiles = addPrintTiles(src, { opacity:baseTileOpacity, noLabels:false });
+    // Sin teselas: el croquis se dibuja, no se fotografia. De ahi que el PDF
+    // salga nitido a cualquier zoom y pese una fraccion de lo que pesaba.
+    const contenedorMapa = printMap.getContainer();
+    if(contenedorMapa) contenedorMapa.style.background = '#ffffff';
     drawPrintColorAreas(printMap, loc);
-    let restoreTiles = usingColorMask ? addPrintTiles(src, {
-      attribution:'',
-      opacity:PRINT_DETAIL_RESTORE_OPACITY,
-      pane:'territoryRestorePane',
-      noLabels:false
-    }) : null;
-    let roadTiles = null;
-    let poiTiles = null;
-    let roadSource = null;
-    let poiSource = null;
-    roadSource = usingColorMask ? getPrintRoadTileSource(screenSrc) : null;
-    roadTiles = roadSource ? addPrintTiles(roadSource, {
-      attribution:'',
-      opacity:ROAD_OVERLAY_OPACITY,
-      pane:'territoryRoadPane'
-    }) : null;
-    poiSource = usingColorMask ? getPrintPoiTileSource(screenSrc) : null;
-    poiTiles = poiSource && (!roadSource || poiSource.url !== roadSource.url) ? addPrintTiles(poiSource, {
-      attribution:'',
-      opacity:POI_LABEL_OPACITY,
-      pane:'territoryPoiPane'
-    }) : null;
     if(usingColorMask){
       drawPrintColorAreaOutlines(printMap, loc);
     }else{
       L.rectangle(bounds, {
         color:'#0f7a3b',
-        weight:2.5 * PRINT_RENDER_SCALE,
-        dashArray:(8 * PRINT_RENDER_SCALE) + ',' + (5 * PRINT_RENDER_SCALE),
-        fillColor:'#1f7a47',
-        fillOpacity:.025
+        weight:2.5 * PRINT_VECTOR_ROAD_SCALE,
+        dashArray:(8 * PRINT_VECTOR_ROAD_SCALE) + ',' + (5 * PRINT_VECTOR_ROAD_SCALE),
+        fill:false
       }).addTo(printMap);
     }
     const frameMap = () => {
       printMap.invalidateSize();
       printMap.fitBounds(bounds, {
-        padding:[18 * PRINT_RENDER_SCALE,18 * PRINT_RENDER_SCALE],
+        padding:[18 * PRINT_RENDER_SCALE, 18 * PRINT_RENDER_SCALE],
         maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM)
       });
     };
     printMap.whenReady(frameMap);
     setTimeout(frameMap, 150);
-    let tileStats = await waitForPrintTiles(tiles, PRINT_TILE_TIMEOUT_MS);
-    if(tileStats.loaded === 0 && !String(currentView || '').startsWith('g-') && src.downloadAs && TILES[src.downloadAs]?.downloadable){
-      printMap.removeLayer(tiles);
-      if(restoreTiles) printMap.removeLayer(restoreTiles);
-      if(roadTiles) printMap.removeLayer(roadTiles);
-      if(poiTiles) printMap.removeLayer(poiTiles);
-      src = TILES[src.downloadAs];
-      const footerSource = document.querySelector('.print-ftr span');
-      if(footerSource) footerSource.textContent = 'Croquis de territorio';
-      $('print-wait-text').textContent = 'Google Calles no cargó. Preparando respaldo descargable para evitar hoja en blanco...';
-      tiles = addPrintTiles(src, { opacity:baseTileOpacity, noLabels:false });
-      restoreTiles = usingColorMask ? addPrintTiles(src, {
-        attribution:'',
-        opacity:PRINT_DETAIL_RESTORE_OPACITY,
-        pane:'territoryRestorePane',
-        noLabels:false
-      }) : null;
-      roadTiles = null;
-      poiTiles = null;
-      roadSource = null;
-      poiSource = null;
-      roadSource = usingColorMask ? getPrintRoadTileSource(screenSrc) : null;
-      roadTiles = roadSource ? addPrintTiles(roadSource, {
-        attribution:'',
-        opacity:ROAD_OVERLAY_OPACITY,
-        pane:'territoryRoadPane'
-      }) : null;
-      poiSource = usingColorMask ? getPrintPoiTileSource(screenSrc) : null;
-      poiTiles = poiSource && (!roadSource || poiSource.url !== roadSource.url) ? addPrintTiles(poiSource, {
-        attribution:'',
-        opacity:POI_LABEL_OPACITY,
-        pane:'territoryPoiPane'
-      }) : null;
-      tileStats = await waitForPrintTiles(tiles, PRINT_TILE_TIMEOUT_MS);
-    }
-    if(restoreTiles) await waitForPrintTiles(restoreTiles, 45000);
-    if(roadTiles) await waitForPrintTiles(roadTiles, 45000);
-    if(poiTiles) await waitForPrintTiles(poiTiles, 45000);
-    if(tileStats.loaded === 0){
-      throw new Error('No se pudieron cargar teselas del mapa para imprimir.');
+    await new Promise(resolve => setTimeout(resolve, 220));
+    $('print-wait-text').textContent = 'Trayendo calles y nombres...';
+    let callesPlano = [];
+    try{
+      callesPlano = readOverpassCache(loc, 'roads') || await fetchRoadWaysForBounds(getRuntimeRoadBounds(loc));
+      if(callesPlano.length) writeOverpassCache(loc, 'roads', callesPlano);
+    }catch(err){
+      console.warn('No se pudieron traer las calles para el plano.', err);
     }
     frameMap();
+    drawPrintVectorRoads(printMap, callesPlano);
+    frameMap();
     $('print-wait-text').textContent = 'Buscando rios y arroyos...';
-    const printWaterways = await getWaterwaysForPrint(bounds);
+    const printWaterways = callesPlano.filter(isWaterway).length ? callesPlano.filter(isWaterway) : await getWaterwaysForPrint(bounds);
+    drawPrintVectorRoadLabels(printMap, callesPlano);
     drawPrintWaterways(printMap, printWaterways);
     drawPrintWaterwayLabels(printMap, printWaterways);
     $('print-wait-text').textContent = 'Preparando detalles manuales...';
