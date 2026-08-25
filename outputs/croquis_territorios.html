@@ -102,6 +102,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .contour-midpoint{cursor:copy;transition:r .12s,fill-opacity .12s}
 .contour-midpoint:hover{r:6;fill-opacity:1}
 .color-area-path{mix-blend-mode:multiply;filter:saturate(1.08) contrast(1.02)}
+.print-sheet .color-area-path{mix-blend-mode:normal!important;filter:none!important}
 .color-area-path.is-selected{filter:saturate(1.16) contrast(1.04)}
 .territory-road-pane,.leaflet-territoryroad-pane{mix-blend-mode:normal;pointer-events:none}
 .territory-road-pane .leaflet-tile,.leaflet-territoryroad-pane .leaflet-tile{display:block!important;filter:saturate(1.02) contrast(1.04) brightness(1)!important;opacity:.9!important}
@@ -193,7 +194,6 @@ body.print-preview{overflow:hidden}
 .print-meta{text-align:right;font-size:7.4px;line-height:1.25;color:#26372d;white-space:nowrap}
 .print-map-stage{width:297mm;height:189mm;position:relative;overflow:hidden;background:#eef3ef}
 #print-map{width:var(--print-map-w,100%);height:var(--print-map-h,100%);position:absolute;left:0;top:0;background:#eef3ef;transform:scale(var(--print-map-scale,1));transform-origin:top left}
-.print-color-mask{position:absolute;inset:0;width:100%;height:100%;z-index:580;pointer-events:none}
 .print-ftr{height:6mm;background:#fff;border-top:1px solid #d7e2dc;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4mm;color:#43544b;font-size:6.6px;white-space:nowrap}
 .print-sheet .leaflet-control-container{display:none!important}
 .print-wait{position:absolute;inset:0;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;z-index:2}
@@ -4608,9 +4608,9 @@ function drawPrintColorAreaOutlines(targetMap, loc){
     const latLngs = pointsToLatLngs(area.points);
     if(latLngs.length < 3) return;
     L.polygon(latLngs, {
-      color:'#ffffff',
-      weight:.78 * PRINT_RENDER_SCALE,
-      opacity:.96,
+      color:sanitizeColor(area.color),
+      weight:.5 * PRINT_RENDER_SCALE,
+      opacity:.95,
       fill:false,
       interactive:false,
       pane:'territoryOutlinePane'
@@ -4826,75 +4826,6 @@ function roadLabelBoxForPlacement(targetMap, placement, name, fontSize, labelSca
   };
 }
 
-function renderPrintColorMask(targetMap, loc){
-  const container = targetMap?.getContainer?.();
-  if(!container) return;
-  container.querySelectorAll('.print-color-mask').forEach(node => node.remove());
-  const areas = getExportColorAreasForLoc(loc);
-  if(!areas.length) return;
-  const size = targetMap.getSize();
-  if(!size?.x || !size?.y) return;
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  const maskId = 'print-color-mask-' + Date.now() + '-' + Math.round(Math.random() * 100000);
-  svg.classList.add('print-color-mask');
-  svg.setAttribute('viewBox', '0 0 ' + size.x + ' ' + size.y);
-  svg.setAttribute('preserveAspectRatio', 'none');
-  svg.setAttribute('aria-hidden', 'true');
-
-  const defs = document.createElementNS(ns, 'defs');
-  const mask = document.createElementNS(ns, 'mask');
-  mask.setAttribute('id', maskId);
-  mask.setAttribute('x', '0');
-  mask.setAttribute('y', '0');
-  mask.setAttribute('width', String(size.x));
-  mask.setAttribute('height', String(size.y));
-  mask.setAttribute('maskUnits', 'userSpaceOnUse');
-
-  const full = document.createElementNS(ns, 'rect');
-  full.setAttribute('x', '0');
-  full.setAttribute('y', '0');
-  full.setAttribute('width', String(size.x));
-  full.setAttribute('height', String(size.y));
-  full.setAttribute('fill', '#fff');
-  mask.appendChild(full);
-
-  let holes = 0;
-  areas.forEach(area => {
-    const points = area.points.map(point => {
-      const lat = Number(point[0]);
-      const lng = Number(point[1]);
-      if(!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-      const p = targetMap.latLngToContainerPoint([lat, lng]);
-      return Math.round(p.x * 10) / 10 + ',' + Math.round(p.y * 10) / 10;
-    }).filter(Boolean);
-    if(points.length < 3) return;
-    const polygon = document.createElementNS(ns, 'polygon');
-    polygon.setAttribute('points', points.join(' '));
-    polygon.setAttribute('fill', '#000');
-    polygon.setAttribute('stroke', '#000');
-    polygon.setAttribute('stroke-width', String(3 * PRINT_RENDER_SCALE));
-    polygon.setAttribute('stroke-linejoin', 'round');
-    polygon.setAttribute('stroke-linecap', 'round');
-    mask.appendChild(polygon);
-    holes++;
-  });
-  if(!holes) return;
-
-  defs.appendChild(mask);
-  svg.appendChild(defs);
-  const cover = document.createElementNS(ns, 'rect');
-  cover.setAttribute('x', '0');
-  cover.setAttribute('y', '0');
-  cover.setAttribute('width', String(size.x));
-  cover.setAttribute('height', String(size.y));
-  cover.setAttribute('fill', '#fff');
-  cover.setAttribute('fill-opacity', '1');
-  cover.setAttribute('mask', 'url(#' + maskId + ')');
-  svg.appendChild(cover);
-  container.appendChild(svg);
-}
-
 function resetPrintSheet(){
   window.removeEventListener('afterprint', resetPrintSheet);
   document.title = originalDocumentTitle;
@@ -5096,10 +5027,6 @@ async function imprimir(){
     drawPrintManualWhiteRoads(printMap, loc);
     drawPrintTextLabels(printMap, loc);
     drawPrintManualIcons(printMap, loc);
-    if(usingColorMask){
-      $('print-wait-text').textContent = 'Aplicando recorte de zonas pintadas...';
-      renderPrintColorMask(printMap, loc);
-    }
     $('print-wait-text').textContent = 'Listo. El territorio se imprimirá desde esta misma hoja.';
     $('print-ready-button').disabled = false;
     if(new URLSearchParams(location.search).has('noPrint')){
