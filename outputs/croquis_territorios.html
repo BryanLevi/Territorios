@@ -137,7 +137,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .print-reference-icon .reference-icon-letter{font-size:calc(16px * var(--print-label-scale,1))}
 .runtime-reference-name,.print-reference-name{display:inline-block;color:#102018!important;background:rgba(255,255,255,.96)!important;border:1.5px solid rgba(15,42,24,.55);border-radius:4px;box-shadow:0 1px 5px rgba(0,0,0,.22);font-weight:950;line-height:1.05;max-width:140px;overflow-wrap:normal;white-space:nowrap;word-break:normal}
 .runtime-reference-name{display:none!important}
-.print-reference-name{display:inline-block!important;font-size:calc(18px * var(--print-label-scale,1));padding:calc(2px * var(--print-label-scale,1)) calc(4px * var(--print-label-scale,1));max-width:calc(230px * var(--print-label-scale,1));color:#102018!important}
+.print-reference-name{display:inline-block!important;font-size:calc(18px * var(--print-label-scale,1));padding:calc(2px * var(--print-label-scale,1)) calc(4px * var(--print-label-scale,1));max-width:calc(120px * var(--print-label-scale,1));white-space:normal;color:#102018!important}
 .territory-text-label{color:#243129!important}
 .print-sheet .territory-text-label{color:#243129!important;text-shadow:0 1px 0 rgba(255,255,255,.9)!important}
 .contour-handle,.contour-midpoint{border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.28)}
@@ -4592,18 +4592,21 @@ function drawPrintTextLabels(targetMap, loc){
 
 // Las tiendas y lugares de OpenStreetMap, con su nombre. El CSS de impresion
 // para esto ya existia, pero nada lo llamaba: en el PDF nunca aparecian.
-function drawPrintReferences(targetMap, references, loc){
+function drawPrintReferences(targetMap, references, loc, ocupadas){
   if(!targetMap || !Array.isArray(references) || !references.length) return;
   const ocultas = getHiddenReferencesForLoc(loc);
-  const colocadas = [];
+  const colocadas = ocupadas || [];
   references.filter(ref => !ocultas.has(referenceKey(ref))).forEach(ref => {
     const lat = Number(ref.lat);
     const lng = Number(ref.lng);
     if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     if(!referenceLabelText(ref)) return;
     const punto = targetMap.latLngToLayerPoint([lat, lng]);
-    const ancho = (46 + String(ref.name || '').length * 11) * PRINT_REFERENCE_SCALE;
-    const alto = 52 * PRINT_REFERENCE_SCALE;
+    const largo = String(ref.name || '').length;
+    const anchoNombre = Math.min(120, largo * 11);
+    const renglones = Math.max(1, Math.ceil(largo * 11 / 120));
+    const ancho = (46 + anchoNombre) * PRINT_REFERENCE_SCALE;
+    const alto = Math.max(52, 24 * renglones + 12) * PRINT_REFERENCE_SCALE;
     const caja = { left:punto.x - ancho / 2, right:punto.x + ancho / 2, top:punto.y - alto / 2, bottom:punto.y + alto / 2 };
     if(!canPlaceLabel(caja, colocadas, 4 * PRINT_REFERENCE_SCALE)) return;
     colocadas.push(caja);
@@ -4664,10 +4667,10 @@ function drawPrintWaterways(targetMap, waterways){
   });
 }
 
-function drawPrintWaterwayLabels(targetMap, waterways){
+function drawPrintWaterwayLabels(targetMap, waterways, ocupadas){
   if(!targetMap || !Array.isArray(waterways) || !waterways.length) return;
   const seen = new Set();
-  const placedBoxes = [];
+  const placedBoxes = ocupadas || [];
   waterways.forEach(way => {
     const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
     if(latLngs.length < 2) return;
@@ -4747,23 +4750,30 @@ function drawPrintVectorRoads(targetMap, roadWays){
   });
 }
 
-function drawPrintVectorRoadLabels(targetMap, roadWays){
+function drawPrintVectorRoadLabels(targetMap, roadWays, ocupadas){
   if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
   const seen = new Set();
-  const placedBoxes = [];
+  const placedBoxes = ocupadas || [];
   roadWays.filter(way => !isWaterway(way)).forEach(way => {
     const name = String(way.name || '').trim();
     if(!name || name.length > 42) return;
     const key = name.toLocaleLowerCase('es-MX');
     if(seen.has(key)) return;
-    const placement = getPrintRoadLabelPlacement(targetMap, way.latLngs);
-    if(!placement) return;
-    // ~6.7 pt en la hoja. El tramo recto mas largo de una calle suele ser corto,
-    // asi que no se exige que quepa el nombre entero: solo que no sea un resto.
     const fontSize = 7.6 * PRINT_RENDER_SCALE;
-    if(placement.length < fontSize) return;
-    const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
-    if(!canPlaceLabel(box, placedBoxes, 1.5 * PRINT_RENDER_SCALE)) return;
+    // Si el tramo mas largo ya esta ocupado se prueba otro tramo de la misma
+    // calle, para que el nombre quede sobre su propia calle y no encimado.
+    let placement = null;
+    let box = null;
+    for(const candidato of getPrintRoadLabelCandidates(targetMap, way.latLngs)){
+      if(candidato.length < fontSize) break;
+      const posible = roadLabelBoxForPlacement(targetMap, candidato, name, fontSize, PRINT_RENDER_SCALE);
+      if(canPlaceLabel(posible, placedBoxes, 1.5 * PRINT_RENDER_SCALE)){
+        placement = candidato;
+        box = posible;
+        break;
+      }
+    }
+    if(!placement) return;
     seen.add(key);
     placedBoxes.push(box);
     L.marker(placement.latlng, {
@@ -4787,6 +4797,26 @@ function drawPrintManualWhiteRoads(targetMap, loc){
     const latLngs = pointsToLatLngs(road.points);
     drawWhiteRoadPolyline(targetMap, latLngs, road.width, roadPane, PRINT_VECTOR_ROAD_SCALE);
   });
+}
+
+function getPrintRoadLabelCandidates(targetMap, latLngs){
+  if(!targetMap || !Array.isArray(latLngs) || latLngs.length < 2) return [];
+  const candidatos = [];
+  for(let i = 0; i < latLngs.length - 1; i++){
+    const a = targetMap.latLngToLayerPoint(latLngs[i]);
+    const b = targetMap.latLngToLayerPoint(latLngs[i + 1]);
+    const length = a.distanceTo(b);
+    if(!length) continue;
+    let angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+    if(angle > 90) angle -= 180;
+    if(angle < -90) angle += 180;
+    candidatos.push({
+      latlng:L.latLng((latLngs[i].lat + latLngs[i + 1].lat) / 2, (latLngs[i].lng + latLngs[i + 1].lng) / 2),
+      angle,
+      length
+    });
+  }
+  return candidatos.sort((x, y) => y.length - x.length);
 }
 
 function getPrintRoadLabelPlacement(targetMap, latLngs){
@@ -5089,9 +5119,12 @@ async function imprimir(){
     const printWaterways = callesPlano.length
       ? callesPlano.filter(isWaterway)
       : await getWaterwaysForPrint(bounds);
-    drawPrintVectorRoadLabels(printMap, callesPlano);
+    // Una sola lista de sitios ocupados para que ningun nombre pise a otro:
+    // antes cada tipo de etiqueta solo se evitaba a si mismo.
+    const ocupadas = [];
+    drawPrintVectorRoadLabels(printMap, callesPlano, ocupadas);
     drawPrintWaterways(printMap, printWaterways);
-    drawPrintWaterwayLabels(printMap, printWaterways);
+    drawPrintWaterwayLabels(printMap, printWaterways, ocupadas);
     $('print-wait-text').textContent = 'Trayendo tiendas y lugares...';
     let printReferences = [];
     try{
@@ -5100,7 +5133,7 @@ async function imprimir(){
     }catch(err){
       console.warn('No se pudieron traer las referencias para el plano.', err);
     }
-    drawPrintReferences(printMap, printReferences, loc);
+    drawPrintReferences(printMap, printReferences, loc, ocupadas);
     $('print-wait-text').textContent = 'Preparando detalles manuales...';
     drawPrintManualRivers(printMap, loc);
     drawPrintManualWhiteRoads(printMap, loc);
