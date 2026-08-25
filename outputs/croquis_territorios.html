@@ -542,7 +542,7 @@ const PRINT_ASPECT = 297 / 189;
 const PRINT_RENDER_SCALE = 4;
 const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
-const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .62;
+const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .42;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
 const ROAD_OVERLAY_OPACITY = .96;
@@ -4588,7 +4588,7 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
     // Igual en todos los territorios: escribiste unos con tamano 10 y otros con
     // 22. Acotar el tamano no bastaba porque createTextIcon fuerza un minimo de
     // 16, asi que se ajusta la escala para caer siempre en unos 9 pt.
-    const OBJETIVO_PX = 214;
+    const OBJETIVO_PX = 9.3 * PRINT_RENDER_SCALE;
     const tam = Math.max(16, Math.min(54, Number(label.size) || 22));
     L.marker([lat, lng], {
       interactive:false,
@@ -4953,7 +4953,7 @@ async function imprimir(){
       maxNativeZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
       subdomains:fuenteImpresion.sub || '',
       attribution:fuenteImpresion.attr || '',
-      tileSize:fuenteImpresion.dlTs || 256,
+      tileSize:256,
       keepBuffer:6,
       updateWhenIdle:false
     }).addTo(printMap);
