@@ -4686,10 +4686,10 @@ function drawPrintWaterwayLabels(targetMap, waterways){
     if(seen.has(key)) return;
     const placement = getPrintRoadLabelPlacement(targetMap, latLngs);
     if(!placement) return;
-    const fontSize = 10 * PRINT_RENDER_SCALE;
-    if(placement.length < name.length * fontSize * .55 * 1.15) return;
+    const fontSize = 12 * PRINT_RENDER_SCALE;
+    if(placement.length < fontSize) return;
     const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
-    if(!canPlaceLabel(box, placedBoxes, 6 * PRINT_RENDER_SCALE)) return;
+    if(!canPlaceLabel(box, placedBoxes, 1.5 * PRINT_RENDER_SCALE)) return;
     seen.add(key);
     placedBoxes.push(box);
     L.marker(placement.latlng, {
@@ -4748,9 +4748,11 @@ function drawPrintVectorRoads(targetMap, roadWays){
     const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
     if(latLngs.length < 2) return;
     const weight = printRoadWeight(way.highway);
-    const opciones = { color:'#25322c', weight, opacity:1, lineCap:'round', lineJoin:'round', interactive:false };
-    if(pane) opciones.pane = pane;
-    L.polyline(latLngs, opciones).addTo(targetMap);
+    const borde = { color:'#aab6ae', weight, opacity:1, lineCap:'round', lineJoin:'round', interactive:false };
+    const interior = { color:'#ffffff', weight:Math.max(1.2 * PRINT_VECTOR_ROAD_SCALE, weight - 1.6 * PRINT_VECTOR_ROAD_SCALE), opacity:1, lineCap:'round', lineJoin:'round', interactive:false };
+    if(pane){ borde.pane = pane; interior.pane = pane; }
+    L.polyline(latLngs, borde).addTo(targetMap);
+    L.polyline(latLngs, interior).addTo(targetMap);
   });
 }
 
@@ -4765,12 +4767,12 @@ function drawPrintVectorRoadLabels(targetMap, roadWays){
     if(seen.has(key)) return;
     const placement = getPrintRoadLabelPlacement(targetMap, way.latLngs);
     if(!placement) return;
-    // A escala de impresion 45 unidades salian en 1.9 pt: ilegible. Esto da ~8 pt.
-    const fontSize = 11 * PRINT_RENDER_SCALE;
-    const anchoTexto = name.length * fontSize * .55;
-    if(placement.length < anchoTexto * 1.15) return;
+    // ~9.7 pt en la hoja. El tramo recto mas largo de una calle suele ser corto,
+    // asi que no se exige que quepa el nombre entero: solo que no sea un resto.
+    const fontSize = 13 * PRINT_RENDER_SCALE;
+    if(placement.length < fontSize) return;
     const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
-    if(!canPlaceLabel(box, placedBoxes, 6 * PRINT_RENDER_SCALE)) return;
+    if(!canPlaceLabel(box, placedBoxes, 1.5 * PRINT_RENDER_SCALE)) return;
     seen.add(key);
     placedBoxes.push(box);
     L.marker(placement.latlng, {
