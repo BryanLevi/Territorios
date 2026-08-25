@@ -126,7 +126,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .runtime-vector-road-label,.runtime-reference-marker,.print-reference-marker{background:transparent!important;border:0!important;box-shadow:none!important;pointer-events:none}
 .runtime-vector-road-label span{position:absolute;left:0;top:0;display:inline-block;transform:translate(-50%,-50%) rotate(var(--road-label-angle,0deg));transform-origin:center;white-space:nowrap;color:#07140d!important;font-family:"Arial Narrow","Segoe UI",Arial,sans-serif;font-size:13px;font-weight:950;line-height:1;background:rgba(255,255,255,.92)!important;border-radius:3px;padding:1px 3px;text-shadow:none!important;box-shadow:0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(0,0,0,.16)}
 .runtime-vector-road-label.is-waterway span{color:#08406e!important;background:rgba(230,244,255,.94)!important}
-.runtime-vector-road-label.is-plano span{background:rgba(255,255,255,.88)!important;color:#12201a!important;border-radius:2px;padding:0 2px}
+.runtime-vector-road-label.is-plano span{background:rgba(255,255,255,.9)!important;color:#000!important;border-radius:2px;padding:0 2px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .runtime-reference-label,.print-reference-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);max-width:260px;padding:0;border:0!important;background:transparent!important;color:#102018!important;font-family:"Segoe UI",Arial,sans-serif;font-weight:950;line-height:1.04;text-align:left;text-transform:uppercase;white-space:normal;filter:none!important;mix-blend-mode:normal!important;text-shadow:none!important}
 .print-reference-label{gap:calc(5px * var(--print-label-scale,1));width:max-content;max-width:calc(360px * var(--print-label-scale,1))}
 .print-reference-name{flex:0 1 auto}
@@ -4600,10 +4600,114 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
   });
 }
 
-function drawPrintReferences(targetMap, references, loc){
+function getPrintRoadLabelCandidates(targetMap, latLngs){
+  if(!targetMap || !Array.isArray(latLngs) || latLngs.length < 2) return [];
+  const candidatos = [];
+  for(let i = 0; i < latLngs.length - 1; i++){
+    const a = targetMap.latLngToLayerPoint(latLngs[i]);
+    const b = targetMap.latLngToLayerPoint(latLngs[i + 1]);
+    const length = a.distanceTo(b);
+    if(!length) continue;
+    let angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+    if(angle > 90) angle -= 180;
+    if(angle < -90) angle += 180;
+    candidatos.push({
+      latlng:L.latLng((latLngs[i].lat + latLngs[i + 1].lat) / 2, (latLngs[i].lng + latLngs[i + 1].lng) / 2),
+      angle,
+      length
+    });
+  }
+  return candidatos.sort((x, y) => y.length - x.length);
+}
+
+function roadLabelBoxForPlacement(targetMap, placement, name, fontSize, labelScale = PRINT_RENDER_SCALE){
+  const point = targetMap.latLngToLayerPoint(placement.latlng);
+  const finalSize = fontSize / labelScale;
+  const width = Math.min(170, Math.max(42, String(name || '').length * finalSize * .52 + 14)) * labelScale;
+  const height = Math.max(9, finalSize + 5) * labelScale;
+  return {
+    left:point.x - width / 2,
+    right:point.x + width / 2,
+    top:point.y - height / 2,
+    bottom:point.y + height / 2
+  };
+}
+
+function drawPrintVectorRoadLabels(targetMap, roadWays, ocupadas){
+  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
+  const placedBoxes = ocupadas || [];
+  const fontSize = 8.4 * PRINT_RENDER_SCALE;
+  // OpenStreetMap parte una calle en muchos tramos con el mismo nombre, asi que
+  // se agrupan: un nombre, un rotulo, pero con todos sus tramos disponibles
+  // para buscarle acomodo.
+  const porNombre = new Map();
+  roadWays.filter(way => !isWaterway(way)).forEach(way => {
+    const name = String(way.name || '').trim();
+    if(!name || name.length > 42) return;
+    const key = name.toLocaleLowerCase('es-MX');
+    if(!porNombre.has(key)) porNombre.set(key, { name, tramos:[] });
+    porNombre.get(key).tramos.push(way);
+  });
+
+  const dibuja = (calle, placement, box) => {
+    if(box) placedBoxes.push(box);
+    L.marker(placement.latlng, {
+      interactive:false,
+      pane:'territoryLabelPane',
+      zIndexOffset:800,
+      icon:L.divIcon({
+        className:'runtime-vector-road-label is-plano',
+        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(calle.name) + '</span>',
+        iconSize:[0,0],
+        iconAnchor:[0,0]
+      })
+    }).addTo(targetMap);
+  };
+
+  const candidatosDe = calle => calle.tramos
+    .flatMap(way => getPrintRoadLabelCandidates(targetMap, way.latLngs))
+    .sort((x, y) => y.length - x.length);
+
+  // Primero se acomodan los nombres sin encimar nada. Los que no encuentran
+  // hueco se reintentan con menos margen y, al final, se ponen de todos modos:
+  // vale mas que la calle lleve su nombre a que se quede muda.
+  const pendientes = [];
+  porNombre.forEach(calle => {
+    const candidatos = candidatosDe(calle);
+    let colocado = false;
+    for(const candidato of candidatos){
+      if(candidato.length < fontSize) break;
+      const posible = roadLabelBoxForPlacement(targetMap, candidato, calle.name, fontSize, PRINT_RENDER_SCALE);
+      if(canPlaceLabel(posible, placedBoxes, 1.5 * PRINT_RENDER_SCALE)){
+        dibuja(calle, candidato, posible);
+        colocado = true;
+        break;
+      }
+    }
+    if(!colocado) pendientes.push({ calle, candidatos });
+  });
+
+  pendientes.forEach(({ calle, candidatos }) => {
+    for(const candidato of candidatos){
+      const posible = roadLabelBoxForPlacement(targetMap, candidato, calle.name, fontSize, PRINT_RENDER_SCALE);
+      if(canPlaceLabel(posible, placedBoxes, 0)){
+        dibuja(calle, candidato, posible);
+        return;
+      }
+    }
+    const ultimo = candidatos[0];
+    if(ultimo) dibuja(calle, ultimo, null);
+  });
+}
+
+function drawPrintReferences(targetMap, references, loc, ocupadas){
   if(!targetMap || !Array.isArray(references) || !references.length) return;
   const ocultas = getHiddenReferencesForLoc(loc);
+  // Un lugar no se puede mover de sitio, asi que solo se compara contra otros
+  // lugares: asi salen todos y ninguno se pierde por el numero de una zona.
+  // Su caja si entra en la lista comun para que los nombres de calle la esquiven.
   const colocadas = [];
+  const comunes = ocupadas || [];
   references.filter(ref => !ocultas.has(referenceKey(ref))).forEach(ref => {
     const lat = Number(ref.lat);
     const lng = Number(ref.lng);
@@ -4615,6 +4719,7 @@ function drawPrintReferences(targetMap, references, loc){
     const caja = { left:punto.x - ancho / 2, right:punto.x + ancho / 2, top:punto.y - alto / 2, bottom:punto.y + alto / 2 };
     if(!canPlaceLabel(caja, colocadas, 1.5 * PRINT_REFERENCE_SCALE)) return;
     colocadas.push(caja);
+    comunes.push(caja);
     L.marker([lat, lng], {
       interactive:false,
       pane:'territoryPoiPane',
@@ -4976,12 +5081,10 @@ async function imprimir(){
     printMap.getPane('territoryPoiPane').style.zIndex = 560;
     printMap.getPane('territoryPoiPane').style.pointerEvents = 'none';
     printMap.getPane('territoryPoiPane').classList.add('territory-poi-pane');
-    // Vuelve el mapa de fondo: es lo que da los edificios y los nombres tal
-    // como los pinta el mapa base. Se dibuja a 384 ppp, no a 1729 como antes,
-    // que multiplicaba las teselas sin ganar un apice de nitidez.
-    // El mapa va en dos capas: el fondo sin letras debajo de tus colores, y las
-    // letras encima, para que los nombres se lean por encima del color.
-    const fuenteImpresion = TILES['carto-voyager'];
+    // El fondo va sin letras: los nombres los dibujamos nosotros mas arriba,
+    // encima del color de la zona. Carto Claro en vez de Voyager porque es
+    // plano, sin el sombreado 3D de los edificios.
+    const fuenteImpresion = TILES['carto-light'];
     const opcionesTesela = {
       maxZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
       maxNativeZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
@@ -5005,11 +5108,7 @@ async function imprimir(){
         fill:false
       }).addTo(printMap);
     }
-    const capaLetras = L.tileLayer(fuenteImpresion.labelUrl.replace('.png', '@2x.png'), {
-      ...opcionesTesela,
-      pane:'territoryPoiPane',
-      attribution:''
-    }).addTo(printMap);
+
     const frameMap = () => {
       printMap.invalidateSize();
       printMap.fitBounds(bounds, {
@@ -5025,17 +5124,20 @@ async function imprimir(){
     if(!estado.loaded){
       throw new Error('No se pudieron cargar las teselas del mapa para imprimir.');
     }
-    await waitForPrintTiles(capaLetras, 60000);
+
     frameMap();
     await new Promise(resolve => setTimeout(resolve, 120));
     // Los rios de OpenStreetMap se siguen marcando encima del mapa; se usan los
     // ya guardados del territorio, sin volver a consultar.
     const riosPlano = (readOverpassCache(loc, 'roads') || []).filter(isWaterway);
     drawPrintWaterways(printMap, riosPlano);
-    // Los lugares guardados del territorio, con su icono, como en pantalla
-    drawPrintReferences(printMap, readOverpassCache(loc, 'refs') || [], loc);
     const ocupadas = [];
     drawPrintTextLabels(printMap, loc, ocupadas);
+    // Los lugares guardados del territorio, con su icono
+    drawPrintReferences(printMap, readOverpassCache(loc, 'refs') || [], loc, ocupadas);
+    // Los nombres de calle los ponemos nosotros: asi salen todos los que OSM
+    // conoce y con el color que queremos, no los pocos que rotula la tesela.
+    drawPrintVectorRoadLabels(printMap, readOverpassCache(loc, 'roads') || [], ocupadas);
     $('print-wait-text').textContent = 'Preparando detalles manuales...';
     drawPrintManualRivers(printMap, loc);
     drawPrintManualWhiteRoads(printMap, loc);
