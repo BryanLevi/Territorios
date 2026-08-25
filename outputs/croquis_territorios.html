@@ -539,7 +539,7 @@ const APP_BUILD = 'github-sync-backup-2026-07-01-18';
 const DETAIL_ZOOM = 20;
 const DETAIL_PAD = 2;
 const PRINT_ASPECT = 297 / 189;
-const PRINT_RENDER_SCALE = 4;
+const PRINT_RENDER_SCALE = 1.5;
 const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
 const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .42;
@@ -4551,7 +4551,8 @@ function drawPrintColorAreas(targetMap, loc){
   getExportColorAreasForLoc(loc).forEach(area => {
     const latLngs = pointsToLatLngs(area.points);
     if(latLngs.length < 3) return;
-    const printFillOpacity = Math.max(.40, Math.min(.58, getRenderedColorOpacity(area.opacity) + .06));
+    // Menos velo que antes: por debajo tienen que leerse las calles
+    const printFillOpacity = Math.max(.30, Math.min(.44, getRenderedColorOpacity(area.opacity)));
     L.polygon(latLngs, {
       ...colorAreaStyle(area, 1, false),
       fillOpacity:printFillOpacity,
@@ -4947,7 +4948,9 @@ async function imprimir(){
     // Vuelve el mapa de fondo: es lo que da los edificios y los nombres tal
     // como los pinta el mapa base. Se dibuja a 384 ppp, no a 1729 como antes,
     // que multiplicaba las teselas sin ganar un apice de nitidez.
-    const fuenteImpresion = (!src.downloadable && src.downloadAs && TILES[src.downloadAs]) ? TILES[src.downloadAs] : src;
+    // Carto rotula poco a este nivel. OpenStreetMap trae los nombres de todas
+    // las calles, las manzanas y los iconos de comercios, que es la vista pedida.
+    const fuenteImpresion = TILES.osm || ((!src.downloadable && src.downloadAs && TILES[src.downloadAs]) ? TILES[src.downloadAs] : src);
     const capaFondo = L.tileLayer(getPrintTileUrl(fuenteImpresion, { noLabels:false }), {
       maxZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
       maxNativeZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
