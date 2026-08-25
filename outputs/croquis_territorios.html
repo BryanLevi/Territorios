@@ -2497,16 +2497,6 @@ function referenceZoomScale(){
   return .5;
 }
 
-function referenceIconBoxForPoint(point, scale = 1){
-  const size = 54 * scale;
-  return {
-    left:point.x - size / 2,
-    right:point.x + size / 2,
-    top:point.y - size / 2,
-    bottom:point.y + size / 2
-  };
-}
-
 function boxesOverlap(a, b, pad = 5){
   return a.left < b.right + pad && a.right + pad > b.left && a.top < b.bottom + pad && a.bottom + pad > b.top;
 }
