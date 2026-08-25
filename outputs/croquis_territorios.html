@@ -180,6 +180,15 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .meta{display:grid;grid-template-columns:84px 1fr;gap:5px 10px;font-size:12px;line-height:1.35}
 .meta b{color:#5d7066;font-size:11px;text-transform:uppercase;letter-spacing:.035em}
 .meta span{color:#17251c;font-weight:650;min-width:0;overflow-wrap:anywhere}
+.sel-card{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);z-index:660;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.97);border:1px solid rgba(180,196,187,.95);border-left:5px solid #1f7a47;border-radius:10px;padding:9px 12px;box-shadow:0 10px 30px rgba(22,38,28,.22);max-width:calc(100% - 28px)}
+.sel-card[hidden]{display:none}
+.sel-glyph{width:30px;height:30px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px}
+.sel-glyph svg{width:76%;height:76%;display:block;fill:none;stroke:currentColor}
+.sel-glyph .reference-icon-letter{font-size:13px}
+.sel-text{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.sel-text b{font-size:13px;color:#17251c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sel-text span{font-size:11px;color:#6a7d72}
+.sel-card .btn{height:34px;font-size:12px}
 .map-status{position:absolute;right:14px;bottom:18px;z-index:650;max-width:min(430px,calc(100% - 28px));background:rgba(20,32,25,.88);color:#fff;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.35;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .map-status.warn{background:rgba(139,76,18,.94)}
 .map-status.error{background:rgba(150,38,38,.94)}
@@ -258,6 +267,9 @@ body.print-preview{overflow:hidden}
   /* El cartel del total se queda: solo se hace compacto */
   .legend{left:10px;bottom:10px;padding:6px 10px;font-size:11px;max-width:calc(100% - 20px)}
   #territory-counter b{font-size:17px}
+  .sel-card{bottom:108px;padding:8px 10px;gap:8px}
+  .sel-card .btn{height:44px;flex:1 1 auto}
+  .sel-text span{display:none}
   .leaflet-control-zoom{display:none}
   .info-card{top:10px;left:10px;width:calc(100% - 20px)}
   .map-status{right:10px;left:10px;bottom:56px;max-width:none}
@@ -356,20 +368,21 @@ body.print-preview{overflow:hidden}
       <div class="tool-guide">
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><span><b>Restablecer recuadro</b><span>Regresa el tamano del recuadro del territorio al valor inicial.</span></span></div>
         <div class="tool-item"><span class="tool-icon color-dot"></span><span><b>Color y transparencia</b><span>Define el color de relleno y que tan visible queda sobre el mapa.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar pintada o texto</b><span>Selecciona una zona o un texto que ya habias marcado para modificarlo.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar pintada o texto</b><span>Selecciona una zona, un texto o un icono que ya habias marcado para modificarlo.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 7 5-2.7 8.4H7.7L5 9z"></path><circle cx="12" cy="4" r="1.7" fill="currentColor"></circle><circle cx="19" cy="9" r="1.7" fill="currentColor"></circle><circle cx="16.3" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="7.7" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="5" cy="9" r="1.7" fill="currentColor"></circle></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg></span><span><b>Pintar area</b><span>Toca varios puntos del mapa para formar la zona que quieres colorear.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg></span><span><b>Dibujar calle blanca</b><span>Traza a mano una calle que no se distingue en el mapa. Queda en blanco sobre el color.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg></span><span><b>Dibujar rio</b><span>Traza a mano los rios y arroyos que no salen solos. Quedan en azul, guardados por territorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separarlo en dos renglones.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><b>Agregar icono</b><span>Elige el tipo de referencia, toca el boton de icono y marca el punto en el mapa.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><path d="M3 3l18 18" opacity=".55"></path></svg></span><span><b>Editar o eliminar icono</b><span>Toca un icono ya puesto en el mapa: abajo aparecen Cambiar tipo y Eliminar. Tambien puedes arrastrarlo para moverlo o quitarlo con la tecla Supr.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores, textos e iconos del territorio actual.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg></span><span><b>Exportar respaldo</b><span>Descarga un archivo con colores, textos y territorios agregados.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg></span><span><b>Importar respaldo</b><span>Carga un archivo de respaldo para recuperar el trabajo en otra pagina o equipo.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg></span><span><b>Guardar GitHub</b><span>Sube colores, textos e iconos a un archivo real del repositorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg></span><span><b>Cargar GitHub</b><span>Trae en este dispositivo los cambios guardados en el repositorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg></span><span><b>Deshacer</b><span>Regresa el ultimo punto o cambio guardado si necesitas corregir.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></span><span><b>Borrar</b><span>Elimina colores o textos del territorio que estas editando.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></span><span><b>Borrar</b><span>Elimina lo que tengas seleccionado: una zona, un texto o un icono. Sin nada seleccionado, borra todo el territorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg></span><span><b>PDF</b><span>Prepara la hoja del croquis para imprimir o guardar.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></span><span><b>Menu / instrucciones</b><span>Regresa a esta pantalla para consultar la guia cuando lo necesites.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span><span><b>Agregar territorio</b><span>Marca dos esquinas para formar el recuadro y despues escribe el nombre.</span></span></div>
@@ -439,7 +452,7 @@ body.print-preview{overflow:hidden}
       </button>
       </span>
       <span class="tool-group tools-edit">
-      <button class="icon-btn" id="btn-color-edit" type="button" disabled title="Editar pintada o texto" aria-label="Editar pintada o texto">
+      <button class="icon-btn" id="btn-color-edit" type="button" disabled title="Editar pintada, texto o icono" aria-label="Editar pintada, texto o icono">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
       </button>
       <button class="icon-btn" id="btn-contour-edit" type="button" disabled title="Editar contorno" aria-label="Editar contorno">
@@ -467,7 +480,7 @@ body.print-preview{overflow:hidden}
       <button class="icon-btn" id="btn-color-undo" type="button" disabled title="Regresar / deshacer" aria-label="Regresar o deshacer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg>
       </button>
-      <button class="icon-btn" id="btn-color-clear" type="button" disabled title="Borrar colores del territorio" aria-label="Borrar colores del territorio">
+      <button class="icon-btn" id="btn-color-clear" type="button" disabled title="Borrar lo seleccionado, o todo el territorio si no hay nada seleccionado" aria-label="Borrar lo seleccionado o todo el territorio">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
       </button>
       </span>
@@ -549,6 +562,12 @@ body.print-preview{overflow:hidden}
   <div class="legend" id="territory-counter" aria-live="polite">
     <b id="territory-counter-total">40</b>
     <span id="territory-counter-text">subterritorios en 20 territorios</span>
+  </div>
+  <div class="sel-card" id="icon-actions" hidden>
+    <span class="sel-glyph" id="icon-actions-glyph"></span>
+    <span class="sel-text"><b id="icon-actions-name">Icono</b><span>Icono seleccionado</span></span>
+    <button class="btn ghost" id="btn-icon-change" type="button">Cambiar tipo</button>
+    <button class="btn danger" id="btn-icon-delete" type="button">Eliminar</button>
   </div>
   <div class="map-status" id="map-status">Cargando mapa y nombres de calles...</div>
 </div>
@@ -1863,6 +1882,7 @@ function updateColorControls(loc = LOCS[currentIndex]){
   colorClearButton.disabled = !enabled || !loc || (!draftPoints.length && !roadDraftPoints.length && !riverDraftPoints.length && getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0 && getManualRiversForLoc(loc).length === 0);
   colorOpacityValue.textContent = Math.round(getFillOpacity() * 100) + '%';
   updateTextSizeValue();
+  refreshIconActions(loc);
 }
 
 function renderColorAreas(loc){
@@ -3093,6 +3113,33 @@ function selectTextLabel(index){
   updateColorControls(loc);
 }
 
+function deleteSelectedIcon(){
+  const loc = LOCS[currentIndex];
+  if(!loc || selectedIconIndex == null) return false;
+  const icons = getManualIconsForLoc(loc).slice();
+  icons.splice(selectedIconIndex, 1);
+  selectedIconIndex = null;
+  setManualIconsForLoc(loc, icons);
+  renderManualIcons(loc);
+  setStatus('Icono eliminado.', 'warn');
+  updateColorControls(loc);
+  return true;
+}
+
+function refreshIconActions(loc = LOCS[currentIndex]){
+  const tarjeta = $('icon-actions');
+  if(!tarjeta) return;
+  const icon = selectedIconIndex != null ? getManualIconsForLoc(loc)[selectedIconIndex] : null;
+  if(!icon){
+    tarjeta.hidden = true;
+    return;
+  }
+  const kind = String(icon.kind || 'Referencia');
+  $('icon-actions-glyph').innerHTML = referenceIconSvg({ kind });
+  $('icon-actions-name').textContent = iconPickerLabel(kind);
+  tarjeta.hidden = false;
+}
+
 function selectManualIcon(index){
   const loc = LOCS[currentIndex];
   const icon = getManualIconsForLoc(loc)[index];
@@ -3106,7 +3153,7 @@ function selectManualIcon(index){
   renderColorAreas(loc);
   renderTextLabels(loc);
   renderManualIcons(loc);
-  setStatus('Icono seleccionado. Cambia el tipo en la lista, arrastralo o usa la basura/Supr para borrarlo.', 'warn');
+  setStatus('Icono seleccionado. Usa Cambiar tipo o Eliminar aqui abajo, o arrastralo para moverlo.', 'warn');
   updateColorControls(loc);
 }
 
@@ -4149,12 +4196,7 @@ function clearColorAreasForCurrent(){
     renderTextLabels(loc);
     setStatus('Texto borrado.', 'warn');
   }else if(selectedIconIndex != null){
-    const icons = getManualIconsForLoc(loc).slice();
-    icons.splice(selectedIconIndex, 1);
-    selectedIconIndex = null;
-    setManualIconsForLoc(loc, icons);
-    renderManualIcons(loc);
-    setStatus('Icono borrado.', 'warn');
+    deleteSelectedIcon();
   }else{
     pushUndoSnapshot('clear-all', loc);
     setContourEditMode(false, false);
@@ -5318,6 +5360,8 @@ manualIconSelect?.addEventListener('change', () => {
   icons[selectedIconIndex] = { ...icons[selectedIconIndex], kind:String(manualIconSelect.value || 'Referencia') };
   setManualIconsForLoc(loc, icons);
   renderManualIcons(loc);
+  // sin esto la tarjeta seguia mostrando el tipo anterior
+  updateColorControls(loc);
 });
 colorEditButton.addEventListener('click', () => setColorEditMode(!colorEditMode));
 contourEditButton.addEventListener('click', () => {
@@ -5443,6 +5487,16 @@ $('btn-tools-toggle')?.addEventListener('click', () => {
 window.addEventListener('resize', () => {
   // Al pasar a pantalla grande siempre se ven todas las herramientas
   if(!esPantallaChica()) setToolsCollapsed(false);
+});
+
+$('btn-icon-delete')?.addEventListener('click', () => { deleteSelectedIcon(); });
+$('btn-icon-change')?.addEventListener('click', () => {
+  // En el celular la barra puede estar plegada: se abre para que se vea la lista
+  if(esPantallaChica()) setToolsCollapsed(false);
+  setTimeout(() => {
+    iconPickerTrigger?.focus();
+    openIconPicker();
+  }, 60);
 });
 
 $('btn-token-remember')?.addEventListener('click', () => {
