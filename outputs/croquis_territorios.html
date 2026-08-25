@@ -137,7 +137,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .print-reference-icon .reference-icon-letter{font-size:calc(16px * var(--print-label-scale,1))}
 .runtime-reference-name,.print-reference-name{display:inline-block;color:#102018!important;background:rgba(255,255,255,.96)!important;border:1.5px solid rgba(15,42,24,.55);border-radius:4px;box-shadow:0 1px 5px rgba(0,0,0,.22);font-weight:950;line-height:1.05;max-width:140px;overflow-wrap:normal;white-space:nowrap;word-break:normal}
 .runtime-reference-name{display:none!important}
-.print-reference-name{display:inline-block!important;font-size:calc(21px * var(--print-label-scale,1));padding:calc(2px * var(--print-label-scale,1)) calc(4px * var(--print-label-scale,1));max-width:calc(230px * var(--print-label-scale,1));color:#102018!important}
+.print-reference-name{display:inline-block!important;font-size:calc(18px * var(--print-label-scale,1));padding:calc(2px * var(--print-label-scale,1)) calc(4px * var(--print-label-scale,1));max-width:calc(230px * var(--print-label-scale,1));color:#102018!important}
 .territory-text-label{color:#243129!important}
 .print-sheet .territory-text-label{color:#243129!important;text-shadow:0 1px 0 rgba(255,255,255,.9)!important}
 .contour-handle,.contour-midpoint{border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.28)}
@@ -546,7 +546,6 @@ const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .62;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
 const ROAD_OVERLAY_OPACITY = .96;
-const VECTOR_ROAD_OVERLAY_OPACITY = .82;
 const VECTOR_ROAD_LABEL_OPACITY = .98;
 const WATERWAY_KINDS = 'river|stream|canal|ditch|drain';
 const WATERWAY_COLOR = '#1878c8';
@@ -2044,28 +2043,6 @@ function writeOverpassCache(loc, campo, valor){
   saveOverpassCache(cache);
 }
 
-function runtimeRoadWeight(highway){
-  const key = String(highway || '').replace(/_link$/, '');
-  return ({
-    motorway:8.5,
-    trunk:8,
-    primary:7.6,
-    secondary:7.1,
-    tertiary:6.4,
-    unclassified:5.8,
-    residential:5.4,
-    living_street:5,
-    pedestrian:4.6,
-    track:4.2,
-    path:3.8,
-    footway:3.8,
-    steps:3.6,
-    cycleway:3.8,
-    road:5.2,
-    service:4.2
-  }[key] || 5.2);
-}
-
 function isWaterway(way){
   return Boolean(String(way?.waterway || '').trim());
 }
@@ -2152,8 +2129,6 @@ function drawRuntimeVectorRoads(roadWays){
   vectorRoadLayer.clearLayers();
   if(!Array.isArray(roadWays) || !roadWays.length) return;
   const hasAreas = getColorAreasForLoc(LOCS[currentIndex]).length > 0;
-  const casingOpacity = hasAreas ? .92 : .42;
-  const roadOpacity = hasAreas ? VECTOR_ROAD_OVERLAY_OPACITY : .34;
   const labelOpacity = hasAreas ? VECTOR_ROAD_LABEL_OPACITY : .58;
   const seenLabels = new Set();
   const placedLabelBoxes = [];
@@ -2164,25 +2139,6 @@ function drawRuntimeVectorRoads(roadWays){
   streets.forEach(way => {
     const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
     if(latLngs.length < 2) return;
-    const weight = runtimeRoadWeight(way.highway);
-    L.polyline(latLngs, {
-      pane:'territoryRoadPane',
-      color:'#ffffff',
-      weight:weight + 4,
-      opacity:casingOpacity,
-      lineCap:'round',
-      lineJoin:'round',
-      interactive:false
-    }).addTo(vectorRoadLayer);
-    L.polyline(latLngs, {
-      pane:'territoryRoadPane',
-      color:'#1c2b22',
-      weight,
-      opacity:roadOpacity,
-      lineCap:'round',
-      lineJoin:'round',
-      interactive:false
-    }).addTo(vectorRoadLayer);
 
     const name = String(way.name || '').trim();
     if(!name || name.length > 42) return;
@@ -4624,9 +4580,12 @@ function drawPrintTextLabels(targetMap, loc){
     const lat = Number(label.lat);
     const lng = Number(label.lng);
     if(!String(label.text || '').trim() || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    // Se acota para que salga igual en todos los territorios: escribiste unos
+    // con tamano 10 y otros con 22, que en la hoja eran 7.5 pt contra 16.5.
+    const parejo = { ...label, size:Math.max(11, Math.min(15, Number(label.size) || 14)) };
     L.marker([lat, lng], {
       interactive:false,
-      icon:createTextIcon(label, false, PRINT_RENDER_SCALE)
+      icon:createTextIcon(parejo, false, PRINT_RENDER_SCALE)
     }).addTo(targetMap);
   });
 }
@@ -4718,7 +4677,7 @@ function drawPrintWaterwayLabels(targetMap, waterways){
     if(seen.has(key)) return;
     const placement = getPrintRoadLabelPlacement(targetMap, latLngs);
     if(!placement) return;
-    const fontSize = 8.5 * PRINT_RENDER_SCALE;
+    const fontSize = 7.2 * PRINT_RENDER_SCALE;
     if(placement.length < fontSize) return;
     const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
     if(!canPlaceLabel(box, placedBoxes, 1.5 * PRINT_RENDER_SCALE)) return;
@@ -4801,7 +4760,7 @@ function drawPrintVectorRoadLabels(targetMap, roadWays){
     if(!placement) return;
     // ~6.7 pt en la hoja. El tramo recto mas largo de una calle suele ser corto,
     // asi que no se exige que quepa el nombre entero: solo que no sea un resto.
-    const fontSize = 9 * PRINT_RENDER_SCALE;
+    const fontSize = 7.6 * PRINT_RENDER_SCALE;
     if(placement.length < fontSize) return;
     const box = roadLabelBoxForPlacement(targetMap, placement, name, fontSize, PRINT_RENDER_SCALE);
     if(!canPlaceLabel(box, placedBoxes, 1.5 * PRINT_RENDER_SCALE)) return;
