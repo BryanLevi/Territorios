@@ -138,7 +138,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .print-reference-icon .reference-icon-letter{font-size:calc(16px * var(--print-label-scale,1))}
 .runtime-reference-name,.print-reference-name{display:inline-block;color:#102018!important;background:rgba(255,255,255,.96)!important;border:1.5px solid rgba(15,42,24,.55);border-radius:4px;box-shadow:0 1px 5px rgba(0,0,0,.22);font-weight:950;line-height:1.05;max-width:140px;overflow-wrap:normal;white-space:nowrap;word-break:normal}
 .runtime-reference-name{display:none!important}
-.print-reference-name{display:inline-block!important;font-size:calc(18px * var(--print-label-scale,1));padding:calc(2px * var(--print-label-scale,1)) calc(4px * var(--print-label-scale,1));max-width:calc(120px * var(--print-label-scale,1));white-space:normal;color:#102018!important}
+.print-reference-name{display:inline-block!important;font-size:calc(22px * var(--print-label-scale,1));padding:calc(2px * var(--print-label-scale,1)) calc(4px * var(--print-label-scale,1));max-width:calc(120px * var(--print-label-scale,1));white-space:normal;color:#102018!important}
 .territory-text-label{color:#243129!important}
 .print-sheet .territory-text-label{color:#243129!important;text-shadow:0 1px 0 rgba(255,255,255,.9)!important}
 .contour-handle,.contour-midpoint{border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.28)}
@@ -543,6 +543,7 @@ const PRINT_RENDER_SCALE = 1.5;
 const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
 const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .42;
+const PRINT_REFERENCE_SCALE = PRINT_RENDER_SCALE * .4;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
 const ROAD_OVERLAY_OPACITY = .96;
@@ -4598,6 +4599,35 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
   });
 }
 
+function drawPrintReferences(targetMap, references, loc){
+  if(!targetMap || !Array.isArray(references) || !references.length) return;
+  const ocultas = getHiddenReferencesForLoc(loc);
+  const colocadas = [];
+  references.filter(ref => !ocultas.has(referenceKey(ref))).forEach(ref => {
+    const lat = Number(ref.lat);
+    const lng = Number(ref.lng);
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    if(!referenceLabelText(ref)) return;
+    const punto = targetMap.latLngToLayerPoint([lat, lng]);
+    const ancho = (46 + String(ref.name || '').length * 11) * PRINT_REFERENCE_SCALE;
+    const alto = 52 * PRINT_REFERENCE_SCALE;
+    const caja = { left:punto.x - ancho / 2, right:punto.x + ancho / 2, top:punto.y - alto / 2, bottom:punto.y + alto / 2 };
+    if(!canPlaceLabel(caja, colocadas, 4 * PRINT_REFERENCE_SCALE)) return;
+    colocadas.push(caja);
+    L.marker([lat, lng], {
+      interactive:false,
+      pane:'territoryPoiPane',
+      zIndexOffset:1000,
+      icon:L.divIcon({
+        className:'print-reference-marker',
+        html:referenceLabelHtml(ref, true, PRINT_REFERENCE_SCALE),
+        iconSize:[0,0],
+        iconAnchor:[0,0]
+      })
+    }).addTo(targetMap);
+  });
+}
+
 function drawPrintManualIcons(targetMap, loc){
   getManualIconsForLoc(loc).forEach(icon => {
     const lat = Number(icon.lat);
@@ -4948,17 +4978,20 @@ async function imprimir(){
     // Vuelve el mapa de fondo: es lo que da los edificios y los nombres tal
     // como los pinta el mapa base. Se dibuja a 384 ppp, no a 1729 como antes,
     // que multiplicaba las teselas sin ganar un apice de nitidez.
-    // Carto rotula poco a este nivel. OpenStreetMap trae los nombres de todas
-    // las calles, las manzanas y los iconos de comercios, que es la vista pedida.
-    const fuenteImpresion = TILES.osm || ((!src.downloadable && src.downloadAs && TILES[src.downloadAs]) ? TILES[src.downloadAs] : src);
-    const capaFondo = L.tileLayer(getPrintTileUrl(fuenteImpresion, { noLabels:false }), {
+    // El mapa va en dos capas: el fondo sin letras debajo de tus colores, y las
+    // letras encima, para que los nombres se lean por encima del color.
+    const fuenteImpresion = TILES['carto-voyager'];
+    const opcionesTesela = {
       maxZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
       maxNativeZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
       subdomains:fuenteImpresion.sub || '',
-      attribution:fuenteImpresion.attr || '',
       tileSize:256,
       keepBuffer:6,
       updateWhenIdle:false
+    };
+    const capaFondo = L.tileLayer(getPrintTileUrl(fuenteImpresion, { noLabels:true }), {
+      ...opcionesTesela,
+      attribution:fuenteImpresion.attr || ''
     }).addTo(printMap);
     drawPrintColorAreas(printMap, loc);
     if(usingColorMask){
@@ -4971,6 +5004,11 @@ async function imprimir(){
         fill:false
       }).addTo(printMap);
     }
+    const capaLetras = L.tileLayer(fuenteImpresion.labelUrl.replace('.png', '@2x.png'), {
+      ...opcionesTesela,
+      pane:'territoryPoiPane',
+      attribution:''
+    }).addTo(printMap);
     const frameMap = () => {
       printMap.invalidateSize();
       printMap.fitBounds(bounds, {
@@ -4986,12 +5024,15 @@ async function imprimir(){
     if(!estado.loaded){
       throw new Error('No se pudieron cargar las teselas del mapa para imprimir.');
     }
+    await waitForPrintTiles(capaLetras, 60000);
     frameMap();
     await new Promise(resolve => setTimeout(resolve, 120));
     // Los rios de OpenStreetMap se siguen marcando encima del mapa; se usan los
     // ya guardados del territorio, sin volver a consultar.
     const riosPlano = (readOverpassCache(loc, 'roads') || []).filter(isWaterway);
     drawPrintWaterways(printMap, riosPlano);
+    // Los lugares guardados del territorio, con su icono, como en pantalla
+    drawPrintReferences(printMap, readOverpassCache(loc, 'refs') || [], loc);
     const ocupadas = [];
     drawPrintTextLabels(printMap, loc, ocupadas);
     $('print-wait-text').textContent = 'Preparando detalles manuales...';
