@@ -329,7 +329,7 @@ body.print-preview{overflow:hidden}
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg></span><span><b>Dibujar rio</b><span>Traza a mano los rios y arroyos que no salen solos. Quedan en azul, guardados por territorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separarlo en dos renglones.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><b>Agregar icono</b><span>Elige el tipo de referencia, toca el boton de icono y marca el punto en el mapa.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><path d="M3 3l18 18" opacity=".55"></path></svg></span><span><b>Editar o eliminar icono</b><span>Toca un icono ya puesto en el mapa: abajo aparecen Cambiar tipo y Eliminar. Tambien puedes arrastrarlo para moverlo o quitarlo con la tecla Supr.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><path d="M3 3l18 18" opacity=".55"></path></svg></span><span><b>Editar o eliminar icono</b><span>Toca cualquier icono del mapa. Si lo pusiste tu, abajo salen Cambiar tipo y Eliminar, y puedes arrastrarlo. Si es una referencia de OpenStreetMap, salen Hacerlo editable y Quitar.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores, textos e iconos del territorio actual.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg></span><span><b>Exportar respaldo</b><span>Descarga un archivo con colores, textos y territorios agregados.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg></span><span><b>Importar respaldo</b><span>Carga un archivo de respaldo para recuperar el trabajo en otra pagina o equipo.</span></span></div>
@@ -518,9 +518,11 @@ body.print-preview{overflow:hidden}
   </div>
   <div class="sel-card" id="icon-actions" hidden>
     <span class="sel-glyph" id="icon-actions-glyph"></span>
-    <span class="sel-text"><b id="icon-actions-name">Icono</b><span>Icono seleccionado</span></span>
+    <span class="sel-text"><b id="icon-actions-name">Icono</b><span id="icon-actions-hint">Icono seleccionado</span></span>
     <button class="btn ghost" id="btn-icon-change" type="button">Cambiar tipo</button>
     <button class="btn danger" id="btn-icon-delete" type="button">Eliminar</button>
+    <button class="btn primary" id="btn-ref-adopt" type="button" hidden>Hacerlo editable</button>
+    <button class="btn danger" id="btn-ref-hide" type="button" hidden>Quitar</button>
   </div>
   <div class="map-status" id="map-status">Cargando mapa y nombres de calles...</div>
 </div>
@@ -728,6 +730,7 @@ const MANUAL_ICONS_STORAGE_KEY = 'croquis-territory-manual-icons-v1';
 const WHITE_ROADS_STORAGE_KEY = 'croquis-territory-white-roads-v1';
 const MANUAL_RIVERS_STORAGE_KEY = 'croquis-territory-manual-rivers-v1';
 const OVERPASS_CACHE_STORAGE_KEY = 'croquis-territory-overpass-v1';
+const HIDDEN_REFERENCES_STORAGE_KEY = 'croquis-territory-hidden-references-v1';
 const UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v2';
 const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
@@ -830,6 +833,7 @@ let territoryAddPreviewLayer = null;
 let selectedAreaIndex = null;
 let selectedTextIndex = null;
 let selectedIconIndex = null;
+let selectedReference = null;
 let suppressUndoSnapshot = false;
 
 function setStatus(message, type){
@@ -2240,6 +2244,40 @@ async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
   }
 }
 
+function referenceKey(ref){
+  return String(ref?.name || '') + '@' + Number(ref?.lat).toFixed(5) + ',' + Number(ref?.lng).toFixed(5);
+}
+
+function loadHiddenReferences(){
+  try{
+    const raw = localStorage.getItem(HIDDEN_REFERENCES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function getHiddenReferencesForLoc(loc){
+  const lista = loadHiddenReferences()[String(loc?.num)];
+  return new Set(Array.isArray(lista) ? lista : []);
+}
+
+function hideReference(loc, ref){
+  if(!loc || !ref) return false;
+  const todo = loadHiddenReferences();
+  const clave = String(loc.num);
+  const lista = new Set(Array.isArray(todo[clave]) ? todo[clave] : []);
+  lista.add(referenceKey(ref));
+  todo[clave] = [...lista];
+  try{
+    localStorage.setItem(HIDDEN_REFERENCES_STORAGE_KEY, JSON.stringify(todo));
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
 function referenceLabelText(ref){
   const clean = value => String(value || '')
     .replace(/\b(abierto|cerrado|cerrada|cerrado temporalmente|cerrada temporalmente|abre pronto|cierra pronto)\b.*$/i, '')
@@ -2468,7 +2506,8 @@ function drawRuntimeReferences(references){
   const hasAreas = getColorAreasForLoc(LOCS[currentIndex]).length > 0;
   const opacity = hasAreas ? 1 : .9;
   const placedBoxes = [];
-  references.slice(0, 140).forEach(ref => {
+  const ocultas = getHiddenReferencesForLoc(LOCS[currentIndex]);
+  references.slice(0, 140).filter(ref => !ocultas.has(referenceKey(ref))).forEach(ref => {
     const lat = Number(ref.lat);
     const lng = Number(ref.lng);
     const text = referenceLabelText(ref);
@@ -2477,8 +2516,8 @@ function drawRuntimeReferences(references){
     const box = referenceIconBoxForPoint(point);
     if(!canPlaceLabel(box, placedBoxes, 7)) return;
     placedBoxes.push(box);
-    L.marker([lat, lng], {
-      interactive:false,
+    const marcador = L.marker([lat, lng], {
+      interactive:true,
       pane:'territoryPoiPane',
       opacity,
       zIndexOffset:1100,
@@ -2489,6 +2528,10 @@ function drawRuntimeReferences(references){
         iconAnchor:[0,0]
       })
     }).addTo(runtimeReferenceLayer);
+    marcador.on('click', event => {
+      if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
+      selectReference(ref);
+    });
   });
 }
 
@@ -3027,6 +3070,7 @@ function setIconAddMode(active, showMessage = true){
 }
 
 function selectColorArea(index){
+  selectedReference = null;
   const loc = LOCS[currentIndex];
   const area = getColorAreasForLoc(loc)[index];
   if(!area) return;
@@ -3046,6 +3090,7 @@ function selectColorArea(index){
 }
 
 function selectTextLabel(index){
+  selectedReference = null;
   const loc = LOCS[currentIndex];
   const label = getTextLabelsForLoc(loc)[index];
   if(!label) return;
@@ -3065,6 +3110,49 @@ function selectTextLabel(index){
   updateColorControls(loc);
 }
 
+// Las referencias vienen de OpenStreetMap y no son tuyas: para poder moverlas o
+// cambiarles el tipo hay que convertirlas antes en un icono propio.
+function selectReference(ref){
+  selectedReference = ref;
+  selectedIconIndex = null;
+  selectedAreaIndex = null;
+  selectedTextIndex = null;
+  const loc = LOCS[currentIndex];
+  renderColorAreas(loc);
+  renderTextLabels(loc);
+  renderManualIcons(loc);
+  setStatus('Referencia de OpenStreetMap. Hazla editable para moverla o cambiarla, o quitala del croquis.', 'warn');
+  updateColorControls(loc);
+}
+
+function adoptSelectedReference(){
+  const loc = LOCS[currentIndex];
+  if(!loc || !selectedReference) return false;
+  const ref = selectedReference;
+  const icons = getManualIconsForLoc(loc).slice();
+  icons.push({ kind:String(ref.kind || 'Referencia'), lat:Number(Number(ref.lat).toFixed(6)), lng:Number(Number(ref.lng).toFixed(6)) });
+  hideReference(loc, ref);
+  selectedReference = null;
+  setManualIconsForLoc(loc, icons);
+  selectedIconIndex = icons.length - 1;
+  renderManualIcons(loc);
+  drawRuntimeReferences(runtimeReferenceCache?.references || []);
+  setStatus('Listo: ahora es un icono tuyo. Arrastralo, cambia su tipo o eliminalo.', 'warn');
+  updateColorControls(loc);
+  return true;
+}
+
+function hideSelectedReference(){
+  const loc = LOCS[currentIndex];
+  if(!loc || !selectedReference) return false;
+  hideReference(loc, selectedReference);
+  selectedReference = null;
+  drawRuntimeReferences(runtimeReferenceCache?.references || []);
+  setStatus('Referencia quitada de este territorio.', 'warn');
+  updateColorControls(loc);
+  return true;
+}
+
 function deleteSelectedIcon(){
   const loc = LOCS[currentIndex];
   if(!loc || selectedIconIndex == null) return false;
@@ -3082,17 +3170,35 @@ function refreshIconActions(loc = LOCS[currentIndex]){
   const tarjeta = $('icon-actions');
   if(!tarjeta) return;
   const icon = selectedIconIndex != null ? getManualIconsForLoc(loc)[selectedIconIndex] : null;
-  if(!icon){
-    tarjeta.hidden = true;
+  const mostrar = (id, visible) => { const b = $(id); if(b) b.hidden = !visible; };
+  if(icon){
+    const kind = String(icon.kind || 'Referencia');
+    $('icon-actions-glyph').innerHTML = referenceIconSvg({ kind });
+    $('icon-actions-name').textContent = iconPickerLabel(kind);
+    $('icon-actions-hint').textContent = 'Icono tuyo: arrastralo para moverlo';
+    mostrar('btn-icon-change', true);
+    mostrar('btn-icon-delete', true);
+    mostrar('btn-ref-adopt', false);
+    mostrar('btn-ref-hide', false);
+    tarjeta.hidden = false;
     return;
   }
-  const kind = String(icon.kind || 'Referencia');
-  $('icon-actions-glyph').innerHTML = referenceIconSvg({ kind });
-  $('icon-actions-name').textContent = iconPickerLabel(kind);
-  tarjeta.hidden = false;
+  if(selectedReference){
+    $('icon-actions-glyph').innerHTML = referenceIconSvg({ kind:selectedReference.kind });
+    $('icon-actions-name').textContent = selectedReference.name || 'Referencia';
+    $('icon-actions-hint').textContent = 'Viene de OpenStreetMap';
+    mostrar('btn-icon-change', false);
+    mostrar('btn-icon-delete', false);
+    mostrar('btn-ref-adopt', true);
+    mostrar('btn-ref-hide', true);
+    tarjeta.hidden = false;
+    return;
+  }
+  tarjeta.hidden = true;
 }
 
 function selectManualIcon(index){
+  selectedReference = null;
   const loc = LOCS[currentIndex];
   const icon = getManualIconsForLoc(loc)[index];
   if(!icon) return;
@@ -5216,6 +5322,8 @@ window.addEventListener('resize', () => {
 });
 
 $('btn-icon-delete')?.addEventListener('click', () => { deleteSelectedIcon(); });
+$('btn-ref-adopt')?.addEventListener('click', () => { adoptSelectedReference(); });
+$('btn-ref-hide')?.addEventListener('click', () => { hideSelectedReference(); });
 $('btn-icon-change')?.addEventListener('click', () => {
   // En el celular la barra puede estar plegada: se abre para que se vea la lista
   if(esPantallaChica()) setToolsCollapsed(false);
