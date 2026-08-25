@@ -127,11 +127,11 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .runtime-reference-label,.print-reference-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);max-width:260px;padding:0;border:0!important;background:transparent!important;color:#102018!important;font-family:"Segoe UI",Arial,sans-serif;font-weight:950;line-height:1.04;text-align:left;text-transform:uppercase;white-space:normal;filter:none!important;mix-blend-mode:normal!important;text-shadow:none!important}
 .print-reference-label{gap:calc(5px * var(--print-label-scale,1));max-width:calc(360px * var(--print-label-scale,1))}
 .runtime-reference-icon,.print-reference-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px;box-shadow:0 0 0 2px rgba(255,255,255,.96),0 3px 8px rgba(0,0,0,.25)}
-.runtime-reference-icon{width:31px;height:31px}
+.runtime-reference-icon{width:calc(31px * var(--ref-scale,1));height:calc(31px * var(--ref-scale,1));border-width:calc(2px * var(--ref-scale,1));border-radius:calc(5px * var(--ref-scale,1))}
 .print-reference-icon{width:calc(46px * var(--print-label-scale,1));height:calc(46px * var(--print-label-scale,1));border-width:calc(2.4px * var(--print-label-scale,1));border-radius:calc(8px * var(--print-label-scale,1));box-shadow:0 0 0 calc(2.8px * var(--print-label-scale,1)) rgba(255,255,255,.98),0 calc(3px * var(--print-label-scale,1)) calc(8px * var(--print-label-scale,1)) rgba(0,0,0,.27)}
 .runtime-reference-icon svg,.print-reference-icon svg{width:76%;height:76%;display:block;fill:none;stroke:currentColor}
 .reference-icon-letter{display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:"Segoe UI",Arial,sans-serif;font-weight:1000;line-height:1}
-.runtime-reference-icon .reference-icon-letter{font-size:15px}
+.runtime-reference-icon .reference-icon-letter{font-size:calc(15px * var(--ref-scale,1))}
 .print-reference-icon .reference-icon-letter{font-size:calc(16px * var(--print-label-scale,1))}
 .runtime-reference-name,.print-reference-name{display:inline-block;color:#102018!important;background:rgba(255,255,255,.96)!important;border:1.5px solid rgba(15,42,24,.55);border-radius:4px;box-shadow:0 1px 5px rgba(0,0,0,.22);font-weight:950;line-height:1.05;max-width:140px;overflow-wrap:normal;white-space:nowrap;word-break:normal}
 .runtime-reference-name{display:none!important}
@@ -2475,13 +2475,26 @@ function referenceIconSvg(ref){
   return letter(referenceMarkerShort(ref));
 }
 
-function referenceLabelHtml(ref, printMode = false){
+function referenceLabelHtml(ref, printMode = false, escala = 1){
   const text = referenceLabelText(ref);
   const prefix = printMode ? 'print' : 'runtime';
-  const scaleStyle = printMode ? ' style="--print-label-scale:' + PRINT_RENDER_SCALE + '"' : '';
+  const scaleStyle = printMode
+    ? ' style="--print-label-scale:' + PRINT_RENDER_SCALE + '"'
+    : (escala !== 1 ? ' style="--ref-scale:' + escala + '"' : '');
   const title = text ? ' title="' + escapeHtml(text) + '"' : '';
   const nameHtml = printMode && text ? '<span class="' + prefix + '-reference-name">' + escapeHtml(text) + '</span>' : '';
   return '<div class="' + prefix + '-reference-label"' + scaleStyle + title + '><span class="' + prefix + '-reference-icon">' + referenceIconSvg(ref) + '</span>' + nameHtml + '</div>';
+}
+
+// Al alejarse los puntos se juntan: el icono se achica para que quepan todos
+function referenceZoomScale(){
+  const zoom = map?.getZoom?.();
+  if(!Number.isFinite(zoom)) return 1;
+  if(zoom >= 18) return 1;
+  if(zoom >= 17) return .86;
+  if(zoom >= 16) return .72;
+  if(zoom >= 15) return .6;
+  return .5;
 }
 
 function referenceIconBoxForPoint(point, scale = 1){
@@ -2508,17 +2521,15 @@ function drawRuntimeReferences(references){
   if(!Array.isArray(references) || !references.length) return;
   const hasAreas = getColorAreasForLoc(LOCS[currentIndex]).length > 0;
   const opacity = hasAreas ? 1 : .9;
-  const placedBoxes = [];
   const ocultas = getHiddenReferencesForLoc(LOCS[currentIndex]);
+  // Antes se ocultaba el que se encimara con otro, asi que al alejarse
+  // desaparecian. Ahora se dibujan todos y lo que cambia es el tamano.
+  const escala = referenceZoomScale();
   references.slice(0, 140).filter(ref => !ocultas.has(referenceKey(ref))).forEach(ref => {
     const lat = Number(ref.lat);
     const lng = Number(ref.lng);
     const text = referenceLabelText(ref);
     if(!text || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    const point = map.latLngToLayerPoint([lat, lng]);
-    const box = referenceIconBoxForPoint(point);
-    if(!canPlaceLabel(box, placedBoxes, 7)) return;
-    placedBoxes.push(box);
     const marcador = L.marker([lat, lng], {
       interactive:true,
       pane:'territoryPoiPane',
@@ -2526,7 +2537,7 @@ function drawRuntimeReferences(references){
       zIndexOffset:1100,
       icon:L.divIcon({
         className:'runtime-reference-marker',
-        html:referenceLabelHtml(ref, false),
+        html:referenceLabelHtml(ref, false, escala),
         iconSize:[0,0],
         iconAnchor:[0,0]
       })
