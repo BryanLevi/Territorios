@@ -544,6 +544,12 @@ const PRINT_ASPECT = 297 / 189;
 const PRINT_RENDER_SCALE = 18;
 const PRINT_DETAIL_RESTORE_OPACITY = 1;
 const PRINT_TILE_TIMEOUT_MS = 180000;
+// La capa de nombres se saca un nivel de zoom mas abajo y se dibuja en celdas
+// del doble de lado: el mismo mapa, en su sitio exacto, pero con el trazo de
+// las calles y las letras al doble de grandes. La escala de dibujo no sirve
+// para esto: fitBounds la compensa y el tamano en papel queda igual.
+const PRINT_NAME_ZOOM_OFFSET = -1;
+const PRINT_NAME_TILE_SIZE = 512;
 const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
 const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .42;
@@ -736,6 +742,10 @@ const OVERPASS_CACHE_STORAGE_KEY = 'croquis-territory-overpass-v1';
 const HIDDEN_REFERENCES_STORAGE_KEY = 'croquis-territory-hidden-references-v1';
 const REFERENCE_SAME_PLACE_M = 28;
 const REFERENCE_SAME_NAME_M = 70;
+// Si ya hay un icono puesto a mano, el lugar de OpenStreetMap que le
+// corresponde no se dibuja: salian dos cajas verdes iguales en el mismo sitio.
+const MANUAL_ICON_SAME_KIND_M = 150;
+const MANUAL_ICON_ANY_KIND_M = 45;
 const UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v2';
 const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
@@ -1659,6 +1669,19 @@ function normalizeManualIcon(icon){
   };
 }
 
+function isCoveredByManualIcon(ref, iconosPropios){
+  if(!iconosPropios || !iconosPropios.length) return false;
+  const lat = Number(ref?.lat);
+  const lng = Number(ref?.lng);
+  if(!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  const clase = String(ref.kind || '').trim();
+  return iconosPropios.some(icono => {
+    const metros = distanciaEnMetros({ lat, lng }, { lat:Number(icono.lat), lng:Number(icono.lng) });
+    if(metros <= MANUAL_ICON_ANY_KIND_M) return true;
+    return clase && String(icono.kind || '').trim() === clase && metros <= MANUAL_ICON_SAME_KIND_M;
+  });
+}
+
 function getManualIconsForLoc(loc){
   if(!loc) return [];
   const icons = manualIconSettings[String(loc.num)];
@@ -2472,10 +2495,11 @@ function drawRuntimeReferences(references){
   const hasAreas = getColorAreasForLoc(LOCS[currentIndex]).length > 0;
   const opacity = hasAreas ? 1 : .9;
   const ocultas = getHiddenReferencesForLoc(LOCS[currentIndex]);
+  const iconosPropios = getManualIconsForLoc(LOCS[currentIndex]);
   // Antes se ocultaba el que se encimara con otro, asi que al alejarse
   // desaparecian. Ahora se dibujan todos y lo que cambia es el tamano.
   const escala = referenceZoomScale();
-  references.slice(0, 140).filter(ref => !ocultas.has(referenceKey(ref))).forEach(ref => {
+  references.slice(0, 140).filter(ref => !ocultas.has(referenceKey(ref)) && !isCoveredByManualIcon(ref, iconosPropios)).forEach(ref => {
     const lat = Number(ref.lat);
     const lng = Number(ref.lng);
     const text = referenceLabelText(ref);
@@ -4646,6 +4670,7 @@ function isInsidePrintZones(shapes, punto){
 function drawPrintReferences(targetMap, references, loc, ocupadas, zonas){
   if(!targetMap || !Array.isArray(references) || !references.length) return;
   const ocultas = getHiddenReferencesForLoc(loc);
+  const iconosPropios = getManualIconsForLoc(loc);
   // Un lugar no se puede mover de sitio, asi que solo se compara contra otros
   // lugares: asi salen todos y ninguno se pierde por el numero de una zona.
   // Su caja si entra en la lista comun para que los nombres de calle la esquiven.
@@ -4656,6 +4681,7 @@ function drawPrintReferences(targetMap, references, loc, ocupadas, zonas){
     const lng = Number(ref.lng);
     if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     if(!referenceLabelText(ref)) return;
+    if(isCoveredByManualIcon(ref, iconosPropios)) return;
     const punto = targetMap.latLngToLayerPoint([lat, lng]);
     if(!isInsidePrintZones(zonas, punto)) return;
     const ancho = 52 * PRINT_REFERENCE_SCALE;
@@ -5038,7 +5064,10 @@ async function imprimir(){
     // detalle va multiplicada y los deja lavados, asi que se repiten aqui
     // limpios. Van por debajo del recorte, para que no salgan fuera del
     // territorio.
-    const urlNombres = src.roadUrl || src.labelUrl;
+    let urlNombres = src.roadUrl || src.labelUrl;
+    if(urlNombres && String(urlNombres).includes('google.com') && !String(urlNombres).includes('scale=')){
+      urlNombres += '&scale=2';
+    }
     let capaNombres = null;
     if(usingColorMask && urlNombres){
       capaNombres = L.tileLayer(urlNombres, {
@@ -5046,7 +5075,10 @@ async function imprimir(){
         maxNativeZoom:src.maxZ || PRINT_MAX_ZOOM,
         subdomains:src.roadSub || src.labelSub || src.sub || '',
         attribution:'',
-        tileSize:256,
+        // El tamano de celda y el salto de zoom van juntos: celda del doble de
+        // lado con un nivel menos cae exactamente sobre la misma tierra.
+        tileSize:PRINT_NAME_TILE_SIZE,
+        zoomOffset:PRINT_NAME_ZOOM_OFFSET,
         keepBuffer:8,
         updateWhenIdle:false,
         pane:'territoryRoadPane'
