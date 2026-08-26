@@ -879,7 +879,15 @@ function displayTerritoryNumber(loc){
 }
 
 function displayTerritoryTitle(loc){
-  return displayTerritoryNumber(loc) + ' ' + loc.name;
+  return displayTerritoryNumber(loc) + ' ' + displayTerritoryName(loc);
+}
+
+// El nombre completo: el del pueblo y el otro por el que se le conoce, como
+// sale en el desplegable. Sin el, en la hoja se perdia 'La Tranca'.
+function displayTerritoryName(loc){
+  const nombre = String(loc?.name || '').trim();
+  const otro = String(loc?.alias || '').trim();
+  return otro && otro !== nombre ? nombre + ' / ' + otro : nombre;
 }
 
 function populateManualIconSelect(){
@@ -4581,7 +4589,7 @@ function printSheetCredits(src){
 
 function buildPrintSheetMarkup(loc, src){
   const fecha = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
-  const title = displayTerritoryNumber(loc) + ' - ' + loc.name;
+  const title = displayTerritoryNumber(loc) + ' - ' + displayTerritoryName(loc);
   const exportMode = hasColorExportMask(loc) ? 'Solo zonas coloreadas' : 'Recuadro completo';
   return `
 <main class="print-paper">
@@ -5002,7 +5010,8 @@ async function imprimir(){
   const screenSrc = src;
   if(!loc) return;
   resetPrintSheet();
-  document.title = displayTerritoryTitle(loc) + ' - Croquis 2026';
+  // La barra no vale en un nombre de archivo, asi que ahi va con guion.
+  document.title = displayTerritoryTitle(loc).replace(' / ', ' - ') + ' - Croquis 2026';
   $('btn-pr').disabled = true;
 
   const sheet = document.createElement('section');
