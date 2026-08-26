@@ -105,8 +105,9 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 
 .print-sheet .runtime-vector-road-label span,.print-sheet .territory-text-label,.print-sheet .print-reference-name,.print-sheet .print-reference-icon{box-shadow:none!important}
 .color-area-path.is-selected{filter:saturate(1.16) contrast(1.04)}
-.territory-road-pane,.leaflet-territoryroad-pane{display:none!important}
+.territory-road-pane,.leaflet-territoryroad-pane{mix-blend-mode:normal;pointer-events:none}
 .territory-road-pane .leaflet-tile,.leaflet-territoryroad-pane .leaflet-tile{display:none!important}
+.print-sheet .territory-road-pane{mix-blend-mode:normal}
 .territory-white-road-pane,.leaflet-territorywhiteroad-pane{mix-blend-mode:normal;pointer-events:none}
 .territory-restore-pane,.leaflet-territoryrestore-pane{mix-blend-mode:multiply;pointer-events:none}
 .territory-restore-pane .leaflet-tile,.leaflet-territoryrestore-pane .leaflet-tile{filter:none!important}
@@ -115,7 +116,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .print-sheet .leaflet-tile{image-rendering:auto!important}
 .print-sheet .territory-restore-pane{display:block!important;mix-blend-mode:multiply}
 .print-sheet .territory-restore-pane .leaflet-tile{display:block!important;filter:none!important}
-.print-sheet .territory-road-pane .leaflet-tile{display:none!important}
+.print-sheet .territory-road-pane .leaflet-tile{display:block!important;filter:none!important;opacity:1!important}
 .print-sheet .territory-label-pane{mix-blend-mode:normal}
 .print-sheet .territory-label-pane .leaflet-tile{display:none!important}
 .territory-poi-pane,.leaflet-territorypoi-pane{mix-blend-mode:normal;pointer-events:none}
@@ -2434,14 +2435,14 @@ function referenceIconSvg(ref){
   return letter(referenceMarkerShort(ref));
 }
 
-function referenceLabelHtml(ref, printMode = false, escala = 1){
+function referenceLabelHtml(ref, printMode = false, escala = 1, mostrarNombre = true){
   const text = referenceLabelText(ref);
   const prefix = printMode ? 'print' : 'runtime';
   const scaleStyle = printMode
     ? ' style="--print-label-scale:' + (escala !== 1 ? escala : PRINT_RENDER_SCALE) + '"'
     : (escala !== 1 ? ' style="--ref-scale:' + escala + '"' : '');
   const title = text ? ' title="' + escapeHtml(text) + '"' : '';
-  const nameHtml = printMode && text ? '<span class="' + prefix + '-reference-name">' + escapeHtml(text) + '</span>' : '';
+  const nameHtml = printMode && text && mostrarNombre ? '<span class="' + prefix + '-reference-name">' + escapeHtml(text) + '</span>' : '';
   return '<div class="' + prefix + '-reference-label"' + scaleStyle + title + '><span class="' + prefix + '-reference-icon">' + referenceIconSvg(ref) + '</span>' + nameHtml + '</div>';
 }
 
@@ -4639,123 +4640,8 @@ function isInsidePrintZones(shapes, punto){
   });
 }
 
-function getPrintRoadLabelCandidates(targetMap, latLngs){
-  if(!targetMap || !Array.isArray(latLngs) || latLngs.length < 2) return [];
-  const candidatos = [];
-  for(let i = 0; i < latLngs.length - 1; i++){
-    const a = targetMap.latLngToLayerPoint(latLngs[i]);
-    const b = targetMap.latLngToLayerPoint(latLngs[i + 1]);
-    const length = a.distanceTo(b);
-    if(!length) continue;
-    let angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-    if(angle > 90) angle -= 180;
-    if(angle < -90) angle += 180;
-    candidatos.push({
-      latlng:L.latLng((latLngs[i].lat + latLngs[i + 1].lat) / 2, (latLngs[i].lng + latLngs[i + 1].lng) / 2),
-      angle,
-      length
-    });
-  }
-  return candidatos.sort((x, y) => y.length - x.length);
-}
 
-function roadLabelBoxForPlacement(targetMap, placement, name, fontSize, labelScale = PRINT_RENDER_SCALE){
-  const point = targetMap.latLngToLayerPoint(placement.latlng);
-  const finalSize = fontSize / labelScale;
-  const width = Math.min(170, Math.max(42, String(name || '').length * finalSize * .52 + 14)) * labelScale;
-  const height = Math.max(9, finalSize + 5) * labelScale;
-  return {
-    left:point.x - width / 2,
-    right:point.x + width / 2,
-    top:point.y - height / 2,
-    bottom:point.y + height / 2
-  };
-}
 
-function drawPrintVectorRoadLabels(targetMap, roadWays, ocupadas, zonas){
-  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
-  const placedBoxes = ocupadas || [];
-  const fontSize = 8.4 * PRINT_RENDER_SCALE;
-  // OpenStreetMap parte una calle en muchos tramos con el mismo nombre, asi que
-  // se agrupan: un nombre, un rotulo, pero con todos sus tramos disponibles
-  // para buscarle acomodo.
-  const porNombre = new Map();
-  roadWays.filter(way => !isWaterway(way)).forEach(way => {
-    const name = String(way.name || '').trim();
-    if(!name || name.length > 42) return;
-    const key = name.toLocaleLowerCase('es-MX');
-    if(!porNombre.has(key)) porNombre.set(key, { name, tramos:[] });
-    porNombre.get(key).tramos.push(way);
-  });
-
-  const dibuja = (calle, placement, box) => {
-    if(box) placedBoxes.push(box);
-    L.marker(placement.latlng, {
-      interactive:false,
-      pane:'territoryLabelPane',
-      zIndexOffset:800,
-      icon:L.divIcon({
-        className:'runtime-vector-road-label is-plano',
-        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(calle.name) + '</span>',
-        iconSize:[0,0],
-        iconAnchor:[0,0]
-      })
-    }).addTo(targetMap);
-  };
-
-  const candidatosDe = calle => calle.tramos
-    .flatMap(way => getPrintRoadLabelCandidates(targetMap, way.latLngs))
-    // solo sirve el trozo de calle que cae dentro de una zona pintada
-    .filter(c => isInsidePrintZones(zonas, targetMap.latLngToLayerPoint(c.latlng)))
-    .sort((x, y) => y.length - x.length);
-
-  // Primero se acomodan los nombres sin encimar nada. Los que no encuentran
-  // hueco se reintentan con menos margen y, al final, se ponen de todos modos:
-  // vale mas que la calle lleve su nombre a que se quede muda.
-  const pendientes = [];
-  porNombre.forEach(calle => {
-    const candidatos = candidatosDe(calle);
-    let colocado = false;
-    for(const candidato of candidatos){
-      if(candidato.length < fontSize) break;
-      const posible = roadLabelBoxForPlacement(targetMap, candidato, calle.name, fontSize, PRINT_RENDER_SCALE);
-      if(canPlaceLabel(posible, placedBoxes, 1.5 * PRINT_RENDER_SCALE)){
-        dibuja(calle, candidato, posible);
-        colocado = true;
-        break;
-      }
-    }
-    if(!colocado) pendientes.push({ calle, candidatos });
-  });
-
-  pendientes.forEach(({ calle, candidatos }) => {
-    for(const candidato of candidatos){
-      const posible = roadLabelBoxForPlacement(targetMap, candidato, calle.name, fontSize, PRINT_RENDER_SCALE);
-      if(canPlaceLabel(posible, placedBoxes, 0)){
-        dibuja(calle, candidato, posible);
-        return;
-      }
-    }
-    // Ninguna posicion queda libre: se coge la que menos tape a las demas,
-    // porque preferimos un roce a dejar la calle sin nombre.
-    let mejor = null;
-    let menosEstorbo = Infinity;
-    for(const candidato of candidatos){
-      const posible = roadLabelBoxForPlacement(targetMap, candidato, calle.name, fontSize, PRINT_RENDER_SCALE);
-      let estorbo = 0;
-      for(const caja of placedBoxes){
-        const ancho = Math.min(posible.right, caja.right) - Math.max(posible.left, caja.left);
-        const alto = Math.min(posible.bottom, caja.bottom) - Math.max(posible.top, caja.top);
-        if(ancho > 0 && alto > 0) estorbo += ancho * alto;
-      }
-      if(estorbo < menosEstorbo){
-        menosEstorbo = estorbo;
-        mejor = { candidato, posible };
-      }
-    }
-    if(mejor) dibuja(calle, mejor.candidato, mejor.posible);
-  });
-}
 
 function drawPrintReferences(targetMap, references, loc, ocupadas, zonas){
   if(!targetMap || !Array.isArray(references) || !references.length) return;
@@ -4772,7 +4658,7 @@ function drawPrintReferences(targetMap, references, loc, ocupadas, zonas){
     if(!referenceLabelText(ref)) return;
     const punto = targetMap.latLngToLayerPoint([lat, lng]);
     if(!isInsidePrintZones(zonas, punto)) return;
-    const ancho = (46 + String(ref.name || '').length * 11) * PRINT_REFERENCE_SCALE;
+    const ancho = 52 * PRINT_REFERENCE_SCALE;
     const alto = 52 * PRINT_REFERENCE_SCALE;
     const caja = { left:punto.x - ancho / 2, right:punto.x + ancho / 2, top:punto.y - alto / 2, bottom:punto.y + alto / 2 };
     if(!canPlaceLabel(caja, colocadas, 1.5 * PRINT_REFERENCE_SCALE)) return;
@@ -4784,7 +4670,7 @@ function drawPrintReferences(targetMap, references, loc, ocupadas, zonas){
       zIndexOffset:1000,
       icon:L.divIcon({
         className:'print-reference-marker',
-        html:referenceLabelHtml(ref, true, PRINT_REFERENCE_SCALE),
+        html:referenceLabelHtml(ref, true, PRINT_REFERENCE_SCALE, false),
         iconSize:[0,0],
         iconAnchor:[0,0]
       })
@@ -5148,6 +5034,24 @@ async function imprimir(){
       opacity:PRINT_DETAIL_RESTORE_OPACITY,
       pane:'territoryRestorePane'
     }) : null;
+    // Los nombres del propio mapa, otra vez encima del color: la capa de
+    // detalle va multiplicada y los deja lavados, asi que se repiten aqui
+    // limpios. Van por debajo del recorte, para que no salgan fuera del
+    // territorio.
+    const urlNombres = src.roadUrl || src.labelUrl;
+    let capaNombres = null;
+    if(usingColorMask && urlNombres){
+      capaNombres = L.tileLayer(urlNombres, {
+        maxZoom:src.maxZ || PRINT_MAX_ZOOM,
+        maxNativeZoom:src.maxZ || PRINT_MAX_ZOOM,
+        subdomains:src.roadSub || src.labelSub || src.sub || '',
+        attribution:'',
+        tileSize:256,
+        keepBuffer:8,
+        updateWhenIdle:false,
+        pane:'territoryRoadPane'
+      }).addTo(printMap);
+    }
     if(usingColorMask){
       drawPrintColorAreaOutlines(printMap, loc);
     }else{
@@ -5193,6 +5097,7 @@ async function imprimir(){
       estado = await waitForPrintTiles(capaFondo, PRINT_TILE_TIMEOUT_MS);
     }
     if(capaDetalle) await waitForPrintTiles(capaDetalle, 45000);
+    if(capaNombres) await waitForPrintTiles(capaNombres, 45000);
     if(!estado.loaded){
       throw new Error('No se pudieron cargar las teselas del mapa para imprimir.');
     }
@@ -5209,7 +5114,6 @@ async function imprimir(){
     const zonasPintadas = usingColorMask ? buildPrintZoneShapes(printMap, loc) : null;
     drawPrintTextLabels(printMap, loc, ocupadas);
     drawPrintReferences(printMap, readOverpassCache(loc, 'refs') || [], loc, ocupadas, zonasPintadas);
-    drawPrintVectorRoadLabels(printMap, readOverpassCache(loc, 'roads') || [], ocupadas, zonasPintadas);
     if(usingColorMask){
       $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
       renderPrintColorMask(printMap, loc);
