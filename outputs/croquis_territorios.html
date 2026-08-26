@@ -193,7 +193,6 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 body.print-preview{overflow:hidden}
 .print-paper{width:297mm;height:210mm;min-width:297mm;background:#fff;color:#17251c;display:grid;grid-template-rows:15mm 189mm;box-shadow:0 18px 48px rgba(0,0,0,.24)}
 .print-hdr{height:15mm;background:#fff;color:#17251c;display:flex;align-items:center;gap:5mm;padding:0 4mm;border-bottom:1.2mm solid #1f7a47}
-.print-badge{color:#145b32;border:1.2px solid #1f7a47;border-radius:999px;padding:1.35mm 3.7mm;font-size:10px;font-weight:900;white-space:nowrap}
 .print-title{font-size:18px;font-weight:900;line-height:1.05;flex:1;min-width:0;color:#102419}
 .print-meta{text-align:right;font-size:7.4px;line-height:1.25;color:#26372d;white-space:nowrap}
 .print-color-mask{position:absolute;pointer-events:none}
@@ -4606,29 +4605,12 @@ function choosePrintRenderScale(loc, bounds, src){
   return Math.max(PRINT_RENDER_SCALE_MIN, Math.min(PRINT_RENDER_SCALE_MAX, escala));
 }
 
-// Lo que dice el distintivo de la cabecera. Cuando el territorio esta
-// dividido se anade cuantos trozos tiene y en que numeros van, para poder
-// seguir la numeracion de una hoja a la siguiente.
-function printBadgeText(loc){
-  const numeros = subterritoriosDeLoc(loc);
-  // Sin dividir, el numero de siempre. Dividido, lo que importa es cuantos
-  // trozos tiene y en que numeros van, para seguir la cuenta de una hoja a la
-  // siguiente; el numero del territorio ya va en el titulo de al lado.
-  if(numeros.length < 2) return 'Territorio';
-  const seguidos = numeros.every((n, i) => i === 0 || n === numeros[i - 1] + 1);
-  const cuales = seguidos
-    ? numeros[0] + ' al ' + numeros[numeros.length - 1]
-    : numeros.join(', ');
-  return 'Territorio con ' + numeros.length + ' subterritorios (' + cuales + ')';
-}
-
 function buildPrintSheetMarkup(loc){
   const fecha = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
   const exportMode = hasColorExportMask(loc) ? 'Solo zonas coloreadas' : 'Recuadro completo';
   return `
 <main class="print-paper">
   <div class="print-hdr">
-    <span class="print-badge">${escapeHtml(printBadgeText(loc))}</span>
     <div class="print-title">${escapeHtml(displayTerritoryName(loc))}</div>
     <div class="print-meta">Localidad: ${escapeHtml(loc.alias ? loc.name + ' / ' + loc.alias : loc.name)}<br>Municipio: ${escapeHtml(loc.municipio)}<br>${escapeHtml(loc.estado)}<br>${formatCoords(loc)} &middot; ${escapeHtml(fecha)}</div>
   </div>
