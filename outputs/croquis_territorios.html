@@ -750,6 +750,7 @@ const REFERENCE_SAME_NAME_M = 70;
 // Si el nombre es identico y la clase tambien, es el mismo sitio aunque los
 // centros esten lejos.
 const REFERENCE_SAME_TITLE_M = 300;
+const REFERENCE_GENERIC_NEAR_M = 25;
 // Si ya hay un icono puesto a mano, el lugar de OpenStreetMap que le
 // corresponde no se dibuja: salian dos cajas verdes iguales en el mismo sitio.
 const MANUAL_ICON_SAME_KIND_M = 150;
@@ -814,8 +815,7 @@ const MANUAL_ICON_OPTIONS = [
   ['Bomberos','Bomberos'],
   ['Terminal','Terminal / bus'],
   ['Correo','Correo'],
-  ['Panteon','Panteon'],
-  ['Referencia','Referencia']
+  ['Panteon','Panteon']
 ];
 let frameScaleSettings = loadFrameScaleSettings();
 let colorAreaSettings = loadColorAreaSettings();
@@ -3542,6 +3542,9 @@ function dedupeReferences(candidatos){
   (candidatos || []).forEach(candidato => {
     if(!candidato || !Number.isFinite(Number(candidato.lat)) || !Number.isFinite(Number(candidato.lng))) return;
     if(references.some(guardada => esMismoSitio(guardada, candidato))) return;
+    // 'Referencia' es el cajon de sastre de referenceKind. Un pin generico
+    // pegado a un sitio que si sabemos que es no aporta nada y parece repetido.
+    if(candidato.kind === 'Referencia' && references.some(guardada => distanciaEnMetros(guardada, candidato) <= REFERENCE_GENERIC_NEAR_M)) return;
     references.push({ name:candidato.name, kind:candidato.kind, lat:candidato.lat, lng:candidato.lng });
   });
   return references.sort((a, b) => referencePriority(a) - referencePriority(b));
@@ -4566,6 +4569,17 @@ function navigate(delta){
   goTo((currentIndex + delta + LOCS.length) % LOCS.length);
 }
 
+function printSheetCredits(src){
+  // La hoja mezcla dos mapas: los nombres del elegido y la textura de Carto
+  // cuando el elegido no publica teselas sin letras. Se acreditan los dos.
+  const creditos = [String(src?.attr || '').trim()];
+  if(!(src?.noLabelUrl || src?.dlNoLabelUrl)){
+    const textura = String(TILES['carto-voyager']?.attr || '').trim();
+    if(textura && !creditos.includes(textura)) creditos.push(textura);
+  }
+  return creditos.filter(Boolean).join(' \u00b7 ');
+}
+
 function buildPrintSheetMarkup(loc, src){
   const fecha = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
   const title = displayTerritoryNumber(loc) + ' - ' + loc.name;
@@ -4578,7 +4592,7 @@ function buildPrintSheetMarkup(loc, src){
     <div class="print-meta">Localidad: ${escapeHtml(loc.alias ? loc.name + ' / ' + loc.alias : loc.name)}<br>Municipio: ${escapeHtml(loc.municipio)}<br>${escapeHtml(loc.estado)}<br>${formatCoords(loc)} &middot; ${escapeHtml(fecha)}</div>
   </div>
   <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${PRINT_MAP_W}px;--print-map-h:${PRINT_MAP_H}px;--print-map-scale:${1 / PRINT_RENDER_SCALE}"><div id="print-map"></div></div>
-  <div class="print-ftr"><span>${escapeHtml(src?.attr || '')} &middot; INEGI CPV 2010 / cartografía base en línea 2026</span><span>Predicación 2026 &middot; ${escapeHtml(title)}</span></div>
+  <div class="print-ftr"><span>${escapeHtml(printSheetCredits(src))} &middot; INEGI CPV 2010 / cartografía base en línea 2026</span><span>Predicación 2026 &middot; ${escapeHtml(title)}</span></div>
 </main>
 <div class="print-wait" id="print-wait">
   <div class="print-panel">
@@ -5062,7 +5076,7 @@ async function imprimir(){
         updateWhenIdle:false
       };
       if(opciones.pane) opcionesCapa.pane = opciones.pane;
-      return L.tileLayer(getPrintTileUrl(fuente), opcionesCapa).addTo(printMap);
+      return L.tileLayer(getPrintTileUrl(fuente, { noLabels:!!opciones.sinNombres }), opcionesCapa).addTo(printMap);
     };
     // Con recorte de zonas el fondo va invisible: lo unico que se ve del mapa
     // es la capa de detalle que se multiplica sobre el color, y eso es lo que
@@ -5070,8 +5084,15 @@ async function imprimir(){
     const opacidadFondo = usingColorMask ? 0 : 1;
     let capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
     drawPrintColorAreas(printMap, loc);
-    let capaDetalle = usingColorMask ? anadirTeselas(src, {
+    // La capa de detalle da la textura de calles y manzanas bajo el color, y
+    // va SIN letras: los nombres los pone la capa de arriba, mas grandes. Si
+    // esta tambien los trajera saldria cada nombre dos veces, uno chico y otro
+    // grande. Google no publica teselas sin letras, asi que para la textura se
+    // usa Carto, que si las tiene.
+    const fuenteDetalle = src.noLabelUrl || src.dlNoLabelUrl ? src : TILES['carto-voyager'];
+    let capaDetalle = usingColorMask ? anadirTeselas(fuenteDetalle, {
       attribution:'',
+      sinNombres:true,
       opacity:PRINT_DETAIL_RESTORE_OPACITY,
       pane:'territoryRestorePane'
     }) : null;
@@ -5133,11 +5154,12 @@ async function imprimir(){
       if(capaDetalle) printMap.removeLayer(capaDetalle);
       src = TILES[src.downloadAs];
       const creditoPie = document.querySelector('.print-ftr span');
-      if(creditoPie) creditoPie.textContent = (src.attr || '') + ' \u00b7 INEGI CPV 2010 / cartograf\u00eda base en l\u00ednea 2026';
+      if(creditoPie) creditoPie.textContent = printSheetCredits(src) + ' \u00b7 INEGI CPV 2010 / cartograf\u00eda base en l\u00ednea 2026';
       $('print-wait-text').textContent = 'El mapa elegido no cargo. Preparando el de respaldo...';
       capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
-      capaDetalle = usingColorMask ? anadirTeselas(src, {
+      capaDetalle = usingColorMask ? anadirTeselas(src.noLabelUrl || src.dlNoLabelUrl ? src : TILES['carto-voyager'], {
         attribution:'',
+        sinNombres:true,
         opacity:PRINT_DETAIL_RESTORE_OPACITY,
         pane:'territoryRestorePane'
       }) : null;
