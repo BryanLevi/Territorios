@@ -777,6 +777,9 @@ const CLOUD_SYNC_BRANCH = 'main';
 const CLOUD_SYNC_FILE_PATH = 'data/croquis-sync.json';
 const BACKUP_FILE_VERSION = 1;
 const UNDO_HISTORY_LIMIT = 80;
+// Margen por lado alrededor de las zonas pintadas, antes de aplicarle el
+// control de marco. Era .08 fijo y dejaba el croquis flotando en la hoja.
+const COLOR_BOUNDS_PAD = .06;
 const FRAME_SCALE_MIN = 55;
 const FRAME_SCALE_MAX = 180;
 const FRAME_SCALE_STEP = 5;
@@ -4983,8 +4986,11 @@ function getColorAreasBoundsPlain(loc){
   if(!Number.isFinite(south) || !Number.isFinite(west) || !Number.isFinite(north) || !Number.isFinite(east)) return null;
   const latSpan = Math.max(north - south, .0006);
   const lngSpan = Math.max(east - west, .0006);
-  const padLat = latSpan * .08;
-  const padLng = lngSpan * .08;
+  // El control de marco ahora si manda aqui: antes solo servia en los
+  // territorios sin pintar, asi que moverlo no hacia nada visible.
+  const marco = getFrameScaleForLoc(loc) / 100;
+  const padLat = latSpan * COLOR_BOUNDS_PAD * marco;
+  const padLng = lngSpan * COLOR_BOUNDS_PAD * marco;
   return {
     south:south - padLat,
     west:west - padLng,
@@ -5069,7 +5075,10 @@ async function imprimir(){
       doubleClickZoom:false,
       boxZoom:false,
       keyboard:false,
-      zoomSnap:.25,
+      // Sin escalones de zoom: este mapa no se navega, solo se dibuja una vez.
+      // Con escalones de .25 el encuadre redondeaba hacia abajo y el croquis
+      // podia quedarse hasta un 19% mas chico de lo que cabia.
+      zoomSnap:0,
       zoomDelta:.5
     });
     printMap.createPane('territoryColorPane');
@@ -5175,7 +5184,7 @@ async function imprimir(){
     const frameMap = () => {
       printMap.invalidateSize();
       printMap.fitBounds(bounds, {
-        padding:[18 * printRenderScale, 18 * printRenderScale],
+        padding:[10 * printRenderScale, 10 * printRenderScale],
         maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM),
         animate:false
       });
