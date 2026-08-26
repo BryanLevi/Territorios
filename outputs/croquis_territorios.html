@@ -541,6 +541,9 @@ const DETAIL_ZOOM = 20;
 const DETAIL_PAD = 2;
 const PRINT_ASPECT = 297 / 189;
 // El techo de resolucion, el de siempre. Los territorios grandes lo usan.
+// Cuanto se agrandan los numeros de zona solo en la hoja impresa. En
+// pantalla se quedan como estaban.
+const PRINT_ZONE_NUMBER_BOOST = 1.25;
 const PRINT_RENDER_SCALE_MAX = 18;
 // El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
 // porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
@@ -4677,7 +4680,7 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
     if(!String(label.text || '').trim() || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
     // El numero de zona aparta su hueco: los nombres de calle lo rodean.
     if(ocupadas){
-      const tam = Math.max(13, Math.min(38, Number(label.size) || 22)) * printRenderScale;
+      const tam = Math.max(13, Math.min(38, Number(label.size) || 22)) * printRenderScale * PRINT_ZONE_NUMBER_BOOST;
       const punto = targetMap.latLngToLayerPoint([lat, lng]);
       const ancho = Math.max(tam, String(label.text).trim().length * tam * .68) + tam * .6;
       const alto = tam * 1.7;
@@ -4685,7 +4688,7 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
     }
     L.marker([lat, lng], {
       interactive:false,
-      icon:createTextIcon(label, false, printRenderScale)
+      icon:createTextIcon(label, false, printRenderScale * PRINT_ZONE_NUMBER_BOOST)
     }).addTo(targetMap);
   });
 }
