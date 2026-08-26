@@ -549,7 +549,6 @@ const PRINT_RENDER_SCALE_MAX = 18;
 const PRINT_RENDER_SCALE_MIN = 3;
 // La que se esta usando en la hoja que se dibuja ahora mismo.
 let printRenderScale = PRINT_RENDER_SCALE_MAX;
-const PRINT_DETAIL_RESTORE_OPACITY = 1;
 const PRINT_TILE_TIMEOUT_MS = 180000;
 // La capa de nombres se saca un nivel de zoom mas abajo y se dibuja en celdas
 // del doble de lado: el mismo mapa, en su sitio exacto, pero con el trazo de
@@ -5105,8 +5104,14 @@ async function imprimir(){
         subdomains:fuente.sub || '',
         attribution:opciones.attribution ?? fuente.attr ?? '',
         opacity:opciones.opacity ?? 1,
-        tileSize:256,
-        keepBuffer:8,
+        // Las imagenes que sirven Google y Carto son de 512 px. Pedirlas sobre
+        // una rejilla de 256 obligaba a bajar CUATRO veces mas teselas de las
+        // necesarias, cada una con el doble de detalle del que se veia. Con la
+        // rejilla de 512 y un nivel menos de zoom cae exactamente sobre la
+        // misma tierra, con la misma nitidez y la cuarta parte de peticiones.
+        tileSize:opciones.tileSize ?? PRINT_NAME_TILE_SIZE,
+        zoomOffset:opciones.zoomOffset ?? PRINT_NAME_ZOOM_OFFSET,
+        keepBuffer:2,
         updateWhenIdle:false
       };
       if(opciones.pane) opcionesCapa.pane = opciones.pane;
@@ -5118,18 +5123,10 @@ async function imprimir(){
     const opacidadFondo = usingColorMask ? 0 : 1;
     let capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
     drawPrintColorAreas(printMap, loc);
-    // La capa de detalle da la textura de calles y manzanas bajo el color, y
-    // va SIN letras: los nombres los pone la capa de arriba, mas grandes. Si
-    // esta tambien los trajera saldria cada nombre dos veces, uno chico y otro
-    // grande. Google no publica teselas sin letras, asi que para la textura se
-    // usa Carto, que si las tiene.
-    const fuenteDetalle = src.noLabelUrl || src.dlNoLabelUrl ? src : TILES['carto-voyager'];
-    let capaDetalle = usingColorMask ? anadirTeselas(fuenteDetalle, {
-      attribution:'',
-      sinNombres:true,
-      opacity:PRINT_DETAIL_RESTORE_OPACITY,
-      pane:'territoryRestorePane'
-    }) : null;
+    // Aqui iba una capa de textura que multiplicaba el mapa bajo el color y
+    // dejaba ver las manzanas. La servia Carto, que marca con agua el uso
+    // anonimo en cuanto pasa de unas doscientas teselas, y una hoja pide
+    // muchas mas. Las calles se siguen viendo: las dibuja la capa de nombres.
     // Los nombres del propio mapa, otra vez encima del color: la capa de
     // detalle va multiplicada y los deja lavados, asi que se repiten aqui
     // limpios. Van por debajo del recorte, para que no salgan fuera del
@@ -5185,20 +5182,12 @@ async function imprimir(){
     // hoja en blanco.
     if(!estado.loaded && src.downloadAs && TILES[src.downloadAs]?.downloadable){
       printMap.removeLayer(capaFondo);
-      if(capaDetalle) printMap.removeLayer(capaDetalle);
       src = TILES[src.downloadAs];
       printRenderScale = choosePrintRenderScale(loc, bounds, src);
       $('print-wait-text').textContent = 'El mapa elegido no cargo. Preparando el de respaldo...';
       capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
-      capaDetalle = usingColorMask ? anadirTeselas(src.noLabelUrl || src.dlNoLabelUrl ? src : TILES['carto-voyager'], {
-        attribution:'',
-        sinNombres:true,
-        opacity:PRINT_DETAIL_RESTORE_OPACITY,
-        pane:'territoryRestorePane'
-      }) : null;
       estado = await waitForPrintTiles(capaFondo, PRINT_TILE_TIMEOUT_MS);
     }
-    if(capaDetalle) await waitForPrintTiles(capaDetalle, 45000);
     if(capaNombres) await waitForPrintTiles(capaNombres, 45000);
     if(!estado.loaded){
       throw new Error('No se pudieron cargar las teselas del mapa para imprimir.');
