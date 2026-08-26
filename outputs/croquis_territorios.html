@@ -543,6 +543,9 @@ const PRINT_ASPECT = 297 / 189;
 // Cuanto se agrandan los numeros de zona solo en la hoja impresa. En
 // pantalla se quedan como estaban.
 const PRINT_ZONE_NUMBER_BOOST = 1.5;
+// Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
+// basta para deshacer las letras, que en el papel miden algo mas de uno.
+const PRINT_BACKGROUND_BLUR = .5;
 const PRINT_RENDER_SCALE_MAX = 18;
 // El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
 // porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
@@ -5120,8 +5123,15 @@ async function imprimir(){
     // Con recorte de zonas el fondo va invisible: lo unico que se ve del mapa
     // es la capa de detalle que se multiplica sobre el color, y eso es lo que
     // deja las calles marcadas finitas con el tono de su zona.
-    const opacidadFondo = usingColorMask ? 0 : 1;
+    // El mapa de fondo se deja ver bajo el color, que es de donde salen las
+    // manzanas. Sus letras se borran con un desenfoque: son finas y se
+    // deshacen, mientras que las manzanas son bloques grandes y aguantan. Asi
+    // se ve donde hay casas sin que los nombres salgan dos veces.
+    const opacidadFondo = 1;
+    const desenfoqueFondo = PRINT_BACKGROUND_BLUR * printRenderScale;
     let capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
+    const carrilFondo = printMap.getPane('tilePane');
+    if(carrilFondo) carrilFondo.style.filter = 'blur(' + desenfoqueFondo.toFixed(2) + 'px)';
     drawPrintColorAreas(printMap, loc);
     // Aqui iba una capa de textura que multiplicaba el mapa bajo el color y
     // dejaba ver las manzanas. La servia Carto, que marca con agua el uso
