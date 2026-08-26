@@ -646,6 +646,9 @@ const TILES = {
   },
   'g-sat': {
     name: 'Google Satélite - vista previa',
+    // La foto de satelite no trae nombres, asi que aqui si hacen falta los
+    // nuestros. Los demas mapas ya los traen dibujados en la tesela.
+    sinNombres: true,
     url: 'https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     roadUrl: 'https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
     roadSub: '0123',
@@ -742,6 +745,11 @@ const OVERPASS_CACHE_STORAGE_KEY = 'croquis-territory-overpass-v1';
 const HIDDEN_REFERENCES_STORAGE_KEY = 'croquis-territory-hidden-references-v1';
 const REFERENCE_SAME_PLACE_M = 28;
 const REFERENCE_SAME_NAME_M = 70;
+// OpenStreetMap guarda un mismo sitio como nodo, via y relacion, y el centro
+// de cada uno cae en un punto distinto: una escuela salia tres veces seguidas.
+// Si el nombre es identico y la clase tambien, es el mismo sitio aunque los
+// centros esten lejos.
+const REFERENCE_SAME_TITLE_M = 300;
 // Si ya hay un icono puesto a mano, el lugar de OpenStreetMap que le
 // corresponde no se dibuja: salian dos cajas verdes iguales en el mismo sitio.
 const MANUAL_ICON_SAME_KIND_M = 150;
@@ -2164,7 +2172,11 @@ function drawRuntimeVectorRoads(roadWays){
   const streets = roadWays.filter(way => !isWaterway(way));
   // Los rios van primero para que los puentes y calles crucen por encima.
   drawRuntimeWaterways(waterways, hasAreas ? WATERWAY_OVERLAY_OPACITY : .55);
-  streets.forEach(way => {
+  // El nombre de la calle solo lo ponemos nosotros cuando el mapa de fondo no
+  // lo trae. Sobre Google o Carto salia el nombre dos veces, el suyo y el
+  // nuestro encima. Los rios se siguen rotulando siempre: esos no los trae.
+  const fondoSinNombres = !!(TILES[currentView] || {}).sinNombres;
+  if(fondoSinNombres) streets.forEach(way => {
     const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
     if(latLngs.length < 2) return;
 
@@ -3494,11 +3506,14 @@ function esMismoSitio(a, b){
   if(a.kind !== b.kind) return false;
   const metros = distanciaEnMetros(a, b);
   if(metros <= REFERENCE_SAME_PLACE_M) return true;
-  if(metros > REFERENCE_SAME_NAME_M) return false;
   const na = normalizarNombre(a.name);
   const nb = normalizarNombre(b.name);
+  // El nombre exacto es prueba de sobra: dos sitios distintos de la misma clase
+  // no se llaman igual a dos calles de distancia.
+  if(na && nb && na === nb) return metros <= REFERENCE_SAME_TITLE_M;
+  if(metros > REFERENCE_SAME_NAME_M) return false;
   if(!na || !nb) return true;
-  return na === nb || na.startsWith(nb) || nb.startsWith(na);
+  return na.startsWith(nb) || nb.startsWith(na);
 }
 
 function referencesFromOverpass(data){
