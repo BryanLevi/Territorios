@@ -102,20 +102,20 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .contour-midpoint{cursor:copy;transition:r .12s,fill-opacity .12s}
 .contour-midpoint:hover{r:6;fill-opacity:1}
 .color-area-path{mix-blend-mode:multiply;filter:saturate(1.08) contrast(1.02)}
-.print-sheet .color-area-path{mix-blend-mode:normal!important;filter:none!important}
+
 .print-sheet .runtime-vector-road-label span,.print-sheet .territory-text-label,.print-sheet .print-reference-name,.print-sheet .print-reference-icon{box-shadow:none!important}
 .color-area-path.is-selected{filter:saturate(1.16) contrast(1.04)}
-.territory-road-pane,.leaflet-territoryroad-pane{mix-blend-mode:normal;pointer-events:none}
-.territory-road-pane .leaflet-tile,.leaflet-territoryroad-pane .leaflet-tile{display:block!important;filter:saturate(1.02) contrast(1.04) brightness(1)!important;opacity:.9!important}
+.territory-road-pane,.leaflet-territoryroad-pane{display:none!important}
+.territory-road-pane .leaflet-tile,.leaflet-territoryroad-pane .leaflet-tile{display:none!important}
 .territory-white-road-pane,.leaflet-territorywhiteroad-pane{mix-blend-mode:normal;pointer-events:none}
 .territory-restore-pane,.leaflet-territoryrestore-pane{mix-blend-mode:multiply;pointer-events:none}
-.territory-restore-pane .leaflet-tile,.leaflet-territoryrestore-pane .leaflet-tile{filter:saturate(1.08) contrast(1.12) brightness(.98)!important}
+.territory-restore-pane .leaflet-tile,.leaflet-territoryrestore-pane .leaflet-tile{filter:none!important}
 .territory-label-pane,.leaflet-territorylabel-pane{mix-blend-mode:normal;pointer-events:none}
 .territory-label-pane .leaflet-tile,.leaflet-territorylabel-pane .leaflet-tile{display:none!important}
 .print-sheet .leaflet-tile{image-rendering:auto!important}
-.print-sheet .territory-restore-pane{display:block!important;mix-blend-mode:normal}
-.print-sheet .territory-restore-pane .leaflet-tile{display:block!important;filter:saturate(1.04) contrast(1.03) brightness(1)!important;opacity:.34!important}
-.print-sheet .territory-road-pane .leaflet-tile{display:block!important;filter:none!important;opacity:1!important}
+.print-sheet .territory-restore-pane{display:block!important;mix-blend-mode:multiply}
+.print-sheet .territory-restore-pane .leaflet-tile{display:block!important;filter:none!important}
+.print-sheet .territory-road-pane .leaflet-tile{display:none!important}
 .print-sheet .territory-label-pane{mix-blend-mode:normal}
 .print-sheet .territory-label-pane .leaflet-tile{display:none!important}
 .territory-poi-pane,.leaflet-territorypoi-pane{mix-blend-mode:normal;pointer-events:none}
@@ -540,11 +540,12 @@ const APP_BUILD = 'github-sync-backup-2026-07-01-18';
 const DETAIL_ZOOM = 20;
 const DETAIL_PAD = 2;
 const PRINT_ASPECT = 297 / 189;
-const PRINT_RENDER_SCALE = 1.5;
+const PRINT_RENDER_SCALE = 18;
+const PRINT_DETAIL_RESTORE_OPACITY = 1;
+const PRINT_TILE_TIMEOUT_MS = 180000;
 const PRINT_MAX_ZOOM = 20;
 const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
 const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .42;
-const PRINT_REFERENCE_SCALE = PRINT_RENDER_SCALE * .32;
 const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
 const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
 const ROAD_OVERLAY_OPACITY = .96;
@@ -2627,7 +2628,7 @@ function renderContourEditHandles(loc){
 }
 
 function createTextIcon(label, selected = false, scale = 1){
-  const size = Math.max(16, Math.min(54, Number(label.size) || 28)) * scale;
+  const size = Math.max(13, Math.min(38, Number(label.size) || 22)) * scale;
   const opacity = Number.isFinite(Number(label.opacity)) ? Math.max(.45, Math.min(1, Number(label.opacity))) : 1;
   const selectedClass = selected ? ' is-selected' : '';
   const textHtml = renderColonyLabelHtml(label.text);
@@ -4536,7 +4537,7 @@ function buildPrintSheetMarkup(loc, src){
     <div class="print-meta">Localidad: ${escapeHtml(loc.alias ? loc.name + ' / ' + loc.alias : loc.name)}<br>Municipio: ${escapeHtml(loc.municipio)}<br>${escapeHtml(loc.estado)}<br>${formatCoords(loc)} &middot; ${escapeHtml(fecha)}</div>
   </div>
   <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${PRINT_MAP_W}px;--print-map-h:${PRINT_MAP_H}px;--print-map-scale:${1 / PRINT_RENDER_SCALE}"><div id="print-map"></div></div>
-  <div class="print-ftr"><span>Croquis de territorio</span><span>Predicación 2026 &middot; ${escapeHtml(title)}</span></div>
+  <div class="print-ftr"><span>${escapeHtml(src?.attr || '')} &middot; INEGI CPV 2010 / cartografía base en línea 2026</span><span>Predicación 2026 &middot; ${escapeHtml(title)}</span></div>
 </main>
 <div class="print-wait" id="print-wait">
   <div class="print-panel">
@@ -4553,8 +4554,7 @@ function drawPrintColorAreas(targetMap, loc){
   getExportColorAreasForLoc(loc).forEach(area => {
     const latLngs = pointsToLatLngs(area.points);
     if(latLngs.length < 3) return;
-    // Menos velo que antes: por debajo tienen que leerse las calles
-    const printFillOpacity = Math.max(.30, Math.min(.44, getRenderedColorOpacity(area.opacity)));
+    const printFillOpacity = Math.max(.5, Math.min(.72, getRenderedColorOpacity(area.opacity) + .08));
     L.polygon(latLngs, {
       ...colorAreaStyle(area, 1, false),
       fillOpacity:printFillOpacity,
@@ -4569,8 +4569,8 @@ function drawPrintColorAreaOutlines(targetMap, loc){
     if(latLngs.length < 3) return;
     L.polygon(latLngs, {
       color:sanitizeColor(area.color),
-      weight:.5 * PRINT_RENDER_SCALE,
-      opacity:.95,
+      weight:.65 * PRINT_RENDER_SCALE,
+      opacity:.82,
       fill:false,
       interactive:false,
       pane:'territoryOutlinePane'
@@ -4578,161 +4578,21 @@ function drawPrintColorAreaOutlines(targetMap, loc){
   });
 }
 
-function drawPrintTextLabels(targetMap, loc, ocupadas){
-  const reservadas = ocupadas || [];
+function drawPrintTextLabels(targetMap, loc){
   getTextLabelsForLoc(loc).forEach(label => {
     const lat = Number(label.lat);
     const lng = Number(label.lng);
     if(!String(label.text || '').trim() || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    // El numero del subterritorio manda: reserva su sitio antes que nadie
-    const punto = targetMap.latLngToLayerPoint([lat, lng]);
-    const medio = 130;
-    reservadas.push({ left:punto.x - medio, right:punto.x + medio, top:punto.y - medio, bottom:punto.y + medio });
-    // Igual en todos los territorios: escribiste unos con tamano 10 y otros con
-    // 22. Acotar el tamano no bastaba porque createTextIcon fuerza un minimo de
-    // 16, asi que se ajusta la escala para caer siempre en unos 9 pt.
-    const OBJETIVO_PX = 9.3 * PRINT_RENDER_SCALE;
-    const tam = Math.max(16, Math.min(54, Number(label.size) || 22));
     L.marker([lat, lng], {
       interactive:false,
-      icon:createTextIcon(label, false, OBJETIVO_PX / tam)
+      icon:createTextIcon(label, false, PRINT_RENDER_SCALE)
     }).addTo(targetMap);
   });
 }
 
-function getPrintRoadLabelCandidates(targetMap, latLngs){
-  if(!targetMap || !Array.isArray(latLngs) || latLngs.length < 2) return [];
-  const candidatos = [];
-  for(let i = 0; i < latLngs.length - 1; i++){
-    const a = targetMap.latLngToLayerPoint(latLngs[i]);
-    const b = targetMap.latLngToLayerPoint(latLngs[i + 1]);
-    const length = a.distanceTo(b);
-    if(!length) continue;
-    let angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-    if(angle > 90) angle -= 180;
-    if(angle < -90) angle += 180;
-    candidatos.push({
-      latlng:L.latLng((latLngs[i].lat + latLngs[i + 1].lat) / 2, (latLngs[i].lng + latLngs[i + 1].lng) / 2),
-      angle,
-      length
-    });
-  }
-  return candidatos.sort((x, y) => y.length - x.length);
-}
 
-function roadLabelBoxForPlacement(targetMap, placement, name, fontSize, labelScale = PRINT_RENDER_SCALE){
-  const point = targetMap.latLngToLayerPoint(placement.latlng);
-  const finalSize = fontSize / labelScale;
-  const width = Math.min(170, Math.max(42, String(name || '').length * finalSize * .52 + 14)) * labelScale;
-  const height = Math.max(9, finalSize + 5) * labelScale;
-  return {
-    left:point.x - width / 2,
-    right:point.x + width / 2,
-    top:point.y - height / 2,
-    bottom:point.y + height / 2
-  };
-}
 
-function drawPrintVectorRoadLabels(targetMap, roadWays, ocupadas){
-  if(!targetMap || !Array.isArray(roadWays) || !roadWays.length) return;
-  const placedBoxes = ocupadas || [];
-  const fontSize = 8.4 * PRINT_RENDER_SCALE;
-  // OpenStreetMap parte una calle en muchos tramos con el mismo nombre, asi que
-  // se agrupan: un nombre, un rotulo, pero con todos sus tramos disponibles
-  // para buscarle acomodo.
-  const porNombre = new Map();
-  roadWays.filter(way => !isWaterway(way)).forEach(way => {
-    const name = String(way.name || '').trim();
-    if(!name || name.length > 42) return;
-    const key = name.toLocaleLowerCase('es-MX');
-    if(!porNombre.has(key)) porNombre.set(key, { name, tramos:[] });
-    porNombre.get(key).tramos.push(way);
-  });
 
-  const dibuja = (calle, placement, box) => {
-    if(box) placedBoxes.push(box);
-    L.marker(placement.latlng, {
-      interactive:false,
-      pane:'territoryLabelPane',
-      zIndexOffset:800,
-      icon:L.divIcon({
-        className:'runtime-vector-road-label is-plano',
-        html:'<span style="--road-label-angle:' + placement.angle.toFixed(1) + 'deg;font-size:' + fontSize.toFixed(1) + 'px">' + escapeHtml(calle.name) + '</span>',
-        iconSize:[0,0],
-        iconAnchor:[0,0]
-      })
-    }).addTo(targetMap);
-  };
-
-  const candidatosDe = calle => calle.tramos
-    .flatMap(way => getPrintRoadLabelCandidates(targetMap, way.latLngs))
-    .sort((x, y) => y.length - x.length);
-
-  // Primero se acomodan los nombres sin encimar nada. Los que no encuentran
-  // hueco se reintentan con menos margen y, al final, se ponen de todos modos:
-  // vale mas que la calle lleve su nombre a que se quede muda.
-  const pendientes = [];
-  porNombre.forEach(calle => {
-    const candidatos = candidatosDe(calle);
-    let colocado = false;
-    for(const candidato of candidatos){
-      if(candidato.length < fontSize) break;
-      const posible = roadLabelBoxForPlacement(targetMap, candidato, calle.name, fontSize, PRINT_RENDER_SCALE);
-      if(canPlaceLabel(posible, placedBoxes, 1.5 * PRINT_RENDER_SCALE)){
-        dibuja(calle, candidato, posible);
-        colocado = true;
-        break;
-      }
-    }
-    if(!colocado) pendientes.push({ calle, candidatos });
-  });
-
-  pendientes.forEach(({ calle, candidatos }) => {
-    for(const candidato of candidatos){
-      const posible = roadLabelBoxForPlacement(targetMap, candidato, calle.name, fontSize, PRINT_RENDER_SCALE);
-      if(canPlaceLabel(posible, placedBoxes, 0)){
-        dibuja(calle, candidato, posible);
-        return;
-      }
-    }
-    const ultimo = candidatos[0];
-    if(ultimo) dibuja(calle, ultimo, null);
-  });
-}
-
-function drawPrintReferences(targetMap, references, loc, ocupadas){
-  if(!targetMap || !Array.isArray(references) || !references.length) return;
-  const ocultas = getHiddenReferencesForLoc(loc);
-  // Un lugar no se puede mover de sitio, asi que solo se compara contra otros
-  // lugares: asi salen todos y ninguno se pierde por el numero de una zona.
-  // Su caja si entra en la lista comun para que los nombres de calle la esquiven.
-  const colocadas = [];
-  const comunes = ocupadas || [];
-  references.filter(ref => !ocultas.has(referenceKey(ref))).forEach(ref => {
-    const lat = Number(ref.lat);
-    const lng = Number(ref.lng);
-    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    if(!referenceLabelText(ref)) return;
-    const punto = targetMap.latLngToLayerPoint([lat, lng]);
-    const ancho = (46 + String(ref.name || '').length * 11) * PRINT_REFERENCE_SCALE;
-    const alto = 52 * PRINT_REFERENCE_SCALE;
-    const caja = { left:punto.x - ancho / 2, right:punto.x + ancho / 2, top:punto.y - alto / 2, bottom:punto.y + alto / 2 };
-    if(!canPlaceLabel(caja, colocadas, 1.5 * PRINT_REFERENCE_SCALE)) return;
-    colocadas.push(caja);
-    comunes.push(caja);
-    L.marker([lat, lng], {
-      interactive:false,
-      pane:'territoryPoiPane',
-      zIndexOffset:1000,
-      icon:L.divIcon({
-        className:'print-reference-marker',
-        html:referenceLabelHtml(ref, true, PRINT_REFERENCE_SCALE),
-        iconSize:[0,0],
-        iconAnchor:[0,0]
-      })
-    }).addTo(targetMap);
-  });
-}
 
 function drawPrintManualIcons(targetMap, loc){
   getManualIconsForLoc(loc).forEach(icon => {
@@ -4747,35 +4607,6 @@ function drawPrintManualIcons(targetMap, loc){
   });
 }
 
-function drawPrintWaterways(targetMap, waterways){
-  if(!targetMap || !Array.isArray(waterways) || !waterways.length) return;
-  const pane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
-  const dash = (8 * PRINT_VECTOR_ROAD_SCALE).toFixed(1) + ',' + (6 * PRINT_VECTOR_ROAD_SCALE).toFixed(1);
-  waterways.forEach(way => {
-    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
-    if(latLngs.length < 2) return;
-    const weight = waterwayWeight(way.waterway) * PRINT_VECTOR_ROAD_SCALE;
-    L.polyline(latLngs, {
-      pane,
-      color:WATERWAY_CASING_COLOR,
-      weight:weight + (2.6 * PRINT_VECTOR_ROAD_SCALE),
-      opacity:.95,
-      lineCap:'round',
-      lineJoin:'round',
-      interactive:false
-    }).addTo(targetMap);
-    L.polyline(latLngs, {
-      pane,
-      color:WATERWAY_COLOR,
-      weight,
-      opacity:1,
-      lineCap:'round',
-      lineJoin:'round',
-      dashArray:way.intermittent ? dash : null,
-      interactive:false
-    }).addTo(targetMap);
-  });
-}
 
 function drawPrintManualRivers(targetMap, loc){
   if(!targetMap || !loc) return;
@@ -5081,68 +4912,84 @@ async function imprimir(){
     printMap.getPane('territoryPoiPane').style.zIndex = 560;
     printMap.getPane('territoryPoiPane').style.pointerEvents = 'none';
     printMap.getPane('territoryPoiPane').classList.add('territory-poi-pane');
-    // El fondo va sin letras: los nombres los dibujamos nosotros mas arriba,
-    // encima del color de la zona. Carto Claro en vez de Voyager porque es
-    // plano, sin el sombreado 3D de los edificios.
-    const fuenteImpresion = TILES['carto-light'];
-    const opcionesTesela = {
-      maxZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
-      maxNativeZoom:fuenteImpresion.maxZ || PRINT_MAX_ZOOM,
-      subdomains:fuenteImpresion.sub || '',
-      tileSize:256,
-      keepBuffer:6,
-      updateWhenIdle:false
+    // Se imprime con el mismo mapa que se esta viendo en pantalla.
+    const anadirTeselas = (fuente, opciones = {}) => {
+      const opcionesCapa = {
+        maxZoom:fuente.maxZ || PRINT_MAX_ZOOM,
+        maxNativeZoom:fuente.maxZ || PRINT_MAX_ZOOM,
+        subdomains:fuente.sub || '',
+        attribution:opciones.attribution ?? fuente.attr ?? '',
+        opacity:opciones.opacity ?? 1,
+        tileSize:256,
+        keepBuffer:8,
+        updateWhenIdle:false
+      };
+      if(opciones.pane) opcionesCapa.pane = opciones.pane;
+      return L.tileLayer(getPrintTileUrl(fuente), opcionesCapa).addTo(printMap);
     };
-    const capaFondo = L.tileLayer(getPrintTileUrl(fuenteImpresion, { noLabels:true }), {
-      ...opcionesTesela,
-      attribution:fuenteImpresion.attr || ''
-    }).addTo(printMap);
+    // Con recorte de zonas el fondo va invisible: lo unico que se ve del mapa
+    // es la capa de detalle que se multiplica sobre el color, y eso es lo que
+    // deja las calles marcadas finitas con el tono de su zona.
+    const opacidadFondo = usingColorMask ? 0 : 1;
+    let capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
     drawPrintColorAreas(printMap, loc);
+    let capaDetalle = usingColorMask ? anadirTeselas(src, {
+      attribution:'',
+      opacity:PRINT_DETAIL_RESTORE_OPACITY,
+      pane:'territoryRestorePane'
+    }) : null;
     if(usingColorMask){
       drawPrintColorAreaOutlines(printMap, loc);
     }else{
       L.rectangle(bounds, {
         color:'#0f7a3b',
-        weight:2.5 * PRINT_VECTOR_ROAD_SCALE,
-        dashArray:(8 * PRINT_VECTOR_ROAD_SCALE) + ',' + (5 * PRINT_VECTOR_ROAD_SCALE),
-        fill:false
+        weight:2.5 * PRINT_RENDER_SCALE,
+        dashArray:(8 * PRINT_RENDER_SCALE) + ',' + (5 * PRINT_RENDER_SCALE),
+        fillColor:'#1f7a47',
+        fillOpacity:.025
       }).addTo(printMap);
     }
+    drawPrintTextLabels(printMap, loc);
+    drawPrintManualRivers(printMap, loc);
+    drawPrintManualWhiteRoads(printMap, loc);
+    drawPrintManualIcons(printMap, loc);
 
     const frameMap = () => {
       printMap.invalidateSize();
       printMap.fitBounds(bounds, {
         padding:[18 * PRINT_RENDER_SCALE, 18 * PRINT_RENDER_SCALE],
-        maxZoom:Math.min(fuenteImpresion.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM),
+        maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM),
         animate:false
       });
     };
     printMap.whenReady(frameMap);
     frameMap();
     $('print-wait-text').textContent = 'Cargando el mapa de fondo...';
-    const estado = await waitForPrintTiles(capaFondo, 120000);
+    let estado = await waitForPrintTiles(capaFondo, PRINT_TILE_TIMEOUT_MS);
+    // Si el mapa elegido no responde se cae al de respaldo antes que sacar una
+    // hoja en blanco.
+    if(!estado.loaded && src.downloadAs && TILES[src.downloadAs]?.downloadable){
+      printMap.removeLayer(capaFondo);
+      if(capaDetalle) printMap.removeLayer(capaDetalle);
+      src = TILES[src.downloadAs];
+      const creditoPie = document.querySelector('.print-ftr span');
+      if(creditoPie) creditoPie.textContent = (src.attr || '') + ' \u00b7 INEGI CPV 2010 / cartograf\u00eda base en l\u00ednea 2026';
+      $('print-wait-text').textContent = 'El mapa elegido no cargo. Preparando el de respaldo...';
+      capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
+      capaDetalle = usingColorMask ? anadirTeselas(src, {
+        attribution:'',
+        opacity:PRINT_DETAIL_RESTORE_OPACITY,
+        pane:'territoryRestorePane'
+      }) : null;
+      estado = await waitForPrintTiles(capaFondo, PRINT_TILE_TIMEOUT_MS);
+    }
+    if(capaDetalle) await waitForPrintTiles(capaDetalle, 45000);
     if(!estado.loaded){
       throw new Error('No se pudieron cargar las teselas del mapa para imprimir.');
     }
 
     frameMap();
-    await new Promise(resolve => setTimeout(resolve, 120));
-    // Los rios de OpenStreetMap se siguen marcando encima del mapa; se usan los
-    // ya guardados del territorio, sin volver a consultar.
-    const riosPlano = (readOverpassCache(loc, 'roads') || []).filter(isWaterway);
-    drawPrintWaterways(printMap, riosPlano);
-    const ocupadas = [];
-    drawPrintTextLabels(printMap, loc, ocupadas);
-    // Los lugares guardados del territorio, con su icono
-    drawPrintReferences(printMap, readOverpassCache(loc, 'refs') || [], loc, ocupadas);
-    // Los nombres de calle los ponemos nosotros: asi salen todos los que OSM
-    // conoce y con el color que queremos, no los pocos que rotula la tesela.
-    drawPrintVectorRoadLabels(printMap, readOverpassCache(loc, 'roads') || [], ocupadas);
-    $('print-wait-text').textContent = 'Preparando detalles manuales...';
-    drawPrintManualRivers(printMap, loc);
-    drawPrintManualWhiteRoads(printMap, loc);
-    drawPrintManualIcons(printMap, loc);
-    if(hasColorExportMask(loc)){
+    if(usingColorMask){
       $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
       renderPrintColorMask(printMap, loc);
     }
