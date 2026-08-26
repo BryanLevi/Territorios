@@ -191,7 +191,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .print-sheet{display:none}
 .print-sheet.is-open{position:fixed;inset:0;z-index:9000;background:#e8efeb;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:12px}
 body.print-preview{overflow:hidden}
-.print-paper{width:297mm;height:210mm;min-width:297mm;background:#fff;color:#17251c;display:grid;grid-template-rows:15mm 189mm 6mm;box-shadow:0 18px 48px rgba(0,0,0,.24)}
+.print-paper{width:297mm;height:210mm;min-width:297mm;background:#fff;color:#17251c;display:grid;grid-template-rows:15mm 189mm;box-shadow:0 18px 48px rgba(0,0,0,.24)}
 .print-hdr{height:15mm;background:#fff;color:#17251c;display:flex;align-items:center;gap:5mm;padding:0 4mm;border-bottom:1.2mm solid #1f7a47}
 .print-badge{color:#145b32;border:1.2px solid #1f7a47;border-radius:999px;padding:1.35mm 3.7mm;font-size:10px;font-weight:900;white-space:nowrap}
 .print-title{font-size:18px;font-weight:900;line-height:1.05;flex:1;min-width:0;color:#102419}
@@ -199,7 +199,6 @@ body.print-preview{overflow:hidden}
 .print-color-mask{position:absolute;pointer-events:none}
 .print-map-stage{width:297mm;height:189mm;position:relative;overflow:hidden;background:#eef3ef}
 #print-map{width:var(--print-map-w,100%);height:var(--print-map-h,100%);position:absolute;left:0;top:0;background:#eef3ef;transform:scale(var(--print-map-scale,1));transform-origin:top left}
-.print-ftr{height:6mm;background:#fff;border-top:1px solid #d7e2dc;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4mm;color:#43544b;font-size:6.6px;white-space:nowrap}
 .print-sheet .leaflet-control-container{display:none!important}
 .print-wait{position:absolute;inset:0;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;z-index:2}
 .print-panel{border:1px solid #d6e1db;border-radius:8px;background:#fff;padding:18px 22px;text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.14)}
@@ -4587,16 +4586,6 @@ function navigate(delta){
   goTo((currentIndex + delta + LOCS.length) % LOCS.length);
 }
 
-function printSheetCredits(src){
-  // La hoja mezcla dos mapas: los nombres del elegido y la textura de Carto
-  // cuando el elegido no publica teselas sin letras. Se acreditan los dos.
-  const creditos = [String(src?.attr || '').trim()];
-  if(!(src?.noLabelUrl || src?.dlNoLabelUrl)){
-    const textura = String(TILES['carto-voyager']?.attr || '').trim();
-    if(textura && !creditos.includes(textura)) creditos.push(textura);
-  }
-  return creditos.filter(Boolean).join(' \u00b7 ');
-}
 
 function choosePrintRenderScale(loc, bounds, src){
   if(!window.L || !bounds?.isValid?.()) return PRINT_RENDER_SCALE_MAX;
@@ -4614,19 +4603,31 @@ function choosePrintRenderScale(loc, bounds, src){
   return Math.max(PRINT_RENDER_SCALE_MIN, Math.min(PRINT_RENDER_SCALE_MAX, escala));
 }
 
-function buildPrintSheetMarkup(loc, src){
+// Lo que dice el distintivo de la cabecera. Cuando el territorio esta
+// dividido se anade cuantos trozos tiene y en que numeros van, para poder
+// seguir la numeracion de una hoja a la siguiente.
+function printBadgeText(loc){
+  const base = 'Territorio #' + displayTerritoryNumber(loc);
+  const numeros = subterritoriosDeLoc(loc);
+  if(numeros.length < 2) return base;
+  const seguidos = numeros.every((n, i) => i === 0 || n === numeros[i - 1] + 1);
+  const cuales = seguidos
+    ? numeros[0] + ' al ' + numeros[numeros.length - 1]
+    : numeros.join(', ');
+  return base + ' · ' + numeros.length + ' subterritorios (' + cuales + ')';
+}
+
+function buildPrintSheetMarkup(loc){
   const fecha = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
-  const title = displayTerritoryNumber(loc) + ' - ' + displayTerritoryName(loc);
   const exportMode = hasColorExportMask(loc) ? 'Solo zonas coloreadas' : 'Recuadro completo';
   return `
 <main class="print-paper">
   <div class="print-hdr">
-    <span class="print-badge">Territorio #${displayTerritoryNumber(loc)}</span>
+    <span class="print-badge">${escapeHtml(printBadgeText(loc))}</span>
     <div class="print-title">${escapeHtml(displayTerritoryTitle(loc))}</div>
     <div class="print-meta">Localidad: ${escapeHtml(loc.alias ? loc.name + ' / ' + loc.alias : loc.name)}<br>Municipio: ${escapeHtml(loc.municipio)}<br>${escapeHtml(loc.estado)}<br>${formatCoords(loc)} &middot; ${escapeHtml(fecha)}</div>
   </div>
   <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${printMapW()}px;--print-map-h:${printMapH()}px;--print-map-scale:${1 / printRenderScale}"><div id="print-map"></div></div>
-  <div class="print-ftr"><span>${escapeHtml(printSheetCredits(src))} &middot; INEGI CPV 2010 / cartografía base en línea 2026</span><span>Predicación 2026 &middot; ${escapeHtml(title)}</span></div>
 </main>
 <div class="print-wait" id="print-wait">
   <div class="print-panel">
@@ -5055,7 +5056,7 @@ async function imprimir(){
   sheet.id = 'print-sheet';
   sheet.className = 'print-sheet is-open';
   sheet.setAttribute('aria-live', 'polite');
-  sheet.innerHTML = buildPrintSheetMarkup(loc, src);
+  sheet.innerHTML = buildPrintSheetMarkup(loc);
   document.body.appendChild(sheet);
   document.body.classList.add('print-preview');
 
@@ -5200,8 +5201,6 @@ async function imprimir(){
       if(capaDetalle) printMap.removeLayer(capaDetalle);
       src = TILES[src.downloadAs];
       printRenderScale = choosePrintRenderScale(loc, bounds, src);
-      const creditoPie = document.querySelector('.print-ftr span');
-      if(creditoPie) creditoPie.textContent = printSheetCredits(src) + ' \u00b7 INEGI CPV 2010 / cartograf\u00eda base en l\u00ednea 2026';
       $('print-wait-text').textContent = 'El mapa elegido no cargo. Preparando el de respaldo...';
       capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
       capaDetalle = usingColorMask ? anadirTeselas(src.noLabelUrl || src.dlNoLabelUrl ? src : TILES['carto-voyager'], {
