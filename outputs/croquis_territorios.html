@@ -541,7 +541,13 @@ const APP_BUILD = 'github-sync-backup-2026-07-01-18';
 const DETAIL_ZOOM = 20;
 const DETAIL_PAD = 2;
 const PRINT_ASPECT = 297 / 189;
-const PRINT_RENDER_SCALE = 18;
+// El techo de resolucion, el de siempre. Los territorios grandes lo usan.
+const PRINT_RENDER_SCALE_MAX = 18;
+// El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
+// porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
+const PRINT_RENDER_SCALE_MIN = 3;
+// La que se esta usando en la hoja que se dibuja ahora mismo.
+let printRenderScale = PRINT_RENDER_SCALE_MAX;
 const PRINT_DETAIL_RESTORE_OPACITY = 1;
 const PRINT_TILE_TIMEOUT_MS = 180000;
 // La capa de nombres se saca un nivel de zoom mas abajo y se dibuja en celdas
@@ -551,11 +557,13 @@ const PRINT_TILE_TIMEOUT_MS = 180000;
 const PRINT_NAME_ZOOM_OFFSET = -1;
 const PRINT_NAME_TILE_SIZE = 512;
 const PRINT_MAX_ZOOM = 20;
-const PRINT_VECTOR_ROAD_SCALE = PRINT_RENDER_SCALE * .28;
-const PRINT_MANUAL_ICON_SCALE = PRINT_RENDER_SCALE * .42;
-const PRINT_REFERENCE_SCALE = PRINT_RENDER_SCALE * .32;
-const PRINT_MAP_W = 1123 * PRINT_RENDER_SCALE;
-const PRINT_MAP_H = 714 * PRINT_RENDER_SCALE;
+// Todo esto son proporciones de la escala, asi que al dividir la hoja entre
+// la escala vuelven a su tamano de siempre en el papel.
+const printVectorRoadScale = () => printRenderScale * .28;
+const printManualIconScale = () => printRenderScale * .42;
+const printReferenceScale = () => printRenderScale * .32;
+const printMapW = () => 1123 * printRenderScale;
+const printMapH = () => 714 * printRenderScale;
 const ROAD_OVERLAY_OPACITY = .96;
 const VECTOR_ROAD_LABEL_OPACITY = .98;
 const WATERWAY_KINDS = 'river|stream|canal|ditch|drain';
@@ -2483,7 +2491,7 @@ function referenceLabelHtml(ref, printMode = false, escala = 1, mostrarNombre = 
   const text = referenceLabelText(ref);
   const prefix = printMode ? 'print' : 'runtime';
   const scaleStyle = printMode
-    ? ' style="--print-label-scale:' + (escala !== 1 ? escala : PRINT_RENDER_SCALE) + '"'
+    ? ' style="--print-label-scale:' + (escala !== 1 ? escala : printRenderScale) + '"'
     : (escala !== 1 ? ' style="--ref-scale:' + escala + '"' : '');
   const title = text ? ' title="' + escapeHtml(text) + '"' : '';
   const nameHtml = printMode && text && mostrarNombre ? '<span class="' + prefix + '-reference-name">' + escapeHtml(text) + '</span>' : '';
@@ -4587,6 +4595,22 @@ function printSheetCredits(src){
   return creditos.filter(Boolean).join(' \u00b7 ');
 }
 
+function choosePrintRenderScale(loc, bounds, src){
+  if(!window.L || !bounds?.isValid?.()) return PRINT_RENDER_SCALE_MAX;
+  const zoomTope = Math.min(src?.maxZ || PRINT_MAX_ZOOM, loc?.printMaxZoom || PRINT_MAX_ZOOM);
+  const noroeste = L.CRS.EPSG3857.latLngToPoint(bounds.getNorthWest(), zoomTope);
+  const sureste = L.CRS.EPSG3857.latLngToPoint(bounds.getSouthEast(), zoomTope);
+  const anchoPx = Math.abs(sureste.x - noroeste.x);
+  const altoPx = Math.abs(sureste.y - noroeste.y);
+  if(!anchoPx || !altoPx) return PRINT_RENDER_SCALE_MAX;
+  // Cuanta escala cabe sin pedirle al mapa mas zoom del que tiene. Se
+  // descuentan los margenes que deja fitBounds a los dos lados.
+  const cabeDeAncho = anchoPx / (1123 - 36);
+  const cabeDeAlto = altoPx / (714 - 36);
+  const escala = Math.min(cabeDeAncho, cabeDeAlto);
+  return Math.max(PRINT_RENDER_SCALE_MIN, Math.min(PRINT_RENDER_SCALE_MAX, escala));
+}
+
 function buildPrintSheetMarkup(loc, src){
   const fecha = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
   const title = displayTerritoryNumber(loc) + ' - ' + displayTerritoryName(loc);
@@ -4598,7 +4622,7 @@ function buildPrintSheetMarkup(loc, src){
     <div class="print-title">${escapeHtml(displayTerritoryTitle(loc))}</div>
     <div class="print-meta">Localidad: ${escapeHtml(loc.alias ? loc.name + ' / ' + loc.alias : loc.name)}<br>Municipio: ${escapeHtml(loc.municipio)}<br>${escapeHtml(loc.estado)}<br>${formatCoords(loc)} &middot; ${escapeHtml(fecha)}</div>
   </div>
-  <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${PRINT_MAP_W}px;--print-map-h:${PRINT_MAP_H}px;--print-map-scale:${1 / PRINT_RENDER_SCALE}"><div id="print-map"></div></div>
+  <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${printMapW()}px;--print-map-h:${printMapH()}px;--print-map-scale:${1 / printRenderScale}"><div id="print-map"></div></div>
   <div class="print-ftr"><span>${escapeHtml(printSheetCredits(src))} &middot; INEGI CPV 2010 / cartografía base en línea 2026</span><span>Predicación 2026 &middot; ${escapeHtml(title)}</span></div>
 </main>
 <div class="print-wait" id="print-wait">
@@ -4631,7 +4655,7 @@ function drawPrintColorAreaOutlines(targetMap, loc){
     if(latLngs.length < 3) return;
     L.polygon(latLngs, {
       color:sanitizeColor(area.color),
-      weight:.65 * PRINT_RENDER_SCALE,
+      weight:.65 * printRenderScale,
       opacity:.82,
       fill:false,
       interactive:false,
@@ -4647,7 +4671,7 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
     if(!String(label.text || '').trim() || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
     // El numero de zona aparta su hueco: los nombres de calle lo rodean.
     if(ocupadas){
-      const tam = Math.max(13, Math.min(38, Number(label.size) || 22)) * PRINT_RENDER_SCALE;
+      const tam = Math.max(13, Math.min(38, Number(label.size) || 22)) * printRenderScale;
       const punto = targetMap.latLngToLayerPoint([lat, lng]);
       const ancho = Math.max(tam, String(label.text).trim().length * tam * .68) + tam * .6;
       const alto = tam * 1.7;
@@ -4655,7 +4679,7 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
     }
     L.marker([lat, lng], {
       interactive:false,
-      icon:createTextIcon(label, false, PRINT_RENDER_SCALE)
+      icon:createTextIcon(label, false, printRenderScale)
     }).addTo(targetMap);
   });
 }
@@ -4720,10 +4744,10 @@ function drawPrintReferences(targetMap, references, loc, ocupadas, zonas){
     if(isCoveredByManualIcon(ref, iconosPropios)) return;
     const punto = targetMap.latLngToLayerPoint([lat, lng]);
     if(!isInsidePrintZones(zonas, punto)) return;
-    const ancho = 52 * PRINT_REFERENCE_SCALE;
-    const alto = 52 * PRINT_REFERENCE_SCALE;
+    const ancho = 52 * printReferenceScale();
+    const alto = 52 * printReferenceScale();
     const caja = { left:punto.x - ancho / 2, right:punto.x + ancho / 2, top:punto.y - alto / 2, bottom:punto.y + alto / 2 };
-    if(!canPlaceLabel(caja, colocadas, 1.5 * PRINT_REFERENCE_SCALE)) return;
+    if(!canPlaceLabel(caja, colocadas, 1.5 * printReferenceScale())) return;
     colocadas.push(caja);
     comunes.push(caja);
     L.marker([lat, lng], {
@@ -4732,7 +4756,7 @@ function drawPrintReferences(targetMap, references, loc, ocupadas, zonas){
       zIndexOffset:1000,
       icon:L.divIcon({
         className:'print-reference-marker',
-        html:referenceLabelHtml(ref, true, PRINT_REFERENCE_SCALE, false),
+        html:referenceLabelHtml(ref, true, printReferenceScale(), false),
         iconSize:[0,0],
         iconAnchor:[0,0]
       })
@@ -4748,7 +4772,7 @@ function drawPrintManualIcons(targetMap, loc){
     L.marker([lat, lng], {
       interactive:false,
       zIndexOffset:1300,
-      icon:createManualIcon(icon, false, PRINT_MANUAL_ICON_SCALE)
+      icon:createManualIcon(icon, false, printManualIconScale())
     }).addTo(targetMap);
   });
 }
@@ -4759,7 +4783,7 @@ function drawPrintManualRivers(targetMap, loc){
   const pane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
   getManualRiversForLoc(loc).forEach(river => {
     const latLngs = pointsToLatLngs(river.points);
-    drawManualRiverPolyline(targetMap, latLngs, river.width, pane, PRINT_VECTOR_ROAD_SCALE);
+    drawManualRiverPolyline(targetMap, latLngs, river.width, pane, printVectorRoadScale());
   });
 }
 
@@ -4768,7 +4792,7 @@ function drawPrintManualWhiteRoads(targetMap, loc){
   const roadPane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
   getWhiteRoadsForLoc(loc).forEach(road => {
     const latLngs = pointsToLatLngs(road.points);
-    drawWhiteRoadPolyline(targetMap, latLngs, road.width, roadPane, PRINT_VECTOR_ROAD_SCALE);
+    drawWhiteRoadPolyline(targetMap, latLngs, road.width, roadPane, printVectorRoadScale());
   });
 }
 
@@ -4846,7 +4870,7 @@ function renderPrintColorMask(targetMap, loc){
     polygon.setAttribute('points', points.join(' '));
     polygon.setAttribute('fill', '#000');
     polygon.setAttribute('stroke', '#000');
-    polygon.setAttribute('stroke-width', String(3 * PRINT_RENDER_SCALE));
+    polygon.setAttribute('stroke-width', String(3 * printRenderScale));
     polygon.setAttribute('stroke-linejoin', 'round');
     polygon.setAttribute('stroke-linecap', 'round');
     mask.appendChild(polygon);
@@ -5014,6 +5038,13 @@ async function imprimir(){
   document.title = displayTerritoryTitle(loc).replace(' / ', ' - ') + ' - Croquis 2026';
   $('btn-pr').disabled = true;
 
+  // El encuadre primero: de su tamano sale la resolucion de la hoja, y de la
+  // resolucion sale el tamano del lienzo que se arma justo despues.
+  const plainBounds = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+  const bounds = L.latLngBounds([plainBounds.south, plainBounds.west], [plainBounds.north, plainBounds.east]);
+  printRenderScale = choosePrintRenderScale(loc, bounds, src);
+  console.info('Croquis: resolucion', printRenderScale.toFixed(2), 'para', loc.name);
+
   const sheet = document.createElement('section');
   sheet.id = 'print-sheet';
   sheet.className = 'print-sheet is-open';
@@ -5030,8 +5061,6 @@ async function imprimir(){
   try{
     await new Promise(resolve => requestAnimationFrame(resolve));
     const usingColorMask = hasColorExportMask(loc);
-    const plainBounds = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
-    const bounds = L.latLngBounds([plainBounds.south, plainBounds.west], [plainBounds.north, plainBounds.east]);
     printMap = L.map('print-map', {
       zoomControl:false,
       attributionControl:false,
@@ -5133,8 +5162,8 @@ async function imprimir(){
     }else{
       L.rectangle(bounds, {
         color:'#0f7a3b',
-        weight:2.5 * PRINT_RENDER_SCALE,
-        dashArray:(8 * PRINT_RENDER_SCALE) + ',' + (5 * PRINT_RENDER_SCALE),
+        weight:2.5 * printRenderScale,
+        dashArray:(8 * printRenderScale) + ',' + (5 * printRenderScale),
         fillColor:'#1f7a47',
         fillOpacity:.025
       }).addTo(printMap);
@@ -5146,7 +5175,7 @@ async function imprimir(){
     const frameMap = () => {
       printMap.invalidateSize();
       printMap.fitBounds(bounds, {
-        padding:[18 * PRINT_RENDER_SCALE, 18 * PRINT_RENDER_SCALE],
+        padding:[18 * printRenderScale, 18 * printRenderScale],
         maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM),
         animate:false
       });
@@ -5161,6 +5190,7 @@ async function imprimir(){
       printMap.removeLayer(capaFondo);
       if(capaDetalle) printMap.removeLayer(capaDetalle);
       src = TILES[src.downloadAs];
+      printRenderScale = choosePrintRenderScale(loc, bounds, src);
       const creditoPie = document.querySelector('.print-ftr span');
       if(creditoPie) creditoPie.textContent = printSheetCredits(src) + ' \u00b7 INEGI CPV 2010 / cartograf\u00eda base en l\u00ednea 2026';
       $('print-wait-text').textContent = 'El mapa elegido no cargo. Preparando el de respaldo...';
