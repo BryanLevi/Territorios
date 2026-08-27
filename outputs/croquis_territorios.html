@@ -5154,7 +5154,10 @@ async function imprimir(){
       urlNombres += '&scale=2';
     }
     let capaNombres = null;
-    if(usingColorMask && urlNombres){
+    // Tambien en los territorios sin pintar: antes la capa solo se anadia
+    // cuando habia recorte de color, asi que Cruz Verde salia sin un solo
+    // nombre de calle.
+    if(urlNombres){
       capaNombres = L.tileLayer(urlNombres, {
         maxZoom:src.maxZ || PRINT_MAX_ZOOM,
         maxNativeZoom:src.maxZ || PRINT_MAX_ZOOM,
