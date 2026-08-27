@@ -546,6 +546,12 @@ const PRINT_ZONE_NUMBER_BOOST = 1.5;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
 const PRINT_BACKGROUND_BLUR = .38;
+// Cuanto se ensancha cada hueco del recorte blanco, en pixeles de hoja. Es el
+// trazo del poligono, que va centrado, asi que el margen real es la mitad.
+// El recorte va por encima de la capa de nombres, y con el margen de antes
+// (3, o sea .4 mm) los nombres pegados al borde se cortaban a media palabra.
+// Con 48 quedan unos 6 mm de aire y alcanzan a terminarse.
+const PRINT_MASK_GROW = 48;
 const PRINT_RENDER_SCALE_MAX = 18;
 // El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
 // porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
@@ -4871,7 +4877,7 @@ function renderPrintColorMask(targetMap, loc){
     polygon.setAttribute('points', points.join(' '));
     polygon.setAttribute('fill', '#000');
     polygon.setAttribute('stroke', '#000');
-    polygon.setAttribute('stroke-width', String(3 * printRenderScale));
+    polygon.setAttribute('stroke-width', String(PRINT_MASK_GROW * printRenderScale));
     polygon.setAttribute('stroke-linejoin', 'round');
     polygon.setAttribute('stroke-linecap', 'round');
     mask.appendChild(polygon);
