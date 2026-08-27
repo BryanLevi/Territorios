@@ -546,10 +546,15 @@ const PRINT_ZONE_NUMBER_BOOST = 1.5;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
 const PRINT_BACKGROUND_BLUR = .38;
-// Cuanto se ensancha el hueco del recorte blanco, en pixeles de hoja. Va
-// pegado a las zonas: fuera del territorio la hoja queda limpia, y lo que
-// salga de ahi, nombres incluidos, no se ve.
-const PRINT_MASK_GROW = 3;
+// La hoja lleva dos recortes blancos, y de ahi las dos medidas. Son el trazo
+// del poligono, que va centrado, asi que el aire real es la mitad.
+// El de abajo tapa el mapa de fondo y va pegado a las zonas: el verde del
+// campo sale de esa capa, asi que no asoma nada alrededor del territorio.
+const PRINT_MASK_GROW_FONDO = 3;
+// El de arriba tapa la capa de nombres y deja unos 3 mm, lo justo para que un
+// nombre que empieza dentro alcance a terminarse. En esa franja solo asoma el
+// trazo fino de la calle, sobre blanco.
+const PRINT_MASK_GROW_NOMBRES = 24;
 const PRINT_RENDER_SCALE_MAX = 18;
 // El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
 // porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
@@ -4824,12 +4829,12 @@ function getPrintRoadLabelPlacement(targetMap, latLngs){
 
 // Recorte del croquis: todo lo que quede fuera de las zonas pintadas se tapa
 // en blanco, para que la hoja muestre solo el territorio y no el resto del pueblo.
-function renderPrintColorMask(targetMap, loc){
+function renderPrintColorMask(targetMap, loc, opciones = {}){
   const container = targetMap?.getContainer?.();
   if(!container) return;
   // Va en su propio carril: colgado suelto del contenedor taparia el mapa
   // entero sin respetar el orden de carriles.
-  const destino = targetMap.getPane('territoryMaskPane') || container;
+  const destino = targetMap.getPane(opciones.pane || 'territoryMaskPane') || container;
   destino.querySelectorAll?.('.print-color-mask').forEach(node => node.remove());
   const areas = getExportColorAreasForLoc(loc);
   if(!areas.length) return;
@@ -4874,7 +4879,7 @@ function renderPrintColorMask(targetMap, loc){
     polygon.setAttribute('points', points.join(' '));
     polygon.setAttribute('fill', '#000');
     polygon.setAttribute('stroke', '#000');
-    polygon.setAttribute('stroke-width', String(PRINT_MASK_GROW * printRenderScale));
+    polygon.setAttribute('stroke-width', String((opciones.grow ?? PRINT_MASK_GROW_NOMBRES) * printRenderScale));
     polygon.setAttribute('stroke-linejoin', 'round');
     polygon.setAttribute('stroke-linecap', 'round');
     mask.appendChild(polygon);
@@ -5099,6 +5104,9 @@ async function imprimir(){
     printMap.getPane('territoryRoadPane').style.zIndex = 540;
     printMap.getPane('territoryRoadPane').style.pointerEvents = 'none';
     printMap.getPane('territoryRoadPane').classList.add('territory-road-pane');
+    printMap.createPane('territoryBaseMaskPane');
+    printMap.getPane('territoryBaseMaskPane').style.zIndex = 530;
+    printMap.getPane('territoryBaseMaskPane').style.pointerEvents = 'none';
     printMap.createPane('territoryMaskPane');
     printMap.getPane('territoryMaskPane').style.zIndex = 545;
     printMap.getPane('territoryMaskPane').style.pointerEvents = 'none';
@@ -5231,7 +5239,10 @@ async function imprimir(){
     drawPrintReferences(printMap, readOverpassCache(loc, 'refs') || [], loc, ocupadas, zonasPintadas);
     if(usingColorMask){
       $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
-      renderPrintColorMask(printMap, loc);
+      // Primero el de abajo, pegado a las zonas, que tapa el mapa de fondo.
+      renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO });
+      // Y encima el de los nombres, con su pizca de aire.
+      renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:PRINT_MASK_GROW_NOMBRES });
     }
     $('print-wait-text').textContent = 'Listo. El territorio se imprimirá desde esta misma hoja.';
     $('print-ready-button').disabled = false;
