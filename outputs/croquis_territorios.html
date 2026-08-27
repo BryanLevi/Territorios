@@ -545,7 +545,7 @@ const PRINT_ASPECT = 297 / 189;
 const PRINT_ZONE_NUMBER_BOOST = 1.5;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
-const PRINT_BACKGROUND_BLUR = .5;
+const PRINT_BACKGROUND_BLUR = .38;
 const PRINT_RENDER_SCALE_MAX = 18;
 // El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
 // porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
@@ -830,7 +830,8 @@ const MANUAL_ICON_OPTIONS = [
   ['Bomberos','Bomberos'],
   ['Terminal','Terminal / bus'],
   ['Correo','Correo'],
-  ['Panteon','Panteon']
+  ['Panteon','Panteon'],
+  ['Puente','Puente sobre rio']
 ];
 let frameScaleSettings = loadFrameScaleSettings();
 let colorAreaSettings = loadColorAreaSettings();
@@ -2364,6 +2365,13 @@ function referenceIconSvg(ref){
   const kind = String(ref?.kind || '').trim();
   const svg = body => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>';
   const letter = value => '<span class="reference-icon-letter">' + escapeHtml(value) + '</span>';
+  if(kind === 'Puente'){
+    // Un puente de arco con el agua debajo
+    return svg('<path d="M3 12.5c0-3.6 3.6-5.5 9-5.5s9 1.9 9 5.5"></path>'
+      + '<path d="M3 12.5h18"></path>'
+      + '<path d="M8.2 12.5V9.4"></path><path d="M15.8 12.5V9.4"></path>'
+      + '<path d="M3 18.2c1.9-1.3 3.6-1.3 5.4 0 1.8 1.3 3.5 1.3 5.4 0 1.8-1.3 3.5-1.3 5.2 0"></path>');
+  }
   if(kind === 'Iglesia'){
     return svg('<path d="M12 3v4"></path><path d="M9 5h6"></path><path d="M5 21h14V10l-7-4-7 4z"></path><path d="M10 21v-5a2 2 0 0 1 4 0v5"></path>');
   }
@@ -4633,7 +4641,7 @@ function drawPrintColorAreas(targetMap, loc){
   getExportColorAreasForLoc(loc).forEach(area => {
     const latLngs = pointsToLatLngs(area.points);
     if(latLngs.length < 3) return;
-    const printFillOpacity = Math.max(.5, Math.min(.72, getRenderedColorOpacity(area.opacity) + .08));
+    const printFillOpacity = Math.max(.44, Math.min(.66, getRenderedColorOpacity(area.opacity) + .02));
     L.polygon(latLngs, {
       ...colorAreaStyle(area, 1, false),
       fillOpacity:printFillOpacity,
