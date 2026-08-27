@@ -546,12 +546,14 @@ const PRINT_ZONE_NUMBER_BOOST = 1.5;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
 const PRINT_BACKGROUND_BLUR = .38;
-// Cuanto se ensancha cada hueco del recorte blanco, en pixeles de hoja. Es el
-// trazo del poligono, que va centrado, asi que el margen real es la mitad.
-// El recorte va por encima de la capa de nombres, y con el margen de antes
-// (3, o sea .4 mm) los nombres pegados al borde se cortaban a media palabra.
-// Con 48 quedan unos 6 mm de aire y alcanzan a terminarse.
-const PRINT_MASK_GROW = 48;
+// La hoja lleva dos recortes blancos, y por eso son dos medidas.
+// El de abajo tapa el mapa de fondo y va pegado a las zonas: asi no asoma el
+// verde del campo alrededor del territorio.
+const PRINT_MASK_GROW_FONDO = 3;
+// El de arriba tapa la capa de nombres y va mas ancho, unos 6 mm, para que un
+// nombre pegado al borde alcance a terminarse. En esa franja solo asoman las
+// lineas de calle de esa capa, que van sobre blanco.
+const PRINT_MASK_GROW_NOMBRES = 48;
 const PRINT_RENDER_SCALE_MAX = 18;
 // El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
 // porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
@@ -4826,14 +4828,13 @@ function getPrintRoadLabelPlacement(targetMap, latLngs){
 
 // Recorte del croquis: todo lo que quede fuera de las zonas pintadas se tapa
 // en blanco, para que la hoja muestre solo el territorio y no el resto del pueblo.
-function renderPrintColorMask(targetMap, loc){
+function renderPrintColorMask(targetMap, loc, opciones = {}){
   const container = targetMap?.getContainer?.();
   if(!container) return;
-  container.querySelectorAll('.print-color-mask').forEach(node => node.remove());
-  // Va en su propio carril, por debajo de los nombres: si fuera hijo suelto
-  // del contenedor taparia el mapa entero y cortaria los rotulos que cruzan
-  // el borde de una zona.
-  const destino = targetMap.getPane('territoryMaskPane') || container;
+  // Cada recorte vive en su carril y solo limpia el suyo. Colgado del
+  // contenedor taparia el mapa entero sin respetar el orden de carriles.
+  const destino = targetMap.getPane(opciones.pane || 'territoryMaskPane') || container;
+  destino.querySelectorAll?.('.print-color-mask').forEach(node => node.remove());
   const areas = getExportColorAreasForLoc(loc);
   if(!areas.length) return;
   const size = targetMap.getSize();
@@ -4877,7 +4878,7 @@ function renderPrintColorMask(targetMap, loc){
     polygon.setAttribute('points', points.join(' '));
     polygon.setAttribute('fill', '#000');
     polygon.setAttribute('stroke', '#000');
-    polygon.setAttribute('stroke-width', String(PRINT_MASK_GROW * printRenderScale));
+    polygon.setAttribute('stroke-width', String((opciones.grow ?? PRINT_MASK_GROW_NOMBRES) * printRenderScale));
     polygon.setAttribute('stroke-linejoin', 'round');
     polygon.setAttribute('stroke-linecap', 'round');
     mask.appendChild(polygon);
@@ -5102,6 +5103,9 @@ async function imprimir(){
     printMap.getPane('territoryRoadPane').style.zIndex = 540;
     printMap.getPane('territoryRoadPane').style.pointerEvents = 'none';
     printMap.getPane('territoryRoadPane').classList.add('territory-road-pane');
+    printMap.createPane('territoryBaseMaskPane');
+    printMap.getPane('territoryBaseMaskPane').style.zIndex = 530;
+    printMap.getPane('territoryBaseMaskPane').style.pointerEvents = 'none';
     printMap.createPane('territoryMaskPane');
     printMap.getPane('territoryMaskPane').style.zIndex = 545;
     printMap.getPane('territoryMaskPane').style.pointerEvents = 'none';
@@ -5234,7 +5238,10 @@ async function imprimir(){
     drawPrintReferences(printMap, readOverpassCache(loc, 'refs') || [], loc, ocupadas, zonasPintadas);
     if(usingColorMask){
       $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
-      renderPrintColorMask(printMap, loc);
+      // Primero el de abajo, pegado a las zonas, que tapa el mapa de fondo.
+      renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO });
+      // Y encima el de la capa de nombres, mas ancho.
+      renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:PRINT_MASK_GROW_NOMBRES });
     }
     $('print-wait-text').textContent = 'Listo. El territorio se imprimirá desde esta misma hoja.';
     $('print-ready-button').disabled = false;
