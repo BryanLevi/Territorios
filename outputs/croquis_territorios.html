@@ -132,10 +132,12 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .runtime-reference-label,.print-reference-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);max-width:260px;padding:0;border:0!important;background:transparent!important;color:#102018!important;font-family:"Segoe UI",Arial,sans-serif;font-weight:950;line-height:1.04;text-align:left;text-transform:uppercase;white-space:normal;filter:none!important;mix-blend-mode:normal!important;text-shadow:none!important}
 .print-reference-label{gap:calc(5px * var(--print-label-scale,1));width:max-content;max-width:calc(360px * var(--print-label-scale,1))}
 .print-reference-name{flex:0 1 auto}
-.runtime-reference-icon,.print-reference-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px;box-shadow:0 0 0 2px rgba(255,255,255,.96),0 3px 8px rgba(0,0,0,.25)}
+.runtime-reference-icon,.print-reference-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;background:none;color:#fff;border:0;border-radius:0;box-shadow:none}
 .runtime-reference-icon{width:calc(31px * var(--ref-scale,1));height:calc(31px * var(--ref-scale,1));border-width:calc(2px * var(--ref-scale,1));border-radius:calc(5px * var(--ref-scale,1))}
 .print-reference-icon{width:calc(46px * var(--print-label-scale,1));height:calc(46px * var(--print-label-scale,1));border-width:calc(2.4px * var(--print-label-scale,1));border-radius:calc(8px * var(--print-label-scale,1));box-shadow:0 0 0 calc(2.8px * var(--print-label-scale,1)) rgba(255,255,255,.98),0 calc(3px * var(--print-label-scale,1)) calc(8px * var(--print-label-scale,1)) rgba(0,0,0,.27)}
-.runtime-reference-icon svg,.print-reference-icon svg{width:76%;height:76%;display:block;fill:none;stroke:currentColor}
+.runtime-reference-icon svg,.print-reference-icon svg{width:100%;height:100%;display:block;fill:none;stroke:currentColor}
+/* El filo verde del icono se dibuja dentro del propio SVG, en
+   referenceIconSvg, para que crezca con el. */
 .reference-icon-letter{display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:"Segoe UI",Arial,sans-serif;font-weight:1000;line-height:1}
 .runtime-reference-icon .reference-icon-letter{font-size:calc(15px * var(--ref-scale,1))}
 .print-reference-icon .reference-icon-letter{font-size:calc(16px * var(--print-label-scale,1))}
@@ -153,8 +155,8 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .territory-text-marker{width:auto!important;height:auto!important;overflow:visible!important;z-index:1200!important}
 .manual-icon-select{height:38px;width:142px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;color:#17251c;padding:0 8px;font-size:12px;font-weight:800}
 .manual-icon-select:disabled{opacity:.45}
-.manual-map-icon{width:calc(31px * var(--manual-icon-scale,1));height:calc(31px * var(--manual-icon-scale,1));display:inline-flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);background:#00e51f;color:#fff;border:2px solid #00be19;border-radius:5px;box-shadow:0 0 0 2px rgba(255,255,255,.96),0 3px 8px rgba(0,0,0,.25)}
-.manual-map-icon svg{width:76%;height:76%;display:block;fill:none;stroke:currentColor}
+.manual-map-icon{width:calc(31px * var(--manual-icon-scale,1));height:calc(31px * var(--manual-icon-scale,1));display:inline-flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);background:none;color:#fff;border:0;border-radius:0;box-shadow:none}
+.manual-map-icon svg{width:100%;height:100%;display:block;fill:none;stroke:currentColor}
 .manual-map-icon .reference-icon-letter{font-size:calc(15px * var(--manual-icon-scale,1))}
 .manual-map-icon.is-selected{outline:2px solid #1f7a47;outline-offset:3px}
 .manual-icon-marker{width:auto!important;height:auto!important;overflow:visible!important;z-index:1300!important}
@@ -2373,7 +2375,9 @@ function referenceMarkerShort(ref){
 
 function referenceIconSvg(ref){
   const kind = String(ref?.kind || '').trim();
-  const svg = body => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>';
+  const svg = body => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke-linecap="round" stroke-linejoin="round">'
+    + '<g stroke="#0a8f22" stroke-width="4.2" fill="none">' + body + '</g>'
+    + '<g stroke="currentColor" stroke-width="2.4" fill="none">' + body + '</g></svg>';
   const letter = value => '<span class="reference-icon-letter">' + escapeHtml(value) + '</span>';
   if(kind === 'Puente'){
     // Un puente de arco con el agua debajo
