@@ -196,6 +196,7 @@ body.print-preview{overflow:hidden}
 .print-title{font-size:18px;font-weight:900;line-height:1.05;flex:1;min-width:0;color:#102419}
 .print-meta{text-align:right;font-size:7.4px;line-height:1.25;color:#26372d;white-space:nowrap}
 .print-color-mask{position:absolute;pointer-events:none}
+.print-compass{position:absolute;right:4mm;bottom:4mm;width:13mm;height:15.3mm;z-index:700;pointer-events:none;filter:drop-shadow(0 .3mm .6mm rgba(0,0,0,.22))}
 .print-map-stage{width:297mm;height:189mm;position:relative;overflow:hidden;background:#eef3ef}
 #print-map{width:var(--print-map-w,100%);height:var(--print-map-h,100%);position:absolute;left:0;top:0;background:#eef3ef;transform:scale(var(--print-map-scale,1));transform-origin:top left}
 .print-sheet .leaflet-control-container{display:none!important}
@@ -4624,6 +4625,18 @@ function choosePrintRenderScale(loc, bounds, src){
   return Math.max(PRINT_RENDER_SCALE_MIN, Math.min(PRINT_RENDER_SCALE_MAX, escala));
 }
 
+// La rosa de los vientos de la hoja. Se mide en milimetros y va fuera del
+// mapa, para que salga igual de grande en todos los territorios pase lo que
+// pase con la resolucion de dibujo de cada uno.
+const ROSA_DE_LOS_VIENTOS = `<svg class="print-compass" viewBox="0 0 100 118" aria-hidden="true">
+  <circle cx="50" cy="66" r="33" fill="#fff" fill-opacity=".82" stroke="#2b3a32" stroke-width="2.2"></circle>
+  <path d="M50 33 L61 66 L50 60 L39 66 Z" fill="#17251c"></path>
+  <path d="M50 99 L39 66 L50 72 L61 66 Z" fill="#fff" stroke="#2b3a32" stroke-width="2"></path>
+  <path d="M50 41 v-14" stroke="#2b3a32" stroke-width="2.4" stroke-linecap="round"></path>
+  <text x="50" y="19" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif"
+        font-size="24" font-weight="900" fill="#17251c">N</text>
+</svg>`;
+
 function buildPrintSheetMarkup(loc){
   const fecha = new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
   const exportMode = hasColorExportMask(loc) ? 'Solo zonas coloreadas' : 'Recuadro completo';
@@ -4633,7 +4646,7 @@ function buildPrintSheetMarkup(loc){
     <div class="print-title">${escapeHtml(displayTerritoryName(loc))}</div>
     <div class="print-meta">Localidad: ${escapeHtml(loc.alias ? loc.name + ' / ' + loc.alias : loc.name)}<br>Municipio: ${escapeHtml(loc.municipio)}<br>${escapeHtml(loc.estado)}<br>${formatCoords(loc)} &middot; ${escapeHtml(fecha)}</div>
   </div>
-  <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${printMapW()}px;--print-map-h:${printMapH()}px;--print-map-scale:${1 / printRenderScale}"><div id="print-map"></div></div>
+  <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${printMapW()}px;--print-map-h:${printMapH()}px;--print-map-scale:${1 / printRenderScale}"><div id="print-map"></div>${ROSA_DE_LOS_VIENTOS}</div>
 </main>
 <div class="print-wait" id="print-wait">
   <div class="print-panel">
