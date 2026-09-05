@@ -554,10 +554,12 @@ const PRINT_BACKGROUND_BLUR = .38;
 // El de abajo tapa el mapa de fondo y va pegado a las zonas: el verde del
 // campo sale de esa capa, asi que no asoma nada alrededor del territorio.
 const PRINT_MASK_GROW_FONDO = 3;
-// El de arriba tapa la capa de nombres y deja unos 3 mm, lo justo para que un
-// nombre que empieza dentro alcance a terminarse. En esa franja solo asoma el
-// trazo fino de la calle, sobre blanco.
-const PRINT_MASK_GROW_NOMBRES = 24;
+// La capa de nombres ya no se recorta. Cualquier recorte parte por la mitad
+// el nombre que lo cruce: agrandarlo solo mueve el corte de sitio, y al
+// agrandarlo lo bastante para que no parta nada, entraban flotando los nombres
+// del pueblo de al lado. Sin recorte, alrededor del territorio solo asoman el
+// trazo fino de las calles y algun nombre suelto, que ademas situan el
+// territorio.
 const PRINT_RENDER_SCALE_MAX = 18;
 // El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
 // porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
@@ -4851,7 +4853,7 @@ function renderPrintColorMask(targetMap, loc, opciones = {}){
   if(!container) return;
   // Va en su propio carril: colgado suelto del contenedor taparia el mapa
   // entero sin respetar el orden de carriles.
-  const destino = targetMap.getPane(opciones.pane || 'territoryMaskPane') || container;
+  const destino = targetMap.getPane(opciones.pane || 'territoryBaseMaskPane') || container;
   destino.querySelectorAll?.('.print-color-mask').forEach(node => node.remove());
   const areas = getExportColorAreasForLoc(loc);
   if(!areas.length) return;
@@ -4896,7 +4898,7 @@ function renderPrintColorMask(targetMap, loc, opciones = {}){
     polygon.setAttribute('points', points.join(' '));
     polygon.setAttribute('fill', '#000');
     polygon.setAttribute('stroke', '#000');
-    polygon.setAttribute('stroke-width', String((opciones.grow ?? PRINT_MASK_GROW_NOMBRES) * printRenderScale));
+    polygon.setAttribute('stroke-width', String((opciones.grow ?? 0) * printRenderScale));
     polygon.setAttribute('stroke-linejoin', 'round');
     polygon.setAttribute('stroke-linecap', 'round');
     mask.appendChild(polygon);
@@ -5124,9 +5126,6 @@ async function imprimir(){
     printMap.createPane('territoryBaseMaskPane');
     printMap.getPane('territoryBaseMaskPane').style.zIndex = 530;
     printMap.getPane('territoryBaseMaskPane').style.pointerEvents = 'none';
-    printMap.createPane('territoryMaskPane');
-    printMap.getPane('territoryMaskPane').style.zIndex = 545;
-    printMap.getPane('territoryMaskPane').style.pointerEvents = 'none';
     printMap.createPane('territoryLabelPane');
     printMap.getPane('territoryLabelPane').style.zIndex = 550;
     printMap.getPane('territoryLabelPane').style.pointerEvents = 'none';
@@ -5258,8 +5257,7 @@ async function imprimir(){
       $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
       // Primero el de abajo, pegado a las zonas, que tapa el mapa de fondo.
       renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO });
-      // Y encima el de los nombres, con su pizca de aire.
-      renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:PRINT_MASK_GROW_NOMBRES });
+      // La capa de nombres va sin recortar, para que no se parta ninguno.
     }
     $('print-wait-text').textContent = 'Listo. El territorio se imprimirá desde esta misma hoja.';
     $('print-ready-button').disabled = false;
