@@ -220,6 +220,12 @@ body.print-preview{overflow:hidden}
 .welcome-step b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;background:#1769aa;color:#fff;font-size:12px;flex:0 0 auto}
 .welcome-start{height:44px;padding:0 18px;border:0;border-radius:8px;background:#1769aa;color:#fff;font-weight:900;font-size:14px;cursor:pointer;box-shadow:0 10px 22px rgba(23,105,170,.24)}
 .welcome-start:hover{filter:brightness(1.04);transform:translateY(-1px)}
+.welcome-cong{margin-top:18px;padding-top:16px;border-top:1px solid #dbe6f2;display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center}
+.welcome-cong label{font-size:12px;font-weight:900;color:#0b2945;text-transform:uppercase;letter-spacing:.04em}
+.welcome-cong select{height:36px;padding:0 8px;border:1px solid #b8d2ea;border-radius:7px;background:#fff;font-size:14px;color:#0b2945;max-width:100%}
+.welcome-cong-nueva{grid-column:1 / -1;height:38px;padding:0 14px;border:1px solid #1769aa;border-radius:8px;background:#eef6fd;color:#0b3f6b;font-weight:900;font-size:13px;cursor:pointer}
+.welcome-cong-nueva:hover{background:#dceafa}
+.welcome-cong-nota{grid-column:1 / -1;margin:0;font-size:12.5px;line-height:1.45;color:#4a6579}
 .welcome-guide{padding:28px 28px 26px}
 .welcome-guide h3{margin:0 0 12px;font-size:18px;color:#0b2945}
 .tool-guide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
@@ -323,6 +329,12 @@ body.print-preview{overflow:hidden}
         <div class="welcome-step"><b>3</b><span>Cuando el croquis este listo, usa PDF para preparar la hoja de impresion.</span></div>
       </div>
       <button class="welcome-start" id="welcome-start" type="button">Continuar a generar croquis del territorio</button>
+      <div class="welcome-cong">
+        <label for="welcome-cong-sel">Congregacion</label>
+        <select id="welcome-cong-sel"></select>
+        <button class="welcome-cong-nueva" id="welcome-cong-nueva" type="button">Empezar nueva congregacion</button>
+        <p class="welcome-cong-nota">Cada congregacion lleva su propia lista de territorios. La nueva empieza vacia y sus territorios se agregan con el boton <b>+</b> del mapa.</p>
+      </div>
     </div>
     <div class="welcome-guide">
       <h3>Guia rapida de herramientas</h3>
@@ -786,6 +798,105 @@ const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
 const CUSTOM_TERRITORIES_STORAGE_KEY = 'croquis-custom-territories-v1';
 const HIDDEN_TERRITORIES_STORAGE_KEY = 'croquis-hidden-territories-v1';
+
+// Cada congregacion lleva su propia lista de territorios y su propio trabajo
+// guardado. La primera es la de siempre y se queda con las claves tal cual,
+// sin sufijo, para no mover nada de lo que ya estaba guardado.
+const CONGREGACIONES_STORAGE_KEY = 'croquis-congregaciones-v1';
+const CONGREGACION_ACTIVA_STORAGE_KEY = 'croquis-congregacion-activa-v1';
+const CONGREGACION_BASE_ID = 'ixhuatlan';
+
+// Las claves que son de cada congregacion. Las demas (el token de GitHub, el
+// arreglo suelto de Ixcatla) son del navegador y se quedan como estan.
+const CLAVES_POR_CONGREGACION = [
+  ['colorAreas', COLOR_AREAS_STORAGE_KEY],
+  ['textLabels', TEXT_LABELS_STORAGE_KEY],
+  ['manualIcons', MANUAL_ICONS_STORAGE_KEY],
+  ['whiteRoads', WHITE_ROADS_STORAGE_KEY],
+  ['manualRivers', MANUAL_RIVERS_STORAGE_KEY],
+  ['frameScales', FRAME_SCALE_STORAGE_KEY],
+  ['customTerritories', CUSTOM_TERRITORIES_STORAGE_KEY],
+  ['hiddenTerritories', HIDDEN_TERRITORIES_STORAGE_KEY],
+  ['overpass', OVERPASS_CACHE_STORAGE_KEY],
+  ['hiddenReferences', HIDDEN_REFERENCES_STORAGE_KEY],
+  ['undoHistory', UNDO_HISTORY_STORAGE_KEY]
+];
+
+function claveDe(base, id){
+  return id === CONGREGACION_BASE_ID ? base : base + '::' + id;
+}
+
+function claveCongregacion(base){
+  return claveDe(base, congregacionActivaId);
+}
+
+// Todo lo que es de una congregacion pasa por aqui en vez de ir directo al
+// navegador, que es lo que mantiene separado el trabajo de cada una.
+const almacen = {
+  getItem: clave => localStorage.getItem(claveCongregacion(clave)),
+  setItem: (clave, valor) => localStorage.setItem(claveCongregacion(clave), valor),
+  removeItem: clave => localStorage.removeItem(claveCongregacion(clave))
+};
+
+function congregacionBase(){
+  return { id:CONGREGACION_BASE_ID, nombre:'Ixhuatlán del Café', municipio:MUNICIPIO, estado:ESTADO };
+}
+
+function cargarCongregaciones(){
+  let guardadas = [];
+  try{
+    const raw = localStorage.getItem(CONGREGACIONES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if(Array.isArray(parsed)){
+      guardadas = parsed
+        .filter(c => c && c.id && c.id !== CONGREGACION_BASE_ID && String(c.nombre || '').trim())
+        .map(c => ({
+          id:String(c.id),
+          nombre:String(c.nombre).trim(),
+          municipio:String(c.municipio || '').trim(),
+          estado:String(c.estado || ESTADO).trim()
+        }));
+    }
+  }catch(e){
+    console.error('No se pudo leer la lista de congregaciones.', e);
+  }
+  return [congregacionBase(), ...guardadas];
+}
+
+function guardarCongregaciones(lista){
+  try{
+    const otras = (lista || []).filter(c => c && c.id !== CONGREGACION_BASE_ID);
+    localStorage.setItem(CONGREGACIONES_STORAGE_KEY, JSON.stringify(otras));
+    return true;
+  }catch(e){
+    console.error('No se pudo guardar la lista de congregaciones.', e);
+    return false;
+  }
+}
+
+function congregacionActual(){
+  return cargarCongregaciones().find(c => c.id === congregacionActivaId) || congregacionBase();
+}
+
+function municipioActual(){
+  return congregacionActual().municipio || MUNICIPIO;
+}
+
+function estadoActual(){
+  return congregacionActual().estado || ESTADO;
+}
+
+function esCongregacionBase(){
+  return congregacionActivaId === CONGREGACION_BASE_ID;
+}
+
+let congregacionActivaId = CONGREGACION_BASE_ID;
+try{
+  const guardada = localStorage.getItem(CONGREGACION_ACTIVA_STORAGE_KEY);
+  if(guardada && cargarCongregaciones().some(c => c.id === guardada)) congregacionActivaId = guardada;
+}catch(e){
+  congregacionActivaId = CONGREGACION_BASE_ID;
+}
 const CLOUD_SYNC_TOKEN_SESSION_KEY = 'croquis-territory-github-token-v2';
 const LEGACY_CLOUD_SYNC_TOKEN_STORAGE_KEY = 'croquis-territory-github-token-v1';
 const CLOUD_SYNC_OWNER = 'BryanLevi';
@@ -1004,7 +1115,7 @@ function moveIconPickerMark(delta){
 
 function loadFrameScaleSettings(){
   try{
-    const raw = localStorage.getItem(FRAME_SCALE_STORAGE_KEY);
+    const raw = almacen.getItem(FRAME_SCALE_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   }catch(e){
@@ -1014,12 +1125,12 @@ function loadFrameScaleSettings(){
 
 function saveFrameScaleSettings(){
   try{
-    localStorage.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(frameScaleSettings));
+    almacen.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(frameScaleSettings));
     return true;
   }catch(e){
     clearHeavyUndoStorage();
     try{
-      localStorage.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(frameScaleSettings));
+      almacen.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(frameScaleSettings));
       return true;
     }catch(err){
       console.error('No se pudo guardar el ajuste de recuadro.', err);
@@ -1030,7 +1141,7 @@ function saveFrameScaleSettings(){
 
 function loadColorAreaSettings(){
   try{
-    const raw = localStorage.getItem(COLOR_AREAS_STORAGE_KEY);
+    const raw = almacen.getItem(COLOR_AREAS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   }catch(e){
@@ -1040,12 +1151,12 @@ function loadColorAreaSettings(){
 
 function saveColorAreaSettings(){
   try{
-    localStorage.setItem(COLOR_AREAS_STORAGE_KEY, JSON.stringify(colorAreaSettings));
+    almacen.setItem(COLOR_AREAS_STORAGE_KEY, JSON.stringify(colorAreaSettings));
     return true;
   }catch(e){
     clearHeavyUndoStorage();
     try{
-      localStorage.setItem(COLOR_AREAS_STORAGE_KEY, JSON.stringify(colorAreaSettings));
+      almacen.setItem(COLOR_AREAS_STORAGE_KEY, JSON.stringify(colorAreaSettings));
       return true;
     }catch(err){
       console.error('No se pudieron guardar las areas pintadas.', err);
@@ -1056,7 +1167,7 @@ function saveColorAreaSettings(){
 
 function loadTextLabelSettings(){
   try{
-    const raw = localStorage.getItem(TEXT_LABELS_STORAGE_KEY);
+    const raw = almacen.getItem(TEXT_LABELS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   }catch(e){
@@ -1066,12 +1177,12 @@ function loadTextLabelSettings(){
 
 function saveTextLabelSettings(){
   try{
-    localStorage.setItem(TEXT_LABELS_STORAGE_KEY, JSON.stringify(textLabelSettings));
+    almacen.setItem(TEXT_LABELS_STORAGE_KEY, JSON.stringify(textLabelSettings));
     return true;
   }catch(e){
     clearHeavyUndoStorage();
     try{
-      localStorage.setItem(TEXT_LABELS_STORAGE_KEY, JSON.stringify(textLabelSettings));
+      almacen.setItem(TEXT_LABELS_STORAGE_KEY, JSON.stringify(textLabelSettings));
       return true;
     }catch(err){
       console.error('No se pudieron guardar los textos.', err);
@@ -1082,7 +1193,7 @@ function saveTextLabelSettings(){
 
 function loadManualIconSettings(){
   try{
-    const raw = localStorage.getItem(MANUAL_ICONS_STORAGE_KEY);
+    const raw = almacen.getItem(MANUAL_ICONS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   }catch(e){
@@ -1092,12 +1203,12 @@ function loadManualIconSettings(){
 
 function saveManualIconSettings(){
   try{
-    localStorage.setItem(MANUAL_ICONS_STORAGE_KEY, JSON.stringify(manualIconSettings));
+    almacen.setItem(MANUAL_ICONS_STORAGE_KEY, JSON.stringify(manualIconSettings));
     return true;
   }catch(e){
     clearHeavyUndoStorage();
     try{
-      localStorage.setItem(MANUAL_ICONS_STORAGE_KEY, JSON.stringify(manualIconSettings));
+      almacen.setItem(MANUAL_ICONS_STORAGE_KEY, JSON.stringify(manualIconSettings));
       return true;
     }catch(err){
       console.error('No se pudieron guardar los iconos.', err);
@@ -1108,7 +1219,7 @@ function saveManualIconSettings(){
 
 function loadWhiteRoadSettings(){
   try{
-    const raw = localStorage.getItem(WHITE_ROADS_STORAGE_KEY);
+    const raw = almacen.getItem(WHITE_ROADS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   }catch(e){
@@ -1118,12 +1229,12 @@ function loadWhiteRoadSettings(){
 
 function saveWhiteRoadSettings(){
   try{
-    localStorage.setItem(WHITE_ROADS_STORAGE_KEY, JSON.stringify(whiteRoadSettings));
+    almacen.setItem(WHITE_ROADS_STORAGE_KEY, JSON.stringify(whiteRoadSettings));
     return true;
   }catch(e){
     clearHeavyUndoStorage();
     try{
-      localStorage.setItem(WHITE_ROADS_STORAGE_KEY, JSON.stringify(whiteRoadSettings));
+      almacen.setItem(WHITE_ROADS_STORAGE_KEY, JSON.stringify(whiteRoadSettings));
       return true;
     }catch(err){
       console.error('No se pudieron guardar las calles blancas.', err);
@@ -1134,7 +1245,7 @@ function saveWhiteRoadSettings(){
 
 function loadManualRiverSettings(){
   try{
-    const raw = localStorage.getItem(MANUAL_RIVERS_STORAGE_KEY);
+    const raw = almacen.getItem(MANUAL_RIVERS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   }catch(e){
@@ -1144,12 +1255,12 @@ function loadManualRiverSettings(){
 
 function saveManualRiverSettings(){
   try{
-    localStorage.setItem(MANUAL_RIVERS_STORAGE_KEY, JSON.stringify(manualRiverSettings));
+    almacen.setItem(MANUAL_RIVERS_STORAGE_KEY, JSON.stringify(manualRiverSettings));
     return true;
   }catch(e){
     clearHeavyUndoStorage();
     try{
-      localStorage.setItem(MANUAL_RIVERS_STORAGE_KEY, JSON.stringify(manualRiverSettings));
+      almacen.setItem(MANUAL_RIVERS_STORAGE_KEY, JSON.stringify(manualRiverSettings));
       return true;
     }catch(err){
       console.error('No se pudieron guardar los rios dibujados.', err);
@@ -1196,7 +1307,7 @@ function normalizeCustomTerritory(raw, index){
 
 function loadCustomTerritorySettings(){
   try{
-    const raw = localStorage.getItem(CUSTOM_TERRITORIES_STORAGE_KEY);
+    const raw = almacen.getItem(CUSTOM_TERRITORIES_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed.map(normalizeCustomTerritory).filter(Boolean) : [];
   }catch(e){
@@ -1206,7 +1317,7 @@ function loadCustomTerritorySettings(){
 
 function saveCustomTerritorySettings(items){
   try{
-    localStorage.setItem(CUSTOM_TERRITORIES_STORAGE_KEY, JSON.stringify(items || []));
+    almacen.setItem(CUSTOM_TERRITORIES_STORAGE_KEY, JSON.stringify(items || []));
     return true;
   }catch(e){
     console.error('No se pudieron guardar los territorios agregados.', e);
@@ -1216,7 +1327,7 @@ function saveCustomTerritorySettings(items){
 
 function loadHiddenTerritorySettings(){
   try{
-    const raw = localStorage.getItem(HIDDEN_TERRITORIES_STORAGE_KEY);
+    const raw = almacen.getItem(HIDDEN_TERRITORIES_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed.map(String) : [];
   }catch(e){
@@ -1226,7 +1337,7 @@ function loadHiddenTerritorySettings(){
 
 function saveHiddenTerritorySettings(items){
   try{
-    localStorage.setItem(HIDDEN_TERRITORIES_STORAGE_KEY, JSON.stringify((items || []).map(String)));
+    almacen.setItem(HIDDEN_TERRITORIES_STORAGE_KEY, JSON.stringify((items || []).map(String)));
     return true;
   }catch(e){
     console.error('No se pudo guardar la lista de territorios eliminados.', e);
@@ -1237,7 +1348,10 @@ function saveHiddenTerritorySettings(items){
 function applyCustomTerritories(){
   const hidden = new Set(loadHiddenTerritorySettings());
   const items = loadCustomTerritorySettings();
-  LOCS.splice(0, LOCS.length, ...BASE_LOCS
+  // Los 21 de siempre son de la congregacion de Ixhuatlan. Una congregacion
+  // nueva arranca vacia y se llena con el boton de agregar territorio.
+  const deFabrica = esCongregacionBase() ? BASE_LOCS : [];
+  LOCS.splice(0, LOCS.length, ...deFabrica
     .filter(loc => !hidden.has(String(loc.num)))
     .map((loc, index) => ({...loc, displayNum:index + 1})));
   const baseVisibleCount = LOCS.length;
@@ -1248,6 +1362,100 @@ function applyCustomTerritories(){
     });
   });
   if(currentIndex >= LOCS.length) currentIndex = Math.max(0, LOCS.length - 1);
+}
+
+function recargarAjustesGuardados(){
+  frameScaleSettings = loadFrameScaleSettings();
+  colorAreaSettings = loadColorAreaSettings();
+  textLabelSettings = loadTextLabelSettings();
+  manualIconSettings = loadManualIconSettings();
+  whiteRoadSettings = loadWhiteRoadSettings();
+  manualRiverSettings = loadManualRiverSettings();
+  undoHistory = loadUndoHistory();
+}
+
+function limpiarMapaSinTerritorios(){
+  if(ringLayer && map){ map.removeLayer(ringLayer); ringLayer = null; }
+  [colorLayer, draftLayer, textLayer, manualIconLayer, editHandleLayer, colorRestoreLayer,
+   labelOverlayLayer, roadOverlayLayer, vectorRoadLayer, runtimeReferenceLayer,
+   manualWhiteRoadLayer, manualRiverLayer].forEach(capa => capa?.clearLayers?.());
+  selectedAreaIndex = null;
+  selectedTextIndex = null;
+  selectedIconIndex = null;
+  const cong = congregacionActual();
+  $('territory-badge').textContent = 'Sin territorios';
+  $('loc-name').textContent = cong.nombre;
+  $('meta-localidad').textContent = 'Agrega el primero con el botón +';
+  $('meta-municipio').textContent = cong.municipio || '—';
+  $('meta-estado').textContent = cong.estado || '—';
+  $('meta-altitud').textContent = '—';
+  $('meta-coords').textContent = '—';
+  $('info-card').style.display = 'block';
+  refreshTerritoryCounts();
+  updateButtons();
+}
+
+function activarCongregacion(id, silencioso){
+  const destino = cargarCongregaciones().find(c => c.id === id);
+  if(!destino || destino.id === congregacionActivaId) return false;
+  if(map) saveAllChanges();
+  congregacionActivaId = destino.id;
+  try{ localStorage.setItem(CONGREGACION_ACTIVA_STORAGE_KEY, congregacionActivaId); }catch(e){}
+  recargarAjustesGuardados();
+  currentIndex = 0;
+  applyCustomTerritories();
+  populateSelect();
+  refrescarCongregacionesEnInicio();
+  if(LOCS.length){
+    if(map) goTo(0, true); else updateInfo(LOCS[0]);
+  }else{
+    limpiarMapaSinTerritorios();
+  }
+  if(!silencioso){
+    setStatus(LOCS.length
+      ? 'Congregación ' + destino.nombre + '. ' + LOCS.length + (LOCS.length === 1 ? ' territorio.' : ' territorios.')
+      : 'Congregación ' + destino.nombre + '. Todavía no tiene territorios: agrega el primero con el botón +.', 'warn');
+  }
+  return true;
+}
+
+function crearCongregacion(){
+  const nombre = window.prompt('Nombre de la congregación nueva:', '');
+  if(nombre == null) return;
+  const limpio = nombre.trim();
+  if(!limpio){
+    setStatus('Escribe el nombre de la congregación.', 'warn');
+    return;
+  }
+  const lista = cargarCongregaciones();
+  if(lista.some(c => c.nombre.toLowerCase() === limpio.toLowerCase())){
+    setStatus('Ya hay una congregación con ese nombre.', 'warn');
+    return;
+  }
+  const municipio = (window.prompt('Municipio al que pertenece:', limpio) || '').trim();
+  const estado = (window.prompt('Estado:', ESTADO) || ESTADO).trim() || ESTADO;
+  const nueva = { id:'cong-' + Date.now(), nombre:limpio, municipio, estado };
+  if(!guardarCongregaciones([...lista, nueva])){
+    setStatus('No se pudo guardar la congregación nueva.', 'error');
+    return;
+  }
+  // se cambia a ella con el registro ya guardado, para que se encuentre
+  activarCongregacion(nueva.id, true);
+  hideWelcomeScreen();
+  setStatus('Congregación ' + limpio + ' creada. Agrega su primer territorio con el botón +.', 'warn');
+}
+
+function refrescarCongregacionesEnInicio(){
+  const sel = $('welcome-cong-sel');
+  if(!sel) return;
+  sel.innerHTML = '';
+  cargarCongregaciones().forEach(c => {
+    const option = document.createElement('option');
+    option.value = c.id;
+    option.textContent = c.nombre;
+    sel.appendChild(option);
+  });
+  sel.value = congregacionActivaId;
 }
 
 function boundsPlainFromCorners(a, b){
@@ -1330,13 +1538,14 @@ function addCustomTerritoryFromBounds(bounds){
     setStatus('Escribe un nombre para agregar el territorio.', 'warn');
     return;
   }
-  const municipio = (window.prompt('Municipio:', LOCS[currentIndex]?.municipio || MUNICIPIO) || MUNICIPIO).trim() || MUNICIPIO;
+  const porDefecto = LOCS[currentIndex]?.municipio || municipioActual();
+  const municipio = (window.prompt('Municipio:', porDefecto) || porDefecto).trim() || porDefecto;
   const items = loadCustomTerritorySettings();
   const territory = normalizeCustomTerritory({
     num:'custom-' + Date.now(),
     name:cleanName,
     municipio,
-    estado:ESTADO,
+    estado:estadoActual(),
     lat:center.lat,
     lon:center.lng,
     alt:null,
@@ -1399,7 +1608,7 @@ function clearTerritoryStoredWork(loc){
 function deleteCurrentTerritory(){
   const loc = LOCS[currentIndex];
   if(!loc) return;
-  if(LOCS.length <= 1){
+  if(esCongregacionBase() && LOCS.length <= 1){
     setStatus('Debe quedar al menos un territorio en la lista.', 'warn');
     return;
   }
@@ -1426,7 +1635,7 @@ function deleteCurrentTerritory(){
   const nextIndex = Math.min(currentIndex, LOCS.length - 2);
   applyCustomTerritories();
   populateSelect();
-  goTo(nextIndex, true);
+  if(LOCS.length) goTo(Math.max(0, nextIndex), true); else limpiarMapaSinTerritorios();
   setStatus('Territorio eliminado de la lista.', 'warn');
 }
 
@@ -1442,14 +1651,14 @@ function showWelcomeScreen(){
 
 function clearHeavyUndoStorage(){
   try{
-    localStorage.removeItem(UNDO_HISTORY_STORAGE_KEY);
-    localStorage.removeItem(LEGACY_UNDO_HISTORY_STORAGE_KEY);
+    almacen.removeItem(UNDO_HISTORY_STORAGE_KEY);
+    almacen.removeItem(LEGACY_UNDO_HISTORY_STORAGE_KEY);
   }catch(e){}
 }
 
 function clearLegacyUndoStorage(){
   try{
-    localStorage.removeItem(LEGACY_UNDO_HISTORY_STORAGE_KEY);
+    almacen.removeItem(LEGACY_UNDO_HISTORY_STORAGE_KEY);
   }catch(e){}
 }
 
@@ -1472,7 +1681,7 @@ function stateFingerprint(value){
 function loadUndoHistory(){
   clearLegacyUndoStorage();
   try{
-    const raw = localStorage.getItem(UNDO_HISTORY_STORAGE_KEY);
+    const raw = almacen.getItem(UNDO_HISTORY_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed.slice(-UNDO_HISTORY_LIMIT) : [];
   }catch(e){
@@ -1482,11 +1691,11 @@ function loadUndoHistory(){
 
 function saveUndoHistory(){
   try{
-    localStorage.setItem(UNDO_HISTORY_STORAGE_KEY, JSON.stringify(undoHistory.slice(-UNDO_HISTORY_LIMIT)));
+    almacen.setItem(UNDO_HISTORY_STORAGE_KEY, JSON.stringify(undoHistory.slice(-UNDO_HISTORY_LIMIT)));
   }catch(e){
     undoHistory = undoHistory.slice(-12);
     try{
-      localStorage.setItem(UNDO_HISTORY_STORAGE_KEY, JSON.stringify(undoHistory));
+      almacen.setItem(UNDO_HISTORY_STORAGE_KEY, JSON.stringify(undoHistory));
     }catch(err){
       clearHeavyUndoStorage();
     }
@@ -2053,7 +2262,7 @@ function getRuntimeRoadCacheKey(loc = LOCS[currentIndex]){
 
 function loadOverpassCache(){
   try{
-    const raw = localStorage.getItem(OVERPASS_CACHE_STORAGE_KEY);
+    const raw = almacen.getItem(OVERPASS_CACHE_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   }catch(e){
@@ -2063,7 +2272,7 @@ function loadOverpassCache(){
 
 function saveOverpassCache(cache){
   try{
-    localStorage.setItem(OVERPASS_CACHE_STORAGE_KEY, JSON.stringify(cache));
+    almacen.setItem(OVERPASS_CACHE_STORAGE_KEY, JSON.stringify(cache));
     return true;
   }catch(e){
     // Si no cabe, se tiran los territorios mas viejos antes de rendirse
@@ -2071,7 +2280,7 @@ function saveOverpassCache(cache){
     while(entradas.length > 4){
       delete cache[entradas.shift()[0]];
       try{
-        localStorage.setItem(OVERPASS_CACHE_STORAGE_KEY, JSON.stringify(cache));
+        almacen.setItem(OVERPASS_CACHE_STORAGE_KEY, JSON.stringify(cache));
         return true;
       }catch(err){}
     }
@@ -2286,7 +2495,7 @@ function referenceKey(ref){
 
 function loadHiddenReferences(){
   try{
-    const raw = localStorage.getItem(HIDDEN_REFERENCES_STORAGE_KEY);
+    const raw = almacen.getItem(HIDDEN_REFERENCES_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     return parsed && typeof parsed === 'object' ? parsed : {};
   }catch(e){
@@ -2307,7 +2516,7 @@ function hideReference(loc, ref){
   lista.add(referenceKey(ref));
   todo[clave] = [...lista];
   try{
-    localStorage.setItem(HIDDEN_REFERENCES_STORAGE_KEY, JSON.stringify(todo));
+    almacen.setItem(HIDDEN_REFERENCES_STORAGE_KEY, JSON.stringify(todo));
     return true;
   }catch(e){
     return false;
@@ -3702,8 +3911,53 @@ function buildBackupPayload(){
       frameScales:safeObject(frameScaleSettings),
       customTerritories:loadCustomTerritorySettings(),
       hiddenTerritories:loadHiddenTerritorySettings()
-    }
+    },
+    // El respaldo se lleva tambien las demas congregaciones. Lo de arriba es
+    // el trabajo de la que esta abierta, que es lo que entienden los respaldos
+    // viejos; estos campos son los que agregan el resto.
+    congregaciones:cargarCongregaciones(),
+    congregacionActiva:congregacionActivaId,
+    porCongregacion:datosDeTodasLasCongregaciones()
   };
+}
+
+function datosDeCongregacion(id){
+  const salida = {};
+  CLAVES_POR_CONGREGACION.forEach(([campo, clave]) => {
+    // se copia el texto tal cual esta guardado, sin interpretarlo
+    const raw = localStorage.getItem(claveDe(clave, id));
+    if(raw != null) salida[campo] = raw;
+  });
+  return salida;
+}
+
+function datosDeTodasLasCongregaciones(){
+  const salida = {};
+  cargarCongregaciones().forEach(c => { salida[c.id] = datosDeCongregacion(c.id); });
+  return salida;
+}
+
+function guardarDatosDeCongregacion(id, datos){
+  CLAVES_POR_CONGREGACION.forEach(([campo, clave]) => {
+    if(typeof datos?.[campo] === 'string'){
+      try{ localStorage.setItem(claveDe(clave, id), datos[campo]); }catch(e){}
+    }
+  });
+}
+
+function restaurarCongregacionesDelRespaldo(payload){
+  if(!Array.isArray(payload?.congregaciones)) return;
+  guardarCongregaciones(payload.congregaciones);
+  const porCong = payload.porCongregacion;
+  if(porCong && typeof porCong === 'object'){
+    Object.keys(porCong).forEach(id => guardarDatosDeCongregacion(id, porCong[id]));
+  }
+  const activa = payload.congregacionActiva;
+  if(activa && cargarCongregaciones().some(c => c.id === activa)){
+    congregacionActivaId = activa;
+    try{ localStorage.setItem(CONGREGACION_ACTIVA_STORAGE_KEY, activa); }catch(e){}
+  }
+  refrescarCongregacionesEnInicio();
 }
 
 function exportBackup(){
@@ -3760,6 +4014,9 @@ function importBackupPayload(payload){
     setStatus('El archivo no parece ser un respaldo valido.', 'error');
     return false;
   }
+  // Primero las congregaciones, porque de eso depende en cual se guarda todo
+  // lo que viene despues.
+  restaurarCongregacionesDelRespaldo(payload);
   const previousNum = LOCS[currentIndex]?.num;
   colorAreaSettings = data.colorAreas;
   textLabelSettings = data.textLabels;
@@ -4371,7 +4628,11 @@ function initApp(){
   $('btn-prev').disabled = false;
   $('btn-next').disabled = false;
 
-  map = L.map('map', { zoomControl:true, attributionControl:true }).setView([LOCS[0].lat, LOCS[0].lon], 17);
+  // Una congregacion recien creada no tiene ni un territorio todavia, asi que
+  // el centro de arranque no puede darse por hecho.
+  const centroInicial = LOCS[0] || congregacionBase();
+  map = L.map('map', { zoomControl:true, attributionControl:true })
+    .setView([centroInicial.lat ?? 19.048889, centroInicial.lon ?? -96.981944], 17);
   map.createPane('territoryColorPane');
   map.getPane('territoryColorPane').style.zIndex = 350;
   map.createPane('territoryRestorePane');
@@ -4562,7 +4823,7 @@ function updateInfo(loc){
 function updateButtons(){
   $('btn-pr').disabled = !map;
   $('btn-add-territory').disabled = !map;
-  $('btn-delete-territory').disabled = !map || LOCS.length <= 1;
+  $('btn-delete-territory').disabled = !map || LOCS.length <= (esCongregacionBase() ? 1 : 0);
 }
 
 function drawTerritoryFrame(loc, fitMap = true, silent = false){
@@ -5361,6 +5622,11 @@ $('btn-menu-help')?.addEventListener('click', showWelcomeScreen);
 $('btn-add-territory')?.addEventListener('click', addCustomTerritory);
 $('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
 $('welcome-start')?.addEventListener('click', hideWelcomeScreen);
+$('welcome-cong-nueva')?.addEventListener('click', crearCongregacion);
+$('welcome-cong-sel')?.addEventListener('change', event => {
+  if(!activarCongregacion(event.target.value)) refrescarCongregacionesEnInicio();
+});
+refrescarCongregacionesEnInicio();
 document.addEventListener('keydown', event => {
   if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's'){
     event.preventDefault();
