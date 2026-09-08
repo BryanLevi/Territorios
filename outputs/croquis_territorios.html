@@ -18,21 +18,21 @@ html,body{overflow-x:hidden}
 body{font-family:"Segoe UI",Arial,sans-serif;background:#f3f6f4;color:#17251c;display:flex;flex-direction:column;overflow:hidden}
 html,body,.print-sheet,.print-paper,#print-map{print-color-adjust:exact;-webkit-print-color-adjust:exact}
 button,select{font:inherit}
-.bar{flex:0 0 auto;min-height:62px;background:#fff;border-bottom:1px solid #d9e1dc;padding:11px 14px 13px;display:flex;align-items:center;gap:12px 14px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(20,40,28,.08);z-index:20}
+.bar{flex:0 0 auto;background:#fff;border-bottom:1px solid #d9e1dc;padding:7px 12px 8px;display:flex;align-items:center;gap:7px 10px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(20,40,28,.08);z-index:20}
 .brand{display:flex;flex-direction:column;gap:1px;min-width:190px}
 .brand strong{font-size:15px;color:#183d25}
 .brand span{font-size:11px;color:#64766b}
 .field{display:flex;align-items:center;gap:7px}
 .field label{font-size:11px;font-weight:700;text-transform:uppercase;color:#607068;letter-spacing:.04em}
-select{height:38px;border:1px solid #c9d5ce;border-radius:8px;background:#fff;color:#17251c;padding:0 10px;min-width:190px;max-width:320px}
+select{height:32px;border:1px solid #c9d5ce;border-radius:7px;background:#fff;color:#17251c;padding:0 8px;min-width:170px;max-width:300px}
 select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .grow{flex:1;min-width:230px}
-.frame-field{min-width:220px}
-.frame-control{height:38px;display:flex;align-items:center;gap:8px;width:220px}
+.frame-field{min-width:190px}
+.frame-control{height:32px;display:flex;align-items:center;gap:8px;width:190px}
 .frame-control input[type=range]{flex:1;min-width:0;accent-color:#1f7a47}
 .frame-value{width:43px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
-.color-field{flex:1 1 100%;align-items:center;gap:10px;background:#f7faf8;border:1px solid #e4ede8;border-radius:11px;padding:7px 11px}
-.color-control{min-height:38px;display:flex;align-items:center;gap:0;flex:1;flex-wrap:wrap;row-gap:8px}
+.color-field{flex:1 1 100%;align-items:center;gap:9px;background:#f7faf8;border:1px solid #e4ede8;border-radius:10px;padding:5px 9px}
+.color-control{min-height:32px;display:flex;align-items:center;gap:0;flex:1;flex-wrap:wrap;row-gap:8px}
 .tool-group{display:flex;align-items:center;gap:6px}
 .tool-group+.tool-group{margin-left:13px}
 .tool-group.tools-edit{margin-left:14px;padding-left:14px;border-left:1px solid #dde7e1}
@@ -68,8 +68,8 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 #btn-color-clear:hover:not(:disabled){background:#fbeceb;border-color:#dfaea9;color:#b63b32}
 #btn-tools-toggle{display:none}
 .bar-group{display:flex;align-items:center;gap:7px}
-.bar-group+.bar-group{padding-left:12px;border-left:1px solid #e2eae5}
-.bar-actions{flex:1 1 100%;display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap}
+.bar-group+.bar-group{padding-left:10px;border-left:1px solid #e2eae5}
+.bar-actions{flex:1 1 100%;display:flex;align-items:center;gap:7px 10px;flex-wrap:wrap}
 .bar-actions .bar-spacer{flex:1;min-width:0}
 .color-swatch{width:38px;height:38px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;padding:3px;cursor:pointer}
 .color-control input[type=range]{width:86px;accent-color:#1f7a47}
@@ -78,13 +78,13 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .text-size-slider{width:72px;accent-color:#1f7a47}
 .text-size-value{width:24px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
 .opacity-value{width:34px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
-.icon-btn{width:38px;height:38px;border:1px solid #cfe0d6;border-radius:8px;background:#eef4f0;color:#1d5331;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s,filter .15s}
+.icon-btn{width:32px;height:32px;border:1px solid #cfe0d6;border-radius:7px;background:#eef4f0;color:#1d5331;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s,filter .15s}
 .icon-btn svg{width:17px;height:17px}
 .icon-btn.active{background:#1f7a47;color:#fff;border-color:#1f7a47}
 .icon-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.04)}
 .icon-btn:disabled{cursor:not-allowed;opacity:.45;transform:none}
 [hidden]{display:none!important}
-.btn{height:38px;border:0;border-radius:8px;padding:0 11px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;white-space:nowrap;transition:transform .15s,filter .15s,background .15s}
+.btn{height:32px;border:0;border-radius:7px;padding:0 10px;font-size:12.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;white-space:nowrap;transition:transform .15s,filter .15s,background .15s}
 .btn svg{width:16px;height:16px;flex:0 0 auto}
 .btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.04)}
 .btn:disabled{cursor:not-allowed;opacity:.48;transform:none}
@@ -360,7 +360,7 @@ body.print-preview{overflow:hidden}
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg></span><span><b>Deshacer</b><span>Regresa el ultimo punto o cambio guardado si necesitas corregir.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></span><span><b>Borrar</b><span>Elimina lo que tengas seleccionado: una zona, un texto o un icono. Sin nada seleccionado, borra todo el territorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg></span><span><b>PDF</b><span>Prepara la hoja del croquis para imprimir o guardar.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></span><span><b>Menu / instrucciones</b><span>Regresa a esta pantalla para consultar la guia cuando lo necesites.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></span><span><b>Inicio</b><span>Regresa a esta pantalla, donde eliges la congregacion y consultas la guia.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span><span><b>Agregar territorio</b><span>Marca dos esquinas para formar el recuadro y despues escribe el nombre.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg></span><span><b>Eliminar territorio</b><span>Quita el territorio actual de la lista despues de confirmar.</span></span></div>
       </div>
@@ -477,19 +477,19 @@ body.print-preview{overflow:hidden}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
     PDF
   </button>
-  <button class="btn info" id="btn-menu-help" type="button" title="Regresar a menu con instrucciones" aria-label="Regresar a menu con instrucciones">
+  <button class="btn info" id="btn-menu-help" type="button" title="Regresar al inicio" aria-label="Regresar al inicio">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg>
-    Instrucciones
+    Inicio
   </button>
   </div>
   <div class="bar-group grupo-terr">
   <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-    Agregar territorio
+    Agregar
   </button>
   <button class="btn danger" id="btn-delete-territory" type="button" disabled title="Eliminar territorio actual" aria-label="Eliminar territorio actual">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg>
-    Eliminar territorio
+    Eliminar
   </button>
   </div>
   <span class="bar-spacer"></span>
@@ -4155,7 +4155,7 @@ function getGithubToken(forcePrompt = false){
   let saved = '';
   try{ saved = sessionStorage.getItem(CLOUD_SYNC_TOKEN_SESSION_KEY) || ''; }catch(e){}
   if(saved && !forcePrompt) return saved;
-  const token = window.prompt('Pega tu token de GitHub para guardar en BryanLevi/Territorios.\n\nUsa un token de acceso personal detallado (fine-grained) limitado solo al repositorio Territorios, con permiso Contents: read and write.\n\nSi quieres no volver a pegarlo, activa "Recordar en este dispositivo" en Menu / instrucciones.');
+  const token = window.prompt('Pega tu token de GitHub para guardar en BryanLevi/Territorios.\n\nUsa un token de acceso personal detallado (fine-grained) limitado solo al repositorio Territorios, con permiso Contents: read and write.\n\nSi quieres no volver a pegarlo, activa "Recordar en este dispositivo" en Inicio.');
   if(token == null) return null;
   const clean = token.trim();
   if(!clean){
