@@ -367,7 +367,7 @@ body.print-preview{overflow:hidden}
 <div class="bar">
   <div class="brand">
     <strong>Croquis de territorio realizado por Bryan Levi</strong>
-    <span>Predicación 2026 · Ixhuatlán del Café</span>
+    <span id="brand-congregacion">Predicación 2026 · Ixhuatlán del Café</span>
   </div>
   <button class="btn ghost" id="btn-tools-toggle" type="button" aria-expanded="false" aria-controls="tools-panel">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg>
@@ -1291,7 +1291,7 @@ function normalizeCustomTerritory(raw, index){
     num:String(raw.num || ('custom-' + Date.now() + '-' + index)),
     name,
     alias:String(raw.alias || '').trim(),
-    municipio:String(raw.municipio || MUNICIPIO).trim() || MUNICIPIO,
+    municipio:String(raw.municipio || municipioActual()).trim() || municipioActual(),
     estado:String(raw.estado || ESTADO).trim() || ESTADO,
     lat,
     lon,
@@ -1446,6 +1446,9 @@ function crearCongregacion(){
 }
 
 function refrescarCongregacionesEnInicio(){
+  // el nombre de arriba es el de la congregacion abierta, no uno fijo
+  const rotulo = $('brand-congregacion');
+  if(rotulo) rotulo.textContent = 'Predicación 2026 · ' + congregacionActual().nombre;
   const sel = $('welcome-cong-sel');
   if(!sel) return;
   sel.innerHTML = '';
