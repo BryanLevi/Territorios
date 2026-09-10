@@ -93,6 +93,10 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .btn.info{background:#1769aa;color:#fff}
 .btn.danger{background:#b63b32;color:#fff}
 .btn.ghost{background:#eef4f0;color:#1d5331;border:1px solid #cfe0d6}
+/* El punto dice de un vistazo si se esta compartiendo o no. */
+.nube-punto{width:8px;height:8px;border-radius:50%;background:#c2ccc6;flex:0 0 auto}
+#btn-nube.is-on{background:#e7f5ec;border-color:#9fd3b4;color:#14682f}
+#btn-nube.is-on .nube-punto{background:#1f9d4d;box-shadow:0 0 0 3px rgba(31,157,77,.18)}
 /* z-index propio: aisla los paneles de Leaflet (llegan a 700) para que no tapen la barra */
 .map-wrap{position:relative;z-index:0;flex:1;min-height:0;background:#dbe4df}
 #map{position:absolute;inset:0;width:100%;height:100%}
@@ -511,6 +515,12 @@ body.print-preview{overflow:hidden}
   <button class="btn ghost" id="btn-cloud-load" type="button" title="Cargar cambios desde GitHub" aria-label="Cargar cambios desde GitHub">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg>
     Cargar GitHub
+  </button>
+  </div>
+  <div class="bar-group grupo-nube">
+  <button class="btn ghost" id="btn-nube" type="button" title="Trabajo compartido: ver los cambios de los demas al momento" aria-label="Trabajo compartido">
+    <span class="nube-punto" aria-hidden="true"></span>
+    <span id="btn-nube-texto">Conectar</span>
   </button>
   </div>
   <input id="backup-file-input" type="file" accept="application/json,.json" hidden>
@@ -1409,6 +1419,7 @@ function activarCongregacion(id, silencioso){
   applyCustomTerritories();
   populateSelect();
   refrescarCongregacionesEnInicio();
+  escucharCongregacion();
   if(LOCS.length){
     if(map) goTo(0, true); else updateInfo(LOCS[0]);
   }else{
@@ -3873,6 +3884,7 @@ function saveAllChanges(){
   const frameSaved = saveFrameScaleSettings();
   saveUndoHistory();
   if(colorsSaved && textsSaved && iconsSaved && roadsSaved && riversSaved && frameSaved){
+    publicarTerritorio(loc);
     let mensaje = 'Cambios guardados.';
     if(closedArea) mensaje = 'Area y cambios guardados.';
     else if(closedRoad) mensaje = 'Calle blanca y cambios guardados.';
@@ -4085,6 +4097,209 @@ async function handleBackupFileSelected(event){
 
 function chooseBackupFile(){
   backupFileInput?.click();
+}
+
+/* ---- Trabajo compartido: varios ven los cambios en el momento ----------
+   Es opcional. Con FIREBASE_CONFIG vacio la pagina se porta igual que
+   siempre y todo se queda en este navegador. En cuanto se llena, lo que
+   uno guarda le aparece a los demas sin recargar. */
+
+// Pega aqui los datos que da Firebase al registrar la aplicacion web.
+const FIREBASE_CONFIG = {
+  apiKey: '',
+  authDomain: '',
+  projectId: '',
+  appId: ''
+};
+const NUBE_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
+
+let nubePiezas = null;     // Firebase se monta una sola vez
+let nube = null;           // { fs, db }
+let nubeCorte = null;      // corta la suscripcion al cambiar de congregacion
+let nubeAplicando = false; // lo que llega de fuera no se vuelve a mandar
+// Dos cosas distintas a proposito: "yo" es esta pestana y sirve para no
+// recoger el eco de lo que uno mismo acaba de mandar; "quien" es el nombre
+// que se le enseña a los demas. Si se filtrara por el nombre, una cuenta
+// compartida por toda la congregacion haria que cada quien ignorara a los
+// demas, porque todos serian el mismo.
+let nubeYo = '';
+let nubeQuien = '';
+
+function nubeConfigurada(){
+  return !!(FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.apiKey);
+}
+
+function nubeEditando(){
+  return colorDrawMode || roadPencilMode || riverPencilMode || textAddMode
+    || iconAddMode || contourEditMode || territoryAddMode || draftPoints.length > 0;
+}
+
+function pintarEstadoNube(texto, encendido){
+  const boton = $('btn-nube');
+  if(!boton) return;
+  boton.classList.toggle('is-on', !!encendido);
+  boton.title = texto;
+  const rotulo = $('btn-nube-texto');
+  if(rotulo) rotulo.textContent = encendido ? 'En linea' : 'Conectar';
+}
+
+// Firebase se monta una sola vez por pagina. Si se monta dos veces, la
+// segunda revienta al volver a apuntar al emulador, porque el SDK no deja
+// cambiar eso despues de usarlo.
+async function armarNube(){
+  if(nubePiezas) return nubePiezas;
+  const [app, fs, auth] = await Promise.all([
+    import(NUBE_SDK + 'firebase-app.js'),
+    import(NUBE_SDK + 'firebase-firestore.js'),
+    import(NUBE_SDK + 'firebase-auth.js')
+  ]);
+  const aplicacion = app.initializeApp(FIREBASE_CONFIG);
+  const db = fs.getFirestore(aplicacion);
+  const au = auth.getAuth(aplicacion);
+  if(new URLSearchParams(location.search).has('emulador')){
+    fs.connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    auth.connectAuthEmulator(au, 'http://127.0.0.1:9099', { disableWarnings:true });
+  }
+  nubePiezas = { fs, auth, db, au };
+  return nubePiezas;
+}
+
+async function conectarNube(silencioso){
+  if(!nubeConfigurada()){
+    if(!silencioso) setStatus('Falta poner la configuracion de Firebase en FIREBASE_CONFIG.', 'warn');
+    return false;
+  }
+  if(nube) return true;
+  try{
+    const { fs, auth, db, au } = await armarNube();
+
+    // Firebase ya se acuerda de la sesion, asi que la contrasena se pide una
+    // sola vez por dispositivo y no hace falta guardarla en ningun lado.
+    let usuario = au.currentUser;
+    if(!usuario){
+      usuario = await new Promise(listo => {
+        const corta = auth.onAuthStateChanged(au, u => { corta(); listo(u); });
+      });
+    }
+    if(!usuario){
+      if(silencioso){
+        pintarEstadoNube('Toca para entrar al trabajo compartido', false);
+        return false;
+      }
+      const correo = (window.prompt('Correo de la cuenta de la congregacion:') || '').trim();
+      if(!correo) return false;
+      const clave = window.prompt('Contrasena:') || '';
+      if(!clave) return false;
+      const credencial = await auth.signInWithEmailAndPassword(au, correo, clave);
+      usuario = credencial.user;
+    }
+    nubeQuien = usuario.email || usuario.uid;
+    nubeYo = (usuario.uid || 'x') + '-' + Math.random().toString(36).slice(2, 10);
+    nube = { fs, db };
+    escucharCongregacion();
+    pintarEstadoNube('Conectado como ' + nubeQuien, true);
+    if(!silencioso) setStatus('Trabajo compartido encendido. Los cambios se ven al momento.', 'warn');
+    return true;
+  }catch(err){
+    console.error('No se pudo conectar el trabajo compartido.', err);
+    if(!silencioso) setStatus('No se pudo conectar: ' + err.message, 'error');
+    pintarEstadoNube('No se pudo conectar', false);
+    return false;
+  }
+}
+
+function escucharCongregacion(){
+  if(!nube) return;
+  if(nubeCorte){ nubeCorte(); nubeCorte = null; }
+  const { fs, db } = nube;
+  nubeCorte = fs.onSnapshot(
+    fs.collection(db, 'congregaciones', congregacionActivaId, 'territorios'),
+    instantanea => {
+      instantanea.docChanges().forEach(cambio => {
+        if(cambio.type === 'removed') return;
+        const d = cambio.doc.data() || {};
+        if(d.de === nubeYo) return;   // el eco de lo que yo mismo mande
+        aplicarTerritorioRemoto(cambio.doc.id, d);
+      });
+    },
+    err => {
+      console.error('Se corto la escucha.', err);
+      setStatus('Se corto la conexion del trabajo compartido.', 'error');
+      pintarEstadoNube('Se corto la conexion', false);
+    });
+}
+
+function aplicarTerritorioRemoto(num, d){
+  let datos;
+  try{ datos = JSON.parse(d.datos || '{}'); }catch(e){ return; }
+  const clave = String(num);
+  const mete = (bolsa, valor) => {
+    if(Array.isArray(valor) && valor.length) bolsa[clave] = valor; else delete bolsa[clave];
+  };
+  nubeAplicando = true;
+  mete(colorAreaSettings, datos.areas);
+  mete(textLabelSettings, datos.textos);
+  mete(manualIconSettings, datos.iconos);
+  mete(whiteRoadSettings, datos.calles);
+  mete(manualRiverSettings, datos.rios);
+  if(Number.isFinite(Number(datos.recuadro))) frameScaleSettings[clave] = Number(datos.recuadro);
+  else delete frameScaleSettings[clave];
+  saveColorAreaSettings();
+  saveTextLabelSettings();
+  saveManualIconSettings();
+  saveWhiteRoadSettings();
+  saveManualRiverSettings();
+  saveFrameScaleSettings();
+  nubeAplicando = false;
+
+  const loc = LOCS[currentIndex];
+  const quien = d.porQuien || 'alguien';
+  const comoSeLlama = d.nombre || ('#' + clave);
+  if(!loc || String(loc.num) !== clave){
+    setStatus(quien + ' cambio ' + comoSeLlama + '.', 'warn');
+    return;
+  }
+  // Si esta a medio dibujar no se le mueve el mapa bajo la mano: se avisa y
+  // se queda guardado para cuando termine.
+  if(nubeEditando()){
+    setStatus(quien + ' cambio este territorio. Termina o cancela lo que estas marcando y se actualiza.', 'warn');
+    return;
+  }
+  renderColorAreas(loc);
+  renderManualWhiteRoads(loc);
+  renderManualRivers(loc);
+  renderTextLabels(loc);
+  renderManualIcons(loc);
+  updateColorControls(loc);
+  setStatus(quien + ' acaba de cambiar este territorio.', 'warn');
+}
+
+async function publicarTerritorio(loc){
+  if(!nube || !loc || nubeAplicando) return;
+  const clave = String(loc.num);
+  const datos = {
+    areas:colorAreaSettings[clave] || [],
+    textos:textLabelSettings[clave] || [],
+    iconos:manualIconSettings[clave] || [],
+    calles:whiteRoadSettings[clave] || [],
+    rios:manualRiverSettings[clave] || [],
+    recuadro:frameScaleSettings[clave] ?? null
+  };
+  try{
+    const { fs, db } = nube;
+    // Todo va como texto en un solo campo. Firestore no admite listas dentro
+    // de listas, y los puntos de cada zona son justo eso, pares [lat, lng].
+    await fs.setDoc(fs.doc(db, 'congregaciones', congregacionActivaId, 'territorios', clave), {
+      datos:JSON.stringify(datos),
+      nombre:displayTerritoryTitle(loc),
+      de:nubeYo,
+      porQuien:nubeQuien,
+      cuando:Date.now()
+    });
+  }catch(err){
+    console.error('No se pudo subir el territorio.', err);
+    setStatus('El cambio quedo guardado aqui, pero no se pudo compartir: ' + err.message, 'error');
+  }
 }
 
 function cloudSyncEncodedPath(){
@@ -5629,6 +5844,9 @@ $('btn-add-territory')?.addEventListener('click', addCustomTerritory);
 $('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
 $('welcome-start')?.addEventListener('click', hideWelcomeScreen);
 $('welcome-cong-nueva')?.addEventListener('click', crearCongregacion);
+$('btn-nube')?.addEventListener('click', () => conectarNube(false));
+// si ya se entro antes en este dispositivo, se reengancha solo
+if(nubeConfigurada()) conectarNube(true);
 $('welcome-cong-sel')?.addEventListener('change', event => {
   if(!activarCongregacion(event.target.value)) refrescarCongregacionesEnInicio();
 });
