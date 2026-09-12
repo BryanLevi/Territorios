@@ -351,7 +351,8 @@ body.print-preview{overflow:hidden}
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar pintada o texto</b><span>Selecciona una zona, un texto o un icono que ya habias marcado para modificarlo.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 7 5-2.7 8.4H7.7L5 9z"></path><circle cx="12" cy="4" r="1.7" fill="currentColor"></circle><circle cx="19" cy="9" r="1.7" fill="currentColor"></circle><circle cx="16.3" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="7.7" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="5" cy="9" r="1.7" fill="currentColor"></circle></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg></span><span><b>Pintar area</b><span>Toca varios puntos del mapa para formar la zona que quieres colorear.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg></span><span><b>Dibujar calle blanca</b><span>Traza a mano una calle que no se distingue en el mapa. Queda en blanco sobre el color.</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg></span><span><b>Carretera con destino</b><span>Traza la carretera en amarillo y escribe hacia donde lleva, como "A OCOTITLAN".</span></span></div>
+        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path></svg></span><span><b>Dibujar calle blanca</b><span>Traza a mano una calle que no se distingue en el mapa. Queda en blanco sobre el color.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg></span><span><b>Dibujar rio</b><span>Traza a mano los rios y arroyos que no salen solos. Quedan en azul, guardados por territorio.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separarlo en dos renglones.</span></span></div>
         <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><b>Agregar icono</b><span>Elige el tipo de referencia, toca el boton de icono y marca el punto en el mapa.</span></span></div>
@@ -444,6 +445,9 @@ body.print-preview{overflow:hidden}
       </button>
       <button class="icon-btn" id="btn-road-pencil" type="button" disabled title="Dibujar calle blanca" aria-label="Dibujar calle blanca">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg>
+      </button>
+      <button class="icon-btn" id="btn-carretera" type="button" disabled title="Trazar carretera y escribir hacia donde va" aria-label="Trazar carretera con destino">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l3 3-3 3H4z"></path><path d="M9 10v10"></path><path d="M6 20h6"></path></svg>
       </button>
       <button class="icon-btn" id="btn-river-pencil" type="button" disabled title="Dibujar rio o arroyo" aria-label="Dibujar rio o arroyo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg>
@@ -775,6 +779,7 @@ const colorEditButton = $('btn-color-edit');
 const contourEditButton = $('btn-contour-edit');
 const colorDrawButton = $('btn-color-draw');
 const roadPencilButton = $('btn-road-pencil');
+const carreteraButton = $('btn-carretera');
 const riverPencilButton = $('btn-river-pencil');
 const textAddButton = $('btn-text-add');
 const iconAddButton = $('btn-icon-add');
@@ -1001,6 +1006,11 @@ let textAddMode = false;
 let iconAddMode = false;
 let roadPencilMode = false;
 let roadDraftPoints = [];
+// La carretera es la misma calle a mano, pero amarilla y con el rotulo de
+// hacia donde va. Reaprovecha todo el lapiz de calles.
+const CARRETERA_COLOR = '#f5c400';
+const CARRETERA_ORILLA = '#7a5f00';
+let modoCarretera = false;
 let riverPencilMode = false;
 let riverDraftPoints = [];
 let draftPoints = [];
@@ -1987,7 +1997,10 @@ function normalizeWhiteRoad(road){
     .filter(point => Number.isFinite(point[0]) && Number.isFinite(point[1]));
   if(validPoints.length < 2) return null;
   const width = Math.max(4, Math.min(16, Number(road.width) || 8));
-  return { points:validPoints, width };
+  // El color solo lo llevan las carreteras. Sin el, es la calle blanca de
+  // siempre, y asi los trazos guardados antes siguen saliendo igual.
+  const color = /^#[0-9a-f]{6}$/i.test(String(road.color || '')) ? String(road.color) : '';
+  return color ? { points:validPoints, width, color } : { points:validPoints, width };
 }
 
 function getWhiteRoadsForLoc(loc){
@@ -2118,9 +2131,13 @@ function updateColorControls(loc = LOCS[currentIndex]){
     colorDrawButton.disabled = !enabled || !loc;
     colorDrawButton.classList.toggle('active', colorDrawMode);
   }
+  if(carreteraButton){
+    carreteraButton.disabled = !enabled || !loc;
+    carreteraButton.classList.toggle('active', roadPencilMode && modoCarretera);
+  }
   if(roadPencilButton){
     roadPencilButton.disabled = !enabled || !loc;
-    roadPencilButton.classList.toggle('active', roadPencilMode);
+    roadPencilButton.classList.toggle('active', roadPencilMode && !modoCarretera);
   }
   if(riverPencilButton){
     riverPencilButton.disabled = !enabled || !loc;
@@ -2166,21 +2183,23 @@ function renderColorAreas(loc){
   updateLabelOverlayVisibility(loc);
 }
 
-function drawWhiteRoadPolyline(target, latLngs, width, pane = 'territoryRoadPane', scale = 1){
+// Sin color es la calle blanca de siempre. Con color es una carretera, que
+// lleva la orilla oscura para que el amarillo no se pierda sobre el mapa.
+function drawWhiteRoadPolyline(target, latLngs, width, pane = 'territoryRoadPane', scale = 1, color = ''){
   if(!target || !Array.isArray(latLngs) || latLngs.length < 2) return;
   const weight = Math.max(4, Number(width) || 8) * scale;
   L.polyline(latLngs, {
     pane,
-    color:'#5c7069',
-    weight:weight + (2.8 * scale),
-    opacity:.72,
+    color:color ? CARRETERA_ORILLA : '#5c7069',
+    weight:weight + ((color ? 3.4 : 2.8) * scale),
+    opacity:color ? .95 : .72,
     lineCap:'round',
     lineJoin:'round',
     interactive:false
   }).addTo(target);
   L.polyline(latLngs, {
     pane,
-    color:'#ffffff',
+    color:color || '#ffffff',
     weight,
     opacity:.98,
     lineCap:'round',
@@ -2194,7 +2213,7 @@ function renderManualWhiteRoads(loc){
   manualWhiteRoadLayer.clearLayers();
   getWhiteRoadsForLoc(loc).forEach(road => {
     const latLngs = pointsToLatLngs(road.points);
-    drawWhiteRoadPolyline(manualWhiteRoadLayer, latLngs, road.width, 'territoryRoadPane', 1);
+    drawWhiteRoadPolyline(manualWhiteRoadLayer, latLngs, road.width, 'territoryRoadPane', 1, road.color || '');
   });
 }
 
@@ -3095,7 +3114,7 @@ function renderRoadDraft(){
     }).addTo(draftLayer);
     return;
   }
-  drawWhiteRoadPolyline(draftLayer, roadDraftPoints, 8, 'territoryDraftPane', 1);
+  drawWhiteRoadPolyline(draftLayer, roadDraftPoints, 8, 'territoryDraftPane', 1, modoCarretera ? CARRETERA_COLOR : '');
 }
 
 function resetRoadDraft(){
@@ -3107,27 +3126,58 @@ function addManualWhiteRoadForCurrent(points){
   const loc = LOCS[currentIndex];
   if(!loc || !Array.isArray(points) || points.length < 2) return false;
   const road = {
-    width:8,
+    width:modoCarretera ? 12 : 8,
     points:points.map(point => [Number(point.lat.toFixed(6)), Number(point.lng.toFixed(6))])
   };
+  if(modoCarretera) road.color = CARRETERA_COLOR;
   const roads = getWhiteRoadsForLoc(loc).slice();
   roads.push(road);
   const saved = setWhiteRoadsForLoc(loc, roads);
   renderManualWhiteRoads(loc);
-  if(saved) setStatus('Calle blanca guardada. Puedes dibujar otra o apagar el lapiz.', 'warn');
+  if(saved) setStatus(modoCarretera
+    ? 'Carretera guardada. Puedes trazar otra o apagar el lapiz.'
+    : 'Calle blanca guardada. Puedes dibujar otra o apagar el lapiz.', 'warn');
   return saved;
+}
+
+// El rotulo va donde termina el trazo, que es donde se pone en los croquis
+// de siempre: "A OCOTITLAN" al final de la raya que sale del pueblo.
+function preguntarDestino(punto){
+  const loc = LOCS[currentIndex];
+  if(!loc || !punto) return;
+  const escrito = window.prompt('Hacia donde va esta carretera? Por ejemplo: A OCOTITLAN', 'A ');
+  if(escrito == null) return;
+  const destino = escrito.trim().toUpperCase();
+  if(!destino || destino === 'A') return;
+  const labels = getTextLabelsForLoc(loc).slice();
+  labels.push({
+    text:destino,
+    lat:Number(punto.lat.toFixed(6)),
+    lng:Number(punto.lng.toFixed(6)),
+    color:'#243129',
+    opacity:1,
+    size:getTextLabelSize(),
+    type:'colonia'
+  });
+  setTextLabelsForLoc(loc, labels);
+  selectedTextIndex = labels.length - 1;
+  renderTextLabels(loc);
+  updateColorControls(loc);
 }
 
 function finishRoadDraft(){
   if(!roadPencilMode || roadDraftPoints.length < 2) return false;
+  const final = roadDraftPoints[roadDraftPoints.length - 1];
   const saved = addManualWhiteRoadForCurrent(roadDraftPoints);
+  if(saved && modoCarretera) preguntarDestino(final);
   resetRoadDraft();
   updateColorControls();
   return saved;
 }
 
-function setRoadPencilMode(active, showMessage = true){
+function setRoadPencilMode(active, showMessage = true, carretera = false){
   roadPencilMode = !!active;
+  modoCarretera = roadPencilMode && !!carretera;
   if(roadPencilMode){
     setTerritoryAddMode(false, false);
     setColorDrawMode(false);
@@ -3145,8 +3195,11 @@ function setRoadPencilMode(active, showMessage = true){
   document.querySelector('.map-wrap')?.classList.toggle('is-road-pencil', roadPencilMode);
   if(showMessage){
     if(roadPencilMode){
-      setStatus('Lapiz de calle blanca: marca puntos siguiendo la calle y guarda con el boton de guardar.', 'warn');
-    }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Lapiz de calle blanca')){
+      setStatus(modoCarretera
+        ? 'Carretera: marca los puntos por donde va y guarda. Despues te pregunta hacia donde lleva.'
+        : 'Lapiz de calle blanca: marca puntos siguiendo la calle y guarda con el boton de guardar.', 'warn');
+    }else if(statusBox.classList.contains('warn') &&
+             (statusBox.textContent.includes('Lapiz de calle blanca') || statusBox.textContent.includes('Carretera:'))){
       setStatus('', '');
     }
   }
@@ -5303,7 +5356,7 @@ function drawPrintManualWhiteRoads(targetMap, loc){
   const roadPane = targetMap.getPane?.('territoryWhiteRoadPane') ? 'territoryWhiteRoadPane' : 'territoryRoadPane';
   getWhiteRoadsForLoc(loc).forEach(road => {
     const latLngs = pointsToLatLngs(road.points);
-    drawWhiteRoadPolyline(targetMap, latLngs, road.width, roadPane, printVectorRoadScale());
+    drawWhiteRoadPolyline(targetMap, latLngs, road.width, roadPane, printVectorRoadScale(), road.color || '');
   });
 }
 
@@ -5818,7 +5871,8 @@ contourEditButton.addEventListener('click', () => {
   setContourEditMode(!contourEditMode);
 });
 colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode));
-roadPencilButton?.addEventListener('click', () => setRoadPencilMode(!roadPencilMode));
+roadPencilButton?.addEventListener('click', () => setRoadPencilMode(!(roadPencilMode && !modoCarretera), true, false));
+carreteraButton?.addEventListener('click', () => setRoadPencilMode(!(roadPencilMode && modoCarretera), true, true));
 riverPencilButton?.addEventListener('click', () => setRiverPencilMode(!riverPencilMode));
 textAddButton.addEventListener('click', () => {
   if(selectedTextIndex != null){
