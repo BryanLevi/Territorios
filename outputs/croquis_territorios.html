@@ -68,8 +68,8 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 #btn-color-clear:hover:not(:disabled){background:#fbeceb;border-color:#dfaea9;color:#b63b32}
 #btn-tools-toggle{display:none}
 .bar-group{display:flex;align-items:center;gap:7px}
-.bar-group+.bar-group{padding-left:10px;border-left:1px solid #e2eae5}
-.bar-actions{flex:1 1 100%;display:flex;align-items:center;gap:7px 10px;flex-wrap:wrap}
+.bar-group+.bar-group{padding-left:8px;border-left:1px solid #e2eae5}
+.bar-actions{flex:1 1 100%;display:flex;align-items:center;gap:7px 8px;flex-wrap:wrap}
 .bar-actions .bar-spacer{flex:1;min-width:0}
 .color-swatch{width:38px;height:38px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;padding:3px;cursor:pointer}
 .color-control input[type=range]{width:86px;accent-color:#1f7a47}
@@ -524,6 +524,9 @@ body.print-preview{overflow:hidden}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
     Agregar
   </button>
+  <button class="btn ghost" id="btn-rename-territory" type="button" disabled title="Cambiar el nombre del territorio" aria-label="Cambiar el nombre del territorio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
+  </button>
   <button class="btn danger" id="btn-delete-territory" type="button" disabled title="Eliminar territorio actual" aria-label="Eliminar territorio actual">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg>
     Eliminar
@@ -859,6 +862,10 @@ const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
 const CUSTOM_TERRITORIES_STORAGE_KEY = 'croquis-custom-territories-v1';
 const HIDDEN_TERRITORIES_STORAGE_KEY = 'croquis-hidden-territories-v1';
 const LEYENDA_STORAGE_KEY = 'croquis-territory-leyenda-v1';
+// Los nombres cambiados a mano. Se guardan aparte y se aplican encima, para
+// no tocar la lista de fabrica: asi un nombre se puede devolver a como venia
+// dejando la caja vacia.
+const NOMBRES_STORAGE_KEY = 'croquis-territory-nombres-v1';
 // La transparencia con la que se pinta si no se toca el deslizador.
 const OPACIDAD_POR_DEFECTO = 50;
 // Marca de que ya se subieron a 50 las zonas que estaban por debajo. Va por
@@ -887,7 +894,8 @@ const CLAVES_POR_CONGREGACION = [
   ['overpass', OVERPASS_CACHE_STORAGE_KEY],
   ['hiddenReferences', HIDDEN_REFERENCES_STORAGE_KEY],
   ['undoHistory', UNDO_HISTORY_STORAGE_KEY],
-  ['leyenda', LEYENDA_STORAGE_KEY]
+  ['leyenda', LEYENDA_STORAGE_KEY],
+  ['nombres', NOMBRES_STORAGE_KEY]
 ];
 
 function claveDe(base, id){
@@ -1034,6 +1042,7 @@ let manualIconSettings = loadManualIconSettings();
 let whiteRoadSettings = loadWhiteRoadSettings();
 let manualRiverSettings = loadManualRiverSettings();
 let leyendaSettings = loadLeyendaSettings();
+let nombresSettings = loadNombresSettings();
 let undoHistory = loadUndoHistory();
 let colorLayer = null;
 let draftLayer = null;
@@ -1426,6 +1435,58 @@ function saveHiddenTerritorySettings(items){
   }
 }
 
+function loadNombresSettings(){
+  try{
+    const raw = almacen.getItem(NOMBRES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveNombresSettings(){
+  try{
+    almacen.setItem(NOMBRES_STORAGE_KEY, JSON.stringify(nombresSettings));
+    return true;
+  }catch(e){
+    console.error('No se pudieron guardar los nombres.', e);
+    return false;
+  }
+}
+
+function renombrarTerritorio(){
+  const loc = LOCS[currentIndex];
+  if(!loc) return;
+  const nombre = window.prompt('Nombre del territorio:', loc.name || '');
+  if(nombre == null) return;
+  const limpio = nombre.trim();
+  if(!limpio){
+    setStatus('El territorio necesita un nombre.', 'warn');
+    return;
+  }
+  const otro = window.prompt('Segundo nombre, si tiene. Dejalo vacio si no:', loc.alias || '');
+  if(otro == null) return;
+  const alias = otro.trim();
+
+  const clave = String(loc.num);
+  const original = BASE_LOCS.find(b => String(b.num) === clave);
+  if(original && limpio === original.name && alias === String(original.alias || '')){
+    // vuelve a ser el de fabrica: se quita el cambio en vez de guardarlo
+    delete nombresSettings[clave];
+  }else{
+    nombresSettings[clave] = alias ? { name:limpio, alias } : { name:limpio };
+  }
+  if(!saveNombresSettings()){
+    setStatus('No se pudo guardar el nombre.', 'error');
+    return;
+  }
+  applyCustomTerritories();
+  populateSelect();
+  goTo(currentIndex, true);
+  setStatus('Territorio renombrado: ' + displayTerritoryTitle(LOCS[currentIndex]) + '.', 'warn');
+}
+
 function applyCustomTerritories(){
   const hidden = new Set(loadHiddenTerritorySettings());
   const items = loadCustomTerritorySettings();
@@ -1442,6 +1503,13 @@ function applyCustomTerritories(){
       displayNum:baseVisibleCount + index + 1
     });
   });
+  // Los nombres cambiados a mano van al final, encima de todo, y valen tanto
+  // para los de fabrica como para los agregados.
+  LOCS.forEach((loc, i) => {
+    const cambio = nombresSettings[String(loc.num)];
+    if(!cambio || !String(cambio.name || '').trim()) return;
+    LOCS[i] = { ...loc, name:String(cambio.name).trim(), alias:String(cambio.alias || '').trim() };
+  });
   if(currentIndex >= LOCS.length) currentIndex = Math.max(0, LOCS.length - 1);
 }
 
@@ -1453,6 +1521,7 @@ function recargarAjustesGuardados(){
   whiteRoadSettings = loadWhiteRoadSettings();
   manualRiverSettings = loadManualRiverSettings();
   leyendaSettings = loadLeyendaSettings();
+  nombresSettings = loadNombresSettings();
   undoHistory = loadUndoHistory();
 }
 
@@ -1684,6 +1753,7 @@ function clearTerritoryStoredWork(loc){
   delete manualRiverSettings[key];
   delete frameScaleSettings[key];
   delete leyendaSettings[key];
+  delete nombresSettings[key];
   saveColorAreaSettings();
   saveTextLabelSettings();
   saveManualIconSettings();
@@ -1691,6 +1761,7 @@ function clearTerritoryStoredWork(loc){
   saveManualRiverSettings();
   saveFrameScaleSettings();
   saveLeyendaSettings();
+  saveNombresSettings();
 }
 
 function deleteCurrentTerritory(){
@@ -4078,7 +4149,8 @@ function buildBackupPayload(){
       frameScales:safeObject(frameScaleSettings),
       customTerritories:loadCustomTerritorySettings(),
       hiddenTerritories:loadHiddenTerritorySettings(),
-      leyenda:safeObject(leyendaSettings)
+      leyenda:safeObject(leyendaSettings),
+      nombres:safeObject(nombresSettings)
     },
     // El respaldo se lleva tambien las demas congregaciones. Lo de arriba es
     // el trabajo de la que esta abierta, que es lo que entienden los respaldos
@@ -4159,7 +4231,8 @@ function getBackupData(payload){
     frameScales:safeObject(data.frameScales || data[FRAME_SCALE_STORAGE_KEY]),
     customTerritories:safeArray(data.customTerritories || data[CUSTOM_TERRITORIES_STORAGE_KEY]).map(normalizeCustomTerritory).filter(Boolean),
     hiddenTerritories:safeArray(data.hiddenTerritories || data[HIDDEN_TERRITORIES_STORAGE_KEY]).map(String),
-    leyenda:safeObject(data.leyenda || data[LEYENDA_STORAGE_KEY])
+    leyenda:safeObject(data.leyenda || data[LEYENDA_STORAGE_KEY]),
+    nombres:safeObject(data.nombres || data[NOMBRES_STORAGE_KEY])
   };
 }
 
@@ -4194,6 +4267,7 @@ function importBackupPayload(payload){
   manualRiverSettings = data.manualRivers;
   frameScaleSettings = data.frameScales;
   leyendaSettings = data.leyenda;
+  nombresSettings = data.nombres;
   undoHistory = [];
   const colorsSaved = saveColorAreaSettings();
   const textsSaved = saveTextLabelSettings();
@@ -4202,6 +4276,7 @@ function importBackupPayload(payload){
   const riversSaved = saveManualRiverSettings();
   const framesSaved = saveFrameScaleSettings();
   saveLeyendaSettings();
+  saveNombresSettings();
   const customSaved = saveCustomTerritorySettings(data.customTerritories);
   const hiddenSaved = saveHiddenTerritorySettings(data.hiddenTerritories);
   saveUndoHistory();
@@ -5202,6 +5277,8 @@ function updateInfo(loc){
 function updateButtons(){
   $('btn-pr').disabled = !map;
   $('btn-add-territory').disabled = !map;
+  const botonNombre = $('btn-rename-territory');
+  if(botonNombre) botonNombre.disabled = !map || !LOCS[currentIndex];
   $('btn-delete-territory').disabled = !map || LOCS.length <= (esCongregacionBase() ? 1 : 0);
 }
 
@@ -6173,6 +6250,7 @@ contourEditButton.addEventListener('click', () => {
   setContourEditMode(!contourEditMode);
 });
 colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode));
+$('btn-rename-territory')?.addEventListener('click', renombrarTerritorio);
 $('btn-referencias')?.addEventListener('click', abrirPanelReferencias);
 $('ref-panel-close')?.addEventListener('click', cerrarPanelReferencias);
 $('ref-panel-save')?.addEventListener('click', guardarPanelReferencias);
