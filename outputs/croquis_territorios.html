@@ -189,6 +189,21 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .sel-text b{font-size:13px;color:#17251c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sel-text span{font-size:11px;color:#6a7d72}
 .sel-card .btn{height:34px;font-size:12px}
+/* El panel de referencias: se abre encima del mapa, junto a las herramientas. */
+.ref-panel{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:640;width:min(380px,calc(100% - 24px));background:#fff;border:1px solid #cfdcd5;border-radius:12px;box-shadow:0 16px 40px rgba(16,40,26,.24);padding:12px 14px 11px}
+.ref-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.ref-panel-head b{font-size:14px;color:#17251c}
+.ref-panel-head .icon-btn{width:28px;height:28px}
+.ref-panel-list{display:flex;flex-direction:column;gap:7px;max-height:46vh;overflow-y:auto}
+.ref-fila{display:flex;align-items:center;gap:9px}
+.ref-fila input[type=checkbox]{width:17px;height:17px;flex:0 0 auto;accent-color:#1f7a47;cursor:pointer}
+.ref-glifo{width:26px;height:26px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:#00c41a;border:1px solid #009514;border-radius:6px;color:#fff}
+.ref-glifo svg{width:78%;height:78%;display:block;fill:none;stroke:currentColor}
+.ref-nombre{flex:1;min-width:0;height:32px;padding:0 9px;border:1px solid #c9d5ce;border-radius:7px;font:inherit;font-size:13px;color:#17251c}
+.ref-nombre:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
+.ref-panel-vacio{margin:2px 0;font-size:13px;line-height:1.45;color:#4a6579}
+.ref-panel-nota{margin:10px 0 9px;font-size:12px;line-height:1.4;color:#60726a}
+.ref-panel-pie{display:flex;justify-content:flex-end}
 .map-status{position:absolute;right:14px;bottom:18px;z-index:650;max-width:min(430px,calc(100% - 28px));background:rgba(20,32,25,.88);color:#fff;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.35;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .map-status.warn{background:rgba(139,76,18,.94)}
 .map-status.error{background:rgba(150,38,38,.94)}
@@ -469,6 +484,9 @@ body.print-preview{overflow:hidden}
       <button class="icon-btn" id="btn-save-changes" type="button" disabled title="Guardar cambios" aria-label="Guardar cambios">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
       </button>
+      <button class="icon-btn" id="btn-referencias" type="button" disabled title="Lista de referencias del PDF" aria-label="Lista de referencias del PDF">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M4.5 6h.01"></path><path d="M4.5 12h.01"></path><path d="M4.5 18h.01"></path></svg>
+      </button>
       <button class="icon-btn" id="btn-color-undo" type="button" disabled title="Regresar / deshacer" aria-label="Regresar o deshacer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg>
       </button>
@@ -567,6 +585,19 @@ body.print-preview{overflow:hidden}
     <button class="btn ghost" id="btn-icon-change" type="button">Cambiar tipo</button>
     <button class="btn primary" id="btn-ref-adopt" type="button" hidden>Hacerlo editable</button>
     <button class="btn danger" id="btn-icon-delete" type="button">Eliminar</button>
+  </div>
+  <div class="ref-panel" id="ref-panel" hidden>
+    <div class="ref-panel-head">
+      <b>Referencias del territorio</b>
+      <button class="icon-btn" id="ref-panel-close" type="button" title="Cerrar" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="ref-panel-list" id="ref-panel-list"></div>
+    <p class="ref-panel-nota">Los iconos salen solos de los que tiene puestos este territorio. Marca los que quieres en el PDF y cambiales el nombre si hace falta.</p>
+    <div class="ref-panel-pie">
+      <button class="btn primary" id="ref-panel-save" type="button">Guardar</button>
+    </div>
   </div>
   <div class="map-status" id="map-status">Cargando mapa y nombres de calles...</div>
 </div>
@@ -825,6 +856,7 @@ const LEGACY_UNDO_HISTORY_STORAGE_KEY = 'croquis-territory-undo-history-v1';
 const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
 const CUSTOM_TERRITORIES_STORAGE_KEY = 'croquis-custom-territories-v1';
 const HIDDEN_TERRITORIES_STORAGE_KEY = 'croquis-hidden-territories-v1';
+const LEYENDA_STORAGE_KEY = 'croquis-territory-leyenda-v1';
 
 // Cada congregacion lleva su propia lista de territorios y su propio trabajo
 // guardado. La primera es la de siempre y se queda con las claves tal cual,
@@ -846,7 +878,8 @@ const CLAVES_POR_CONGREGACION = [
   ['hiddenTerritories', HIDDEN_TERRITORIES_STORAGE_KEY],
   ['overpass', OVERPASS_CACHE_STORAGE_KEY],
   ['hiddenReferences', HIDDEN_REFERENCES_STORAGE_KEY],
-  ['undoHistory', UNDO_HISTORY_STORAGE_KEY]
+  ['undoHistory', UNDO_HISTORY_STORAGE_KEY],
+  ['leyenda', LEYENDA_STORAGE_KEY]
 ];
 
 function claveDe(base, id){
@@ -991,6 +1024,7 @@ let textLabelSettings = loadTextLabelSettings();
 let manualIconSettings = loadManualIconSettings();
 let whiteRoadSettings = loadWhiteRoadSettings();
 let manualRiverSettings = loadManualRiverSettings();
+let leyendaSettings = loadLeyendaSettings();
 let undoHistory = loadUndoHistory();
 let colorLayer = null;
 let draftLayer = null;
@@ -1409,6 +1443,7 @@ function recargarAjustesGuardados(){
   manualIconSettings = loadManualIconSettings();
   whiteRoadSettings = loadWhiteRoadSettings();
   manualRiverSettings = loadManualRiverSettings();
+  leyendaSettings = loadLeyendaSettings();
   undoHistory = loadUndoHistory();
 }
 
@@ -1639,12 +1674,14 @@ function clearTerritoryStoredWork(loc){
   delete whiteRoadSettings[key];
   delete manualRiverSettings[key];
   delete frameScaleSettings[key];
+  delete leyendaSettings[key];
   saveColorAreaSettings();
   saveTextLabelSettings();
   saveManualIconSettings();
   saveWhiteRoadSettings();
   saveManualRiverSettings();
   saveFrameScaleSettings();
+  saveLeyendaSettings();
 }
 
 function deleteCurrentTerritory(){
@@ -2146,6 +2183,8 @@ function updateColorControls(loc = LOCS[currentIndex]){
     colorDrawButton.disabled = !enabled || !loc;
     colorDrawButton.classList.toggle('active', colorDrawMode);
   }
+  const botonRef = $('btn-referencias');
+  if(botonRef) botonRef.disabled = !enabled || !loc;
   if(carreteraButton){
     carreteraButton.disabled = !enabled || !loc;
     carreteraButton.classList.toggle('active', roadPencilMode && modoCarretera);
@@ -3999,7 +4038,8 @@ function buildBackupPayload(){
       manualRivers:safeObject(manualRiverSettings),
       frameScales:safeObject(frameScaleSettings),
       customTerritories:loadCustomTerritorySettings(),
-      hiddenTerritories:loadHiddenTerritorySettings()
+      hiddenTerritories:loadHiddenTerritorySettings(),
+      leyenda:safeObject(leyendaSettings)
     },
     // El respaldo se lleva tambien las demas congregaciones. Lo de arriba es
     // el trabajo de la que esta abierta, que es lo que entienden los respaldos
@@ -4079,7 +4119,8 @@ function getBackupData(payload){
     manualRivers:safeObject(data.manualRivers || data[MANUAL_RIVERS_STORAGE_KEY]),
     frameScales:safeObject(data.frameScales || data[FRAME_SCALE_STORAGE_KEY]),
     customTerritories:safeArray(data.customTerritories || data[CUSTOM_TERRITORIES_STORAGE_KEY]).map(normalizeCustomTerritory).filter(Boolean),
-    hiddenTerritories:safeArray(data.hiddenTerritories || data[HIDDEN_TERRITORIES_STORAGE_KEY]).map(String)
+    hiddenTerritories:safeArray(data.hiddenTerritories || data[HIDDEN_TERRITORIES_STORAGE_KEY]).map(String),
+    leyenda:safeObject(data.leyenda || data[LEYENDA_STORAGE_KEY])
   };
 }
 
@@ -4113,6 +4154,7 @@ function importBackupPayload(payload){
   whiteRoadSettings = data.whiteRoads;
   manualRiverSettings = data.manualRivers;
   frameScaleSettings = data.frameScales;
+  leyendaSettings = data.leyenda;
   undoHistory = [];
   const colorsSaved = saveColorAreaSettings();
   const textsSaved = saveTextLabelSettings();
@@ -4120,6 +4162,7 @@ function importBackupPayload(payload){
   const roadsSaved = saveWhiteRoadSettings();
   const riversSaved = saveManualRiverSettings();
   const framesSaved = saveFrameScaleSettings();
+  saveLeyendaSettings();
   const customSaved = saveCustomTerritorySettings(data.customTerritories);
   const hiddenSaved = saveHiddenTerritorySettings(data.hiddenTerritories);
   saveUndoHistory();
@@ -4315,12 +4358,15 @@ function aplicarTerritorioRemoto(num, d){
   mete(manualRiverSettings, datos.rios);
   if(Number.isFinite(Number(datos.recuadro))) frameScaleSettings[clave] = Number(datos.recuadro);
   else delete frameScaleSettings[clave];
+  if(datos.referencias && typeof datos.referencias === 'object') leyendaSettings[clave] = datos.referencias;
+  else delete leyendaSettings[clave];
   saveColorAreaSettings();
   saveTextLabelSettings();
   saveManualIconSettings();
   saveWhiteRoadSettings();
   saveManualRiverSettings();
   saveFrameScaleSettings();
+  saveLeyendaSettings();
   nubeAplicando = false;
 
   const loc = LOCS[currentIndex];
@@ -4354,7 +4400,8 @@ async function publicarTerritorio(loc){
     iconos:manualIconSettings[clave] || [],
     calles:whiteRoadSettings[clave] || [],
     rios:manualRiverSettings[clave] || [],
-    recuadro:frameScaleSettings[clave] ?? null
+    recuadro:frameScaleSettings[clave] ?? null,
+    referencias:leyendaSettings[clave] || null
   };
   try{
     const { fs, db } = nube;
@@ -5196,18 +5243,132 @@ const ROSA_DE_LOS_VIENTOS = `<svg class="print-compass" viewBox="0 0 100 118" ar
         font-size="24" font-weight="900" fill="#17251c">N</text>
 </svg>`;
 
+/* ---- La lista de referencias que sale en el PDF -----------------------
+   Los iconos los encuentra sola, mirando los que tiene puestos el
+   territorio. Lo que se elige a mano es cuales salen y con que nombre. */
+
+function loadLeyendaSettings(){
+  try{
+    const raw = almacen.getItem(LEYENDA_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveLeyendaSettings(){
+  try{
+    almacen.setItem(LEYENDA_STORAGE_KEY, JSON.stringify(leyendaSettings));
+    return true;
+  }catch(e){
+    console.error('No se pudieron guardar las referencias.', e);
+    return false;
+  }
+}
+
+// Los tipos de icono que tiene puestos este territorio, sin repetir.
+function tiposDeIconoEn(loc){
+  const vistos = [];
+  getManualIconsForLoc(loc).forEach(icono => {
+    const kind = String(icono.kind || 'Referencia').trim() || 'Referencia';
+    if(!vistos.includes(kind)) vistos.push(kind);
+  });
+  return vistos;
+}
+
+function nombrePorDefectoDeIcono(kind){
+  const encontrado = MANUAL_ICON_OPTIONS.find(par => par[0] === kind);
+  return encontrado ? encontrado[1] : kind;
+}
+
+// Junta lo que hay en el mapa con lo que se haya cambiado a mano. Un icono
+// que nunca se ha tocado sale con su nombre de siempre y marcado.
+function referenciasDeLoc(loc){
+  if(!loc) return [];
+  const guardado = leyendaSettings[String(loc.num)] || {};
+  return tiposDeIconoEn(loc).map(kind => {
+    const suyo = guardado[kind] || {};
+    return {
+      kind,
+      nombre:String(suyo.nombre || '').trim() || nombrePorDefectoDeIcono(kind),
+      ver:suyo.ver !== false
+    };
+  }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+}
+
+function abrirPanelReferencias(){
+  const loc = LOCS[currentIndex];
+  const panel = $('ref-panel');
+  const lista = $('ref-panel-list');
+  if(!loc || !panel || !lista) return;
+  lista.innerHTML = '';
+  const filas = referenciasDeLoc(loc);
+  if(!filas.length){
+    const vacio = document.createElement('p');
+    vacio.className = 'ref-panel-vacio';
+    vacio.textContent = 'Este territorio todavia no tiene iconos puestos. Agrega alguno y vuelve aqui.';
+    lista.appendChild(vacio);
+  }else{
+    filas.forEach(fila => {
+      const renglon = document.createElement('div');
+      renglon.className = 'ref-fila';
+      const marca = document.createElement('input');
+      marca.type = 'checkbox';
+      marca.checked = fila.ver;
+      marca.dataset.kind = fila.kind;
+      marca.title = 'Que salga en el PDF';
+      const glifo = document.createElement('span');
+      glifo.className = 'ref-glifo';
+      glifo.innerHTML = referenceIconSvg({ kind:fila.kind });
+      const nombre = document.createElement('input');
+      nombre.type = 'text';
+      nombre.className = 'ref-nombre';
+      nombre.value = fila.nombre;
+      nombre.dataset.kind = fila.kind;
+      renglon.append(marca, glifo, nombre);
+      lista.appendChild(renglon);
+    });
+  }
+  panel.hidden = false;
+}
+
+function cerrarPanelReferencias(){
+  const panel = $('ref-panel');
+  if(panel) panel.hidden = true;
+}
+
+function guardarPanelReferencias(){
+  const loc = LOCS[currentIndex];
+  const lista = $('ref-panel-list');
+  if(!loc || !lista) return;
+  const datos = {};
+  lista.querySelectorAll('.ref-fila').forEach(renglon => {
+    const marca = renglon.querySelector('input[type=checkbox]');
+    const nombre = renglon.querySelector('.ref-nombre');
+    if(!marca || !nombre) return;
+    datos[marca.dataset.kind] = {
+      ver:marca.checked,
+      nombre:String(nombre.value || '').trim()
+    };
+  });
+  leyendaSettings[String(loc.num)] = datos;
+  if(saveLeyendaSettings()){
+    const cuantas = Object.values(datos).filter(d => d.ver).length;
+    setStatus(cuantas
+      ? 'Referencias guardadas: saldran ' + cuantas + (cuantas === 1 ? ' en el PDF.' : ' en el PDF.')
+      : 'Referencias guardadas. Este territorio no llevara lista en el PDF.', 'warn');
+  }else{
+    setStatus('No se pudieron guardar las referencias.', 'error');
+  }
+  cerrarPanelReferencias();
+}
+
 // La lista de lo que significa cada icono del territorio. Solo salen los
 // que el territorio tiene puestos, una vez cada uno.
 function construirLeyendaIconos(loc){
-  const iconos = getManualIconsForLoc(loc);
-  if(!iconos.length) return '';
-  const nombres = new Map(MANUAL_ICON_OPTIONS);
-  const vistos = [];
-  iconos.forEach(icono => {
-    const kind = String(icono.kind || 'Referencia').trim() || 'Referencia';
-    if(!vistos.some(v => v.kind === kind)) vistos.push({ kind, nombre:nombres.get(kind) || kind });
-  });
-  vistos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const vistos = referenciasDeLoc(loc).filter(r => r.ver);
+  if(!vistos.length) return '';
   const filas = vistos.map(v =>
     '<span class="print-leyenda-fila"><span class="print-leyenda-icono">'
     + referenceIconSvg({ kind:v.kind })
@@ -5972,6 +6133,9 @@ contourEditButton.addEventListener('click', () => {
   setContourEditMode(!contourEditMode);
 });
 colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode));
+$('btn-referencias')?.addEventListener('click', abrirPanelReferencias);
+$('ref-panel-close')?.addEventListener('click', cerrarPanelReferencias);
+$('ref-panel-save')?.addEventListener('click', guardarPanelReferencias);
 roadPencilButton?.addEventListener('click', () => setRoadPencilMode(!(roadPencilMode && !modoCarretera), true, false));
 carreteraButton?.addEventListener('click', () => setRoadPencilMode(!(roadPencilMode && modoCarretera), true, true));
 riverPencilButton?.addEventListener('click', () => setRiverPencilMode(!riverPencilMode));
