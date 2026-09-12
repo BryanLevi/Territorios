@@ -433,7 +433,7 @@ body.print-preview{overflow:hidden}
     <div class="color-control">
       <span class="tool-group">
       <input class="color-swatch" id="fill-color" type="color" value="#8b2cff" disabled title="Color de relleno" aria-label="Color de relleno">
-      <input id="fill-opacity" type="range" min="10" max="85" step="5" value="35" disabled title="Transparencia" aria-label="Transparencia">
+      <input id="fill-opacity" type="range" min="10" max="85" step="5" value="50" disabled title="Transparencia" aria-label="Transparencia">
       <output class="opacity-value" id="fill-opacity-value" for="fill-opacity">35%</output>
       </span>
       <span class="tool-group">
@@ -857,6 +857,12 @@ const IXCATLA_RECOVERY_STORAGE_KEY = 'croquis-ixcatla-blue-recovery-v1';
 const CUSTOM_TERRITORIES_STORAGE_KEY = 'croquis-custom-territories-v1';
 const HIDDEN_TERRITORIES_STORAGE_KEY = 'croquis-hidden-territories-v1';
 const LEYENDA_STORAGE_KEY = 'croquis-territory-leyenda-v1';
+// La transparencia con la que se pinta si no se toca el deslizador.
+const OPACIDAD_POR_DEFECTO = 50;
+// Marca de que ya se subieron a 50 las zonas que estaban por debajo. Va por
+// congregacion y se hace una sola vez: si se repitiera, pisaria cualquier
+// zona que se baje a proposito mas adelante.
+const SUBIDA_A_50_STORAGE_KEY = 'croquis-opacidad-50-v1';
 
 // Cada congregacion lleva su propia lista de territorios y su propio trabajo
 // guardado. La primera es la de siempre y se queda con las claves tal cual,
@@ -1906,8 +1912,8 @@ function sanitizeColor(value){
 }
 
 function getFillOpacity(){
-  const value = Number(colorOpacityInput?.value ?? 35);
-  const clamped = Math.max(10, Math.min(85, Number.isFinite(value) ? value : 35));
+  const value = Number(colorOpacityInput?.value ?? OPACIDAD_POR_DEFECTO);
+  const clamped = Math.max(10, Math.min(85, Number.isFinite(value) ? value : OPACIDAD_POR_DEFECTO));
   return clamped / 100;
 }
 
@@ -3638,6 +3644,27 @@ function addColorAreaForCurrent(points){
   updateColorControls(loc);
 }
 
+// Sube a 50 las zonas que estaban por debajo. Las que ya estaban en 50 o mas
+// se quedan como estan.
+function subirTransparenciasA50(){
+  try{
+    if(almacen.getItem(SUBIDA_A_50_STORAGE_KEY) === 'hecho') return;
+  }catch(e){ return; }
+  const minimo = OPACIDAD_POR_DEFECTO / 100;
+  let tocadas = 0;
+  Object.keys(colorAreaSettings).forEach(clave => {
+    const zonas = colorAreaSettings[clave];
+    if(!Array.isArray(zonas)) return;
+    zonas.forEach(zona => {
+      const ahora = Number(zona?.opacity);
+      if(Number.isFinite(ahora) && ahora < minimo){ zona.opacity = minimo; tocadas++; }
+    });
+  });
+  if(tocadas) saveColorAreaSettings();
+  try{ almacen.setItem(SUBIDA_A_50_STORAGE_KEY, 'hecho'); }catch(e){}
+  if(tocadas) console.info('Transparencia subida a 50% en ' + tocadas + ' zonas.');
+}
+
 function recoverIxcatlaBlueIfMissing(){
   const loc = LOCS.find(item => item.num === 5 || item.name === 'Ixcatla');
   if(!loc || getColorAreasForLoc(loc).length) return false;
@@ -3647,7 +3674,7 @@ function recoverIxcatlaBlueIfMissing(){
   const b = getPrintBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
   const area = {
     color:'#2196f3',
-    opacity:.35,
+    opacity:OPACIDAD_POR_DEFECTO / 100,
     points:[
       [Number(b.north.toFixed(6)), Number(b.west.toFixed(6))],
       [Number(b.north.toFixed(6)), Number(b.east.toFixed(6))],
@@ -5009,6 +5036,7 @@ function initApp(){
   // El filtro de tramos cortos depende del zoom, asi que hay que rehacer los puntos
   map.on('zoomend', () => { if(contourEditMode) renderContourEditHandles(LOCS[currentIndex]); });
 
+  subirTransparenciasA50();
   recoverIxcatlaBlueIfMissing();
   changeView(currentView, true);
   goTo(currentIndex, true);
