@@ -1010,6 +1010,12 @@ let roadDraftPoints = [];
 // hacia donde va. Reaprovecha todo el lapiz de calles.
 const CARRETERA_COLOR = '#f5c400';
 const CARRETERA_ORILLA = '#7a5f00';
+// El rotulo del destino no sigue el deslizador de texto ni el aumento de los
+// numeros de zona: va del tamano de los nombres de calle que trae el mapa,
+// que es lo que se busca. En papel salen mucho mas chicos que en pantalla,
+// porque la capa de nombres se dibuja en grande y luego se encoge.
+const TAM_CARRETERA_PANTALLA = 12;
+const TAM_CARRETERA_PAPEL = 6;
 let modoCarretera = false;
 let riverPencilMode = false;
 let riverDraftPoints = [];
@@ -2957,8 +2963,11 @@ function renderContourEditHandles(loc){
   });
 }
 
-function createTextIcon(label, selected = false, scale = 1){
-  const size = Math.max(13, Math.min(38, Number(label.size) || 22)) * scale;
+function createTextIcon(label, selected = false, scale = 1, tamCarretera = TAM_CARRETERA_PANTALLA){
+  const base = label.type === 'carretera'
+    ? tamCarretera
+    : Math.max(13, Math.min(38, Number(label.size) || 22));
+  const size = base * scale;
   const opacity = Number.isFinite(Number(label.opacity)) ? Math.max(.45, Math.min(1, Number(label.opacity))) : 1;
   const selectedClass = selected ? ' is-selected' : '';
   const textHtml = renderColonyLabelHtml(label.text);
@@ -3157,7 +3166,7 @@ function preguntarDestino(punto){
     color:'#243129',
     opacity:1,
     size:getTextLabelSize(),
-    type:'colonia'
+    type:'carretera'
   });
   setTextLabelsForLoc(loc, labels);
   selectedTextIndex = labels.length - 1;
@@ -3553,7 +3562,7 @@ function applySelectedStyleChange(){
   if(selectedTextIndex != null){
     const labels = getTextLabelsForLoc(loc).slice();
     if(labels[selectedTextIndex]){
-      labels[selectedTextIndex] = { ...labels[selectedTextIndex], color:'#243129', size:getTextLabelSize(), type:'colonia' };
+      labels[selectedTextIndex] = { ...labels[selectedTextIndex], color:'#243129', size:getTextLabelSize(), type:labels[selectedTextIndex].type || 'colonia' };
       setTextLabelsForLoc(loc, labels);
       renderTextLabels(loc);
     }
@@ -4793,7 +4802,7 @@ function editSelectedTextLabel(){
     setStatus('El texto no puede quedar vacio. Usa la basura si quieres borrar la etiqueta.', 'warn');
     return;
   }else{
-    labels[selectedTextIndex] = { ...label, text:next, color:'#243129', size:getTextLabelSize(), type:'colonia' };
+    labels[selectedTextIndex] = { ...label, text:next, color:'#243129', size:getTextLabelSize(), type:label.type || 'colonia' };
   }
   setTextLabelsForLoc(loc, labels);
   renderTextLabels(loc);
@@ -5234,8 +5243,13 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
     const lng = Number(label.lng);
     if(!String(label.text || '').trim() || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
     // El numero de zona aparta su hueco: los nombres de calle lo rodean.
+    // El rotulo de carretera no lleva el aumento de los numeros de zona.
+    const aumento = label.type === 'carretera' ? 1 : PRINT_ZONE_NUMBER_BOOST;
     if(ocupadas){
-      const tam = Math.max(13, Math.min(38, Number(label.size) || 22)) * printRenderScale * PRINT_ZONE_NUMBER_BOOST;
+      const base = label.type === 'carretera'
+        ? TAM_CARRETERA_PAPEL
+        : Math.max(13, Math.min(38, Number(label.size) || 22));
+      const tam = base * printRenderScale * aumento;
       const punto = targetMap.latLngToLayerPoint([lat, lng]);
       const ancho = Math.max(tam, String(label.text).trim().length * tam * .68) + tam * .6;
       const alto = tam * 1.7;
@@ -5243,7 +5257,7 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
     }
     L.marker([lat, lng], {
       interactive:false,
-      icon:createTextIcon(label, false, printRenderScale * PRINT_ZONE_NUMBER_BOOST)
+      icon:createTextIcon(label, false, printRenderScale * aumento, TAM_CARRETERA_PAPEL)
     }).addTo(targetMap);
   });
 }
