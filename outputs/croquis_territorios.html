@@ -987,6 +987,7 @@ const MANUAL_ICON_OPTIONS = [
   ['Escuela','Escuela'],
   ['Parque','Parque'],
   ['Cancha','Cancha / deporte'],
+  ['Domo','Domo / cancha techada'],
   ['Monumento','Monumento'],
   ['Mirador','Mirador'],
   ['Palacio','Gobierno'],
@@ -2643,6 +2644,7 @@ function referenceMarkerShort(ref){
     Escuela:'E',
     Parque:'P',
     Cancha:'C',
+    Domo:'D',
     Palacio:'P',
     Mercado:'M',
     Panteon:'P',
@@ -2709,6 +2711,13 @@ function referenceIconSvg(ref){
   }
   if(kind === 'Cancha'){
     return svg('<rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="M12 5v14"></path><circle cx="12" cy="12" r="3"></circle>');
+  }
+  if(kind === 'Domo'){
+    // La boveda sobre sus postes, que es como se ve un domo de pueblo
+    return svg('<path d="M4.5 12.5a7.5 7.5 0 0 1 15 0"></path>'
+      + '<path d="M3 12.5h18"></path>'
+      + '<path d="M6.5 12.5V19"></path><path d="M17.5 12.5V19"></path>'
+      + '<path d="M5 19h14"></path>');
   }
   if(kind === 'Palacio'){
     return svg('<path d="M4 9l8-5 8 5"></path><path d="M6 10h12"></path><path d="M7 10v8"></path><path d="M12 10v8"></path><path d="M17 10v8"></path><path d="M5 19h14"></path>');
@@ -3873,6 +3882,7 @@ function referencePriority(ref){
     Escuela:3,
     Parque:4,
     Cancha:5,
+    Domo:5.5,
     Palacio:6,
     Mercado:7,
     Panteon:8,
