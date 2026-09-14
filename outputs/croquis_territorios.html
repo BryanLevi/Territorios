@@ -631,7 +631,11 @@ const GOOGLE_SIN_LETRAS = '&apistyle=s.t%3A2%7Cs.e%3Al%7Cp.v%3Aoff';
 // Cuanto se marcan las casas y las calles por encima del color. Es la misma
 // capa que en la pantalla deja ver las manzanas a traves de la pintada: va
 // multiplicada, asi que solo oscurece donde hay algo dibujado.
-const PRINT_SILUETAS_OPACIDAD = .85;
+const PRINT_SILUETAS_OPACIDAD = 1;
+// Una segunda pasada, mas floja. Subir la primera de .85 a 1 casi no se
+// notaba: el relleno de las casas es apenas mas oscuro que el suelo, asi que
+// multiplicar dos veces marca mucho mas que apretar una sola.
+const PRINT_SILUETAS_SEGUNDA = .6;
 
 // Google sirve la misma tesela al doble de puntos con scale=4: mismo trozo de
 // tierra, cuatro veces mas pixeles. Se pide asi cuando la hoja se dibuja con
@@ -6127,6 +6131,11 @@ async function imprimir(){
         url:urlFondo,
         pane:'territoryRestorePane',
         opacity:PRINT_SILUETAS_OPACIDAD
+      });
+      anadirTeselas(src, {
+        url:urlFondo,
+        pane:'territoryRestorePane',
+        opacity:PRINT_SILUETAS_SEGUNDA
       });
     }
     // Aqui iba una capa de textura que multiplicaba el mapa bajo el color y
