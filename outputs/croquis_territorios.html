@@ -623,6 +623,20 @@ const PRINT_ZONE_NUMBER_BOOST = 1.5;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
 const PRINT_BACKGROUND_BLUR = .38;
+// Google acepta un parametro sin documentar que apaga rotulos y pines y deja
+// la misma geometria. Con el fondo ya sin letras no hace falta desenfocarlo,
+// y sin desenfoque el navegador deja de aplanar esa capa: las manzanas y las
+// calles salen a la resolucion de la tesela en vez de a 300 ppp.
+const GOOGLE_SIN_LETRAS = '&apistyle=s.t%3A2%7Cs.e%3Al%7Cp.v%3Aoff';
+
+// Google sirve la misma tesela al doble de puntos con scale=4: mismo trozo de
+// tierra, cuatro veces mas pixeles. Se pide asi cuando la hoja se dibuja con
+// poca escala, que es donde se queda corta: un territorio chico salia a unos
+// 370 ppp y uno grande a mas de mil. Con mucha escala ya sobra resolucion y
+// pedirlas al doble solo multiplicaria por cuatro el peso de la hoja.
+function escalaTeselaImpresion(){
+  return printRenderScale < 8 ? 4 : 2;
+}
 // La hoja lleva dos recortes blancos, y de ahi las dos medidas. Son el trazo
 // del poligono, que va centrado, asi que el aire real es la mitad.
 // El de abajo tapa el mapa de fondo y va pegado a las zonas: el verde del
@@ -5870,9 +5884,21 @@ function getPrintTileUrl(tileSource, options = {}){
     url = url.replace('.png', '@2x.png');
   }
   if(String(url || '').includes('google.com') && !String(url || '').includes('scale=')){
-    return url + '&scale=2';
+    return url + '&scale=' + escalaTeselaImpresion();
   }
   return url;
+}
+
+// La direccion del fondo sin rotulos, si la fuente da alguna. Si no, se
+// devuelve vacio y se sigue desenfocando como antes.
+function urlFondoSinLetras(fuente){
+  const base = getPrintTileUrl(fuente, {});
+  if(String(base || '').includes('google.com')){
+    return String(base).includes('apistyle') ? base : base + GOOGLE_SIN_LETRAS;
+  }
+  if(fuente?.dlNoLabelUrl) return fuente.dlNoLabelUrl;
+  if(fuente?.noLabelUrl) return fuente.noLabelUrl;
+  return '';
 }
 
 function resetPrintSheet(){
@@ -6064,7 +6090,8 @@ async function imprimir(){
         updateWhenIdle:false
       };
       if(opciones.pane) opcionesCapa.pane = opciones.pane;
-      return L.tileLayer(getPrintTileUrl(fuente, { noLabels:!!opciones.sinNombres }), opcionesCapa).addTo(printMap);
+      const direccion = opciones.url || getPrintTileUrl(fuente, { noLabels:!!opciones.sinNombres });
+      return L.tileLayer(direccion, opcionesCapa).addTo(printMap);
     };
     // Con recorte de zonas el fondo va invisible: lo unico que se ve del mapa
     // es la capa de detalle que se multiplica sobre el color, y eso es lo que
@@ -6074,10 +6101,19 @@ async function imprimir(){
     // deshacen, mientras que las manzanas son bloques grandes y aguantan. Asi
     // se ve donde hay casas sin que los nombres salgan dos veces.
     const opacidadFondo = 1;
-    const desenfoqueFondo = PRINT_BACKGROUND_BLUR * printRenderScale;
-    let capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
+    const urlFondo = urlFondoSinLetras(src);
+    let capaFondo = anadirTeselas(src, { opacity:opacidadFondo, url:urlFondo });
     const carrilFondo = printMap.getPane('tilePane');
-    if(carrilFondo) carrilFondo.style.filter = 'blur(' + desenfoqueFondo.toFixed(2) + 'px)';
+    if(carrilFondo){
+      if(urlFondo){
+        // Sin filtro no hay capa aplanada. Ni siquiera blur(0px): el filtro
+        // se crea igual aunque no desenfoque nada.
+        carrilFondo.style.removeProperty('filter');
+      }else{
+        const desenfoqueFondo = PRINT_BACKGROUND_BLUR * printRenderScale;
+        carrilFondo.style.filter = 'blur(' + desenfoqueFondo.toFixed(2) + 'px)';
+      }
+    }
     drawPrintColorAreas(printMap, loc);
     // Aqui iba una capa de textura que multiplicaba el mapa bajo el color y
     // dejaba ver las manzanas. La servia Carto, que marca con agua el uso
@@ -6089,7 +6125,7 @@ async function imprimir(){
     // territorio.
     let urlNombres = src.roadUrl || src.labelUrl;
     if(urlNombres && String(urlNombres).includes('google.com') && !String(urlNombres).includes('scale=')){
-      urlNombres += '&scale=2';
+      urlNombres += '&scale=' + escalaTeselaImpresion();
     }
     let capaNombres = null;
     // Tambien en los territorios sin pintar: antes la capa solo se anadia
