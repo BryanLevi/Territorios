@@ -628,6 +628,10 @@ const PRINT_BACKGROUND_BLUR = .38;
 // y sin desenfoque el navegador deja de aplanar esa capa: las manzanas y las
 // calles salen a la resolucion de la tesela en vez de a 300 ppp.
 const GOOGLE_SIN_LETRAS = '&apistyle=s.t%3A2%7Cs.e%3Al%7Cp.v%3Aoff';
+// Cuanto se marcan las casas y las calles por encima del color. Es la misma
+// capa que en la pantalla deja ver las manzanas a traves de la pintada: va
+// multiplicada, asi que solo oscurece donde hay algo dibujado.
+const PRINT_SILUETAS_OPACIDAD = .85;
 
 // Google sirve la misma tesela al doble de puntos con scale=4: mismo trozo de
 // tierra, cuatro veces mas pixeles. Se pide asi cuando la hoja se dibuja con
@@ -6115,6 +6119,16 @@ async function imprimir(){
       }
     }
     drawPrintColorAreas(printMap, loc);
+    // Las siluetas de las casas encima del color. En la hoja esta capa se
+    // quedaba vacia, y por eso las manzanas se veian en la pantalla pero casi
+    // no en el PDF. Va sin rotulos: multiplicados saldrian repetidos y sucios.
+    if(urlFondo){
+      anadirTeselas(src, {
+        url:urlFondo,
+        pane:'territoryRestorePane',
+        opacity:PRINT_SILUETAS_OPACIDAD
+      });
+    }
     // Aqui iba una capa de textura que multiplicaba el mapa bajo el color y
     // dejaba ver las manzanas. La servia Carto, que marca con agua el uso
     // anonimo en cuanto pasa de unas doscientas teselas, y una hoja pide
