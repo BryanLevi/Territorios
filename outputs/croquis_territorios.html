@@ -16,7 +16,7 @@
 html,body{height:100%;margin:0}
 html,body{overflow-x:hidden}
 body{font-family:"Segoe UI",Arial,sans-serif;background:#f3f6f4;color:#17251c;display:flex;flex-direction:column;overflow:hidden}
-html,body,.print-sheet,.print-paper,.print-map{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+html,body,.print-sheet,.print-paper,#print-map{print-color-adjust:exact;-webkit-print-color-adjust:exact}
 button,select{font:inherit}
 .bar{flex:0 0 auto;background:#fff;border-bottom:1px solid #d9e1dc;padding:7px 12px 8px;display:flex;align-items:center;gap:7px 10px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(20,40,28,.08);z-index:20}
 .brand{display:flex;flex-direction:column;gap:1px;min-width:190px}
@@ -204,42 +204,6 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .ref-panel-vacio{margin:2px 0;font-size:13px;line-height:1.45;color:#4a6579}
 .ref-panel-nota{margin:10px 0 9px;font-size:12px;line-height:1.4;color:#60726a}
 .ref-panel-pie{display:flex;justify-content:flex-end}
-/* --- PDF agrupado ---------------------------------------------------- */
-.agrupar-panel{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:660;width:min(720px,calc(100% - 20px));background:#fff;border:1px solid #cfdcd5;border-radius:12px;box-shadow:0 18px 44px rgba(16,40,26,.26);padding:12px 14px}
-.agrupar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-.agrupar-head b{font-size:14px;color:#17251c}
-.agrupar-head .icon-btn{width:28px;height:28px}
-.agrupar-cuerpo{display:grid;grid-template-columns:minmax(220px,1fr) minmax(280px,1.15fr);gap:14px}
-.agrupar-todos{display:flex;gap:6px;margin-bottom:7px}
-.agrupar-todos .btn{height:26px;font-size:11.5px;padding:0 9px}
-.agrupar-lista{display:flex;flex-direction:column;gap:2px;max-height:34vh;overflow-y:auto;border:1px solid #e2eae5;border-radius:8px;padding:5px}
-.agrupar-fila{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#17251c;padding:2px 3px;border-radius:5px;cursor:pointer}
-.agrupar-fila:hover{background:#eef5f1}
-.agrupar-fila input{width:15px;height:15px;accent-color:#1f7a47;cursor:pointer}
-.agrupar-opciones{display:flex;gap:10px;margin-top:9px}
-.agrupar-opciones label{flex:1;display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#607068}
-.agrupar-opciones select{min-width:0;width:100%}
-.agrupar-previa{display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start;max-height:34vh;overflow-y:auto;background:#f4f7f5;border:1px solid #e2eae5;border-radius:8px;padding:7px}
-/* Cada pagina de la vista previa, a escala: el reparto que se ve aqui es el
-   mismo que sale en el PDF. */
-.agrupar-hoja{position:relative;background:#fff;border:1px solid #c5d3cb;box-shadow:0 1px 3px rgba(16,40,26,.12);flex:0 0 auto}
-.agrupar-celda{position:absolute;background:#e7f2ec;border:1px solid #9fc4ae;border-radius:2px;font-size:8px;line-height:1.05;color:#1d5331;padding:2px 3px;overflow:hidden;display:flex;align-items:flex-start}
-.agrupar-quitar{position:absolute;top:0;right:0;width:13px;height:13px;border:0;background:rgba(255,255,255,.85);color:#a11;font-size:11px;line-height:1;cursor:pointer;padding:0}
-.agrupar-numpag{position:absolute;right:2px;bottom:1px;font-size:8px;color:#8ba193}
-.agrupar-vacio{margin:6px;font-size:12.5px;color:#4a6579}
-.agrupar-resumen{margin:8px 0 0;font-size:12px;line-height:1.5;color:#365269}
-.agrupar-aviso{margin:6px 0 0;font-size:12px;color:#1d5331;min-height:16px}
-.agrupar-pie{display:flex;gap:8px;justify-content:flex-end;margin-top:9px}
-/* Las hojas ya dibujadas esperan aqui a que se imprima. Van fuera de la
-   pantalla y no escondidas: con display:none no se maquetan, y las teselas
-   se quedan sin sitio, asi que al imprimir salia casi todo en blanco. */
-#hojas-agrupadas{position:fixed;left:-30000px;top:0;z-index:-1;pointer-events:none}
-.pagina-agrupada{position:relative;background:#fff;overflow:hidden}
-.hueco-agrupado{position:absolute;overflow:hidden}
-.hueco-agrupado .print-paper{box-shadow:none}
-/* La envoltura solo esta para que sigan valiendo los estilos de .print-sheet:
-   no debe pintar ni colocar nada por su cuenta. */
-.print-sheet.hoja-guardada{display:block;position:static;inset:auto;z-index:auto;background:transparent;padding:0;overflow:visible;align-items:initial;justify-content:initial}
 .map-status{position:absolute;right:14px;bottom:18px;z-index:650;max-width:min(430px,calc(100% - 28px));background:rgba(20,32,25,.88);color:#fff;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.35;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .map-status.warn{background:rgba(139,76,18,.94)}
 .map-status.error{background:rgba(150,38,38,.94)}
@@ -267,7 +231,7 @@ body.print-preview{overflow:hidden}
 .print-leyenda-icono svg{width:78%;height:78%;display:block;fill:none;stroke:currentColor}
 .print-compass{position:absolute;right:4mm;bottom:4mm;width:13mm;height:15.3mm;z-index:700;pointer-events:none;filter:drop-shadow(0 .3mm .6mm rgba(0,0,0,.22))}
 .print-map-stage{width:297mm;height:189mm;position:relative;overflow:hidden;background:#eef3ef}
-.print-map{width:var(--print-map-w,100%);height:var(--print-map-h,100%);position:absolute;left:0;top:0;background:#eef3ef;transform:scale(var(--print-map-scale,1));transform-origin:top left}
+#print-map{width:var(--print-map-w,100%);height:var(--print-map-h,100%);position:absolute;left:0;top:0;background:#eef3ef;transform:scale(var(--print-map-scale,1));transform-origin:top left}
 .print-sheet .leaflet-control-container{display:none!important}
 .print-wait{position:absolute;inset:0;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;z-index:2}
 .print-panel{border:1px solid #d6e1db;border-radius:8px;background:#fff;padding:18px 22px;text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.14)}
@@ -379,13 +343,6 @@ body.print-preview{overflow:hidden}
   .print-sheet,.print-sheet.is-open{display:block!important;position:static!important;inset:auto!important;width:297mm;height:210mm;padding:0;background:#fff;overflow:hidden}
   .print-paper{width:297mm;height:210mm;min-width:0;box-shadow:none}
   .print-wait{display:none!important}
-  /* Con el PDF agrupado manda la pila de paginas: la hoja suelta se esconde
-     y se deja que el documento crezca a lo largo. */
-  body.agrupado .print-sheet:not(.hoja-guardada){display:none!important}
-  body.agrupado .print-sheet.hoja-guardada{display:block!important;width:auto!important;height:auto!important;overflow:visible!important}
-  body.agrupado #hojas-agrupadas{position:static!important;left:auto!important;top:auto!important;z-index:auto!important}
-  body.agrupado .pagina-agrupada{page-break-after:always;break-after:page;overflow:hidden}
-  body.agrupado .pagina-agrupada:last-child{page-break-after:auto;break-after:auto}
 }
 </style>
 </head>
@@ -561,10 +518,6 @@ body.print-preview{overflow:hidden}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
     Descargar PDF
   </button>
-  <button class="btn ghost" id="btn-agrupar" type="button" disabled title="Juntar varios territorios en un solo PDF" aria-label="Agrupar territorios">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M16 3h3a2 2 0 0 1 2 2v3"></path><path d="M8 21H5a2 2 0 0 1-2-2v-3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path><path d="M8 9h8v6H8z"></path></svg>
-    Agrupar
-  </button>
   </div>
   <div class="bar-group grupo-terr">
   <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
@@ -651,52 +604,8 @@ body.print-preview{overflow:hidden}
       <button class="btn primary" id="ref-panel-save" type="button">Guardar</button>
     </div>
   </div>
-  <div class="agrupar-panel" id="agrupar-panel" hidden>
-    <div class="agrupar-head">
-      <b>Agrupar territorios en un solo PDF</b>
-      <button class="icon-btn" id="agrupar-cerrar" type="button" title="Cerrar" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
-      </button>
-    </div>
-    <div class="agrupar-cuerpo">
-      <div class="agrupar-izq">
-        <div class="agrupar-todos">
-          <button class="btn ghost" id="agrupar-marcar" type="button">Todos</button>
-          <button class="btn ghost" id="agrupar-desmarcar" type="button">Ninguno</button>
-        </div>
-        <div class="agrupar-lista" id="agrupar-lista"></div>
-        <div class="agrupar-opciones">
-          <label>Orientacion
-            <select id="agrupar-orientacion">
-              <option value="landscape">Horizontal</option>
-              <option value="portrait">Vertical</option>
-            </select>
-          </label>
-          <label>Por pagina
-            <select id="agrupar-porpagina">
-              <option value="1">1 croquis</option>
-              <option value="2">2 croquis</option>
-              <option value="4">4 croquis</option>
-              <option value="6">6 croquis</option>
-            </select>
-          </label>
-        </div>
-      </div>
-      <div class="agrupar-der">
-        <div class="agrupar-previa" id="agrupar-previa"></div>
-        <p class="agrupar-resumen" id="agrupar-resumen"></p>
-        <p class="agrupar-aviso" id="agrupar-aviso"></p>
-        <div class="agrupar-pie">
-          <button class="btn primary" id="agrupar-generar" type="button">Generar</button>
-          <button class="btn secondary" id="agrupar-descargar" type="button" disabled>Descargar PDF</button>
-        </div>
-      </div>
-    </div>
-  </div>
   <div class="map-status" id="map-status">Cargando mapa y nombres de calles...</div>
 </div>
-
-<div id="hojas-agrupadas" aria-hidden="true"></div>
 
 <script>
 const MUNICIPIO = 'Ixhuatlán del Café';
@@ -5392,8 +5301,6 @@ function updateButtons(){
   $('btn-add-territory').disabled = !map;
   const botonNombre = $('btn-rename-territory');
   if(botonNombre) botonNombre.disabled = !map || !LOCS[currentIndex];
-  const botonAgrupar = $('btn-agrupar');
-  if(botonAgrupar) botonAgrupar.disabled = !map || !LOCS.length;
   $('btn-delete-territory').disabled = !map || LOCS.length <= (esCongregacionBase() ? 1 : 0);
 }
 
@@ -5673,7 +5580,7 @@ function buildPrintSheetMarkup(loc){
     <div class="print-title"><span class="print-cong">Congregación ${escapeHtml(congregacionActual().nombre)}</span><span>${escapeHtml(displayTerritoryName(loc))}</span></div>
     <div class="print-meta">Localidad: ${escapeHtml(loc.alias ? loc.name + ' / ' + loc.alias : loc.name)}<br>Municipio: ${escapeHtml(loc.municipio)}<br>${escapeHtml(loc.estado)}<br>${formatCoords(loc)} &middot; ${escapeHtml(fecha)}</div>
   </div>
-  <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${printMapW()}px;--print-map-h:${printMapH()}px;--print-map-scale:${1 / printRenderScale}"><div id="print-map" class="print-map"></div>${construirLeyendaIconos(loc)}${ROSA_DE_LOS_VIENTOS}</div>
+  <div class="print-map-stage" data-export-mode="${escapeHtml(exportMode)}" style="--print-map-w:${printMapW()}px;--print-map-h:${printMapH()}px;--print-map-scale:${1 / printRenderScale}"><div id="print-map"></div>${construirLeyendaIconos(loc)}${ROSA_DE_LOS_VIENTOS}</div>
 </main>
 <div class="print-wait" id="print-wait">
   <div class="print-panel">
@@ -6002,293 +5909,6 @@ function urlFondoSinLetras(fuente){
   return '';
 }
 
-/* ---- PDF agrupado: varios territorios en un solo archivo --------------
-   No se vuelve a dibujar nada por su cuenta: usa el mismo motor que la hoja
-   suelta, territorio por territorio, y va guardando cada hoja ya terminada.
-   Por eso sale con la misma calidad que descargar uno a uno. */
-
-const A4_LARGO = 297;
-const A4_CORTO = 210;
-const AGRUPAR_MARGEN = 6;   // mm de aire alrededor de la pagina
-const AGRUPAR_HUECO = 4;    // mm entre hojas de la misma pagina
-
-let agruparSeleccion = new Set();
-let agruparOrientacion = 'landscape';
-let agruparPorPagina = 1;
-let agruparGenerando = false;
-
-function paginaAgrupada(){
-  return agruparOrientacion === 'portrait'
-    ? { ancho:A4_CORTO, alto:A4_LARGO }
-    : { ancho:A4_LARGO, alto:A4_CORTO };
-}
-
-// Como se reparten las hojas dentro de una pagina. Se eligen las columnas y
-// filas que dejan cada hoja lo mas grande posible, que es lo que manda en la
-// legibilidad de nombres y numeros.
-function rejillaAgrupada(porPagina, pagina){
-  let mejor = null;
-  for(let columnas = 1; columnas <= porPagina; columnas++){
-    const filas = Math.ceil(porPagina / columnas);
-    const ancho = (pagina.ancho - AGRUPAR_MARGEN * 2 - AGRUPAR_HUECO * (columnas - 1)) / columnas;
-    const alto = (pagina.alto - AGRUPAR_MARGEN * 2 - AGRUPAR_HUECO * (filas - 1)) / filas;
-    if(ancho <= 0 || alto <= 0) continue;
-    const escala = Math.min(ancho / A4_LARGO, alto / A4_CORTO);
-    if(!mejor || escala > mejor.escala) mejor = { columnas, filas, ancho, alto, escala };
-  }
-  return mejor || { columnas:1, filas:1, ancho:pagina.ancho, alto:pagina.alto, escala:1 };
-}
-
-function territoriosAgrupados(){
-  return LOCS.filter(loc => agruparSeleccion.has(String(loc.num)));
-}
-
-// Lo que va a salir, calculado sin dibujar nada: cuantas paginas, a que
-// escala queda cada hoja y con cuantos puntos por pulgada.
-function cuentasAgrupadas(){
-  const elegidos = territoriosAgrupados();
-  const pagina = paginaAgrupada();
-  const rejilla = rejillaAgrupada(agruparPorPagina, pagina);
-  const paginas = Math.ceil(elegidos.length / agruparPorPagina) || 0;
-  let teselas = 0;
-  let pppMin = Infinity;
-  let pppMax = 0;
-  elegidos.forEach(loc => {
-    const src = TILES[currentView] || TILES.osm;
-    const b = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
-    const bounds = L.latLngBounds([b.south, b.west], [b.north, b.east]);
-    const escala = choosePrintRenderScale(loc, bounds, src);
-    const densidad = escala < 8 ? 4 : 2;
-    // La hoja se dibuja a 1123 px de ancho por cada unidad de escala, y luego
-    // se encoge para caber en su hueco: encoger sube los puntos por pulgada.
-    const ppp = (escala * 96 * (densidad / 2)) / rejilla.escala;
-    pppMin = Math.min(pppMin, ppp);
-    pppMax = Math.max(pppMax, ppp);
-    teselas += Math.ceil((1123 * escala) / 512 + 1) * Math.ceil((714 * escala) / 512 + 1) * 2;
-  });
-  // Unos 14 KB por tesela, mas lo que pesa el resto de la hoja. Es una cuenta
-  // aproximada: el peso real depende de cuanto dibujo lleve cada tesela.
-  const megas = elegidos.length ? (teselas * 14) / 1024 + paginas * 0.3 : 0;
-  return {
-    elegidos, pagina, rejilla, paginas, teselas,
-    pppMin:Number.isFinite(pppMin) ? pppMin : 0,
-    pppMax, megas
-  };
-}
-
-function pintarPanelAgrupar(){
-  const lista = $('agrupar-lista');
-  if(!lista) return;
-  lista.innerHTML = '';
-  LOCS.forEach(loc => {
-    const clave = String(loc.num);
-    const fila = document.createElement('label');
-    fila.className = 'agrupar-fila';
-    const marca = document.createElement('input');
-    marca.type = 'checkbox';
-    marca.checked = agruparSeleccion.has(clave);
-    marca.addEventListener('change', () => {
-      if(marca.checked) agruparSeleccion.add(clave); else agruparSeleccion.delete(clave);
-      pintarPreviaAgrupar();
-    });
-    const nombre = document.createElement('span');
-    nombre.textContent = '#' + displayTerritoryNumber(loc) + '  ' + displayTerritoryName(loc);
-    fila.append(marca, nombre);
-    lista.appendChild(fila);
-  });
-  pintarPreviaAgrupar();
-}
-
-function pintarPreviaAgrupar(){
-  const previa = $('agrupar-previa');
-  const resumen = $('agrupar-resumen');
-  if(!previa || !resumen) return;
-  const c = cuentasAgrupadas();
-  previa.innerHTML = '';
-  if(!c.elegidos.length){
-    previa.innerHTML = '<p class="agrupar-vacio">Marca los territorios que quieres juntar.</p>';
-  }
-  // Las paginas en pequeno, con cada hoja en su sitio: es el reparto de
-  // verdad, a escala.
-  const anchoPrevia = 250;
-  for(let p = 0; p < c.paginas; p++){
-    const hoja = document.createElement('div');
-    hoja.className = 'agrupar-hoja';
-    const k = anchoPrevia / c.pagina.ancho;
-    hoja.style.width = (c.pagina.ancho * k) + 'px';
-    hoja.style.height = (c.pagina.alto * k) + 'px';
-    for(let i = 0; i < agruparPorPagina; i++){
-      const loc = c.elegidos[p * agruparPorPagina + i];
-      if(!loc) break;
-      const col = i % c.rejilla.columnas;
-      const fil = Math.floor(i / c.rejilla.columnas);
-      const celda = document.createElement('div');
-      celda.className = 'agrupar-celda';
-      celda.style.left = ((AGRUPAR_MARGEN + col * (c.rejilla.ancho + AGRUPAR_HUECO)) * k) + 'px';
-      celda.style.top = ((AGRUPAR_MARGEN + fil * (c.rejilla.alto + AGRUPAR_HUECO)) * k) + 'px';
-      celda.style.width = (A4_LARGO * c.rejilla.escala * k) + 'px';
-      celda.style.height = (A4_CORTO * c.rejilla.escala * k) + 'px';
-      celda.textContent = displayTerritoryName(loc);
-      const quitar = document.createElement('button');
-      quitar.type = 'button';
-      quitar.className = 'agrupar-quitar';
-      quitar.title = 'Quitar de la lista';
-      quitar.textContent = '×';
-      quitar.addEventListener('click', () => {
-        agruparSeleccion.delete(String(loc.num));
-        pintarPanelAgrupar();
-      });
-      celda.appendChild(quitar);
-      hoja.appendChild(celda);
-    }
-    const num = document.createElement('span');
-    num.className = 'agrupar-numpag';
-    num.textContent = (p + 1) + '/' + c.paginas;
-    hoja.appendChild(num);
-    previa.appendChild(hoja);
-  }
-  const ppp = c.pppMax ? (Math.round(c.pppMin) === Math.round(c.pppMax)
-    ? Math.round(c.pppMax) + ' ppp'
-    : Math.round(c.pppMin) + ' a ' + Math.round(c.pppMax) + ' ppp') : '—';
-  resumen.innerHTML = ''
-    + '<b>' + c.elegidos.length + '</b> ' + (c.elegidos.length === 1 ? 'territorio' : 'territorios')
-    + ' · <b>' + c.paginas + '</b> ' + (c.paginas === 1 ? 'pagina' : 'paginas')
-    + ' · ' + (agruparOrientacion === 'portrait' ? 'vertical' : 'horizontal')
-    + '<br>cada croquis al <b>' + Math.round(c.rejilla.escala * 100) + '%</b> de la hoja'
-    + ' · resolucion <b>' + ppp + '</b>'
-    + '<br>tamano aproximado <b>' + (c.megas >= 1 ? c.megas.toFixed(1) + ' MB' : '—') + '</b>';
-  const boton = $('agrupar-generar');
-  if(boton) boton.disabled = !c.elegidos.length || agruparGenerando;
-}
-
-function abrirPanelAgrupar(){
-  const panel = $('agrupar-panel');
-  if(!panel) return;
-  if(!agruparSeleccion.size && LOCS[currentIndex]) agruparSeleccion.add(String(LOCS[currentIndex].num));
-  pintarPanelAgrupar();
-  panel.hidden = false;
-}
-
-function cerrarPanelAgrupar(){
-  const panel = $('agrupar-panel');
-  if(panel) panel.hidden = true;
-}
-
-function limpiarHojasAgrupadas(){
-  const caja = $('hojas-agrupadas');
-  if(caja) caja.innerHTML = '';
-  document.body.classList.remove('agrupado');
-  const estilo = $('agrupar-estilo');
-  if(estilo) estilo.remove();
-}
-
-async function generarAgrupado(){
-  if(agruparGenerando) return;
-  const c = cuentasAgrupadas();
-  if(!c.elegidos.length) return;
-  agruparGenerando = true;
-  limpiarHojasAgrupadas();
-  const aviso = $('agrupar-aviso');
-  const boton = $('agrupar-generar');
-  if(boton) boton.disabled = true;
-  const caja = $('hojas-agrupadas');
-
-  try{
-    for(let p = 0; p < c.paginas; p++){
-      const pagina = document.createElement('div');
-      pagina.className = 'pagina-agrupada';
-      pagina.style.width = c.pagina.ancho + 'mm';
-      pagina.style.height = c.pagina.alto + 'mm';
-      caja.appendChild(pagina);
-      for(let i = 0; i < agruparPorPagina; i++){
-        const loc = c.elegidos[p * agruparPorPagina + i];
-        if(!loc) break;
-        const cuantos = p * agruparPorPagina + i + 1;
-        if(aviso){
-          aviso.textContent = 'Dibujando ' + displayTerritoryName(loc)
-            + '  (' + cuantos + ' de ' + c.elegidos.length + ')';
-        }
-        // El motor de siempre, hoja por hoja. conservar:true para que no
-        // borre la anterior, soloPreparar:true para que no imprima todavia.
-        await imprimir({ loc, soloPreparar:true, conservar:true });
-        const papel = document.querySelector('#print-sheet .print-paper');
-        const sobrante = $('print-sheet');
-        if(papel){
-          // Cada hoja guardada deja de llamarse como la siguiente. Si no, al
-          // dibujar la segunda, L.map('print-map') encuentra primero la hoja
-          // ya guardada y le dibuja encima: la nueva se quedaba en blanco y
-          // la vieja acababa con el mapa que no era.
-          // Solo estos dos: renombrarlos todos rompe el recorte blanco, que es
-          // un <mask> del SVG al que se apunta por su nombre.
-          ['print-map', 'print-leyenda'].forEach(nombre => {
-            const nodo = papel.querySelector('#' + nombre);
-            if(nodo) nodo.id = nombre + '-hoja' + cuantos;
-          });
-          const col = i % c.rejilla.columnas;
-          const fil = Math.floor(i / c.rejilla.columnas);
-          const hueco = document.createElement('div');
-          hueco.className = 'hueco-agrupado';
-          hueco.style.left = (AGRUPAR_MARGEN + col * (c.rejilla.ancho + AGRUPAR_HUECO)) + 'mm';
-          hueco.style.top = (AGRUPAR_MARGEN + fil * (c.rejilla.alto + AGRUPAR_HUECO)) + 'mm';
-          hueco.style.width = (A4_LARGO * c.rejilla.escala) + 'mm';
-          hueco.style.height = (A4_CORTO * c.rejilla.escala) + 'mm';
-          papel.style.transform = 'scale(' + c.rejilla.escala + ')';
-          papel.style.transformOrigin = 'top left';
-          // La hoja sigue viviendo dentro de un .print-sheet. Media pagina de
-          // estilos cuelga de esa clase -que capas se ven, como se mezclan,
-          // como se dibujan las teselas- y al sacarla de ahi el croquis salia
-          // en blanco.
-          const envoltura = document.createElement('div');
-          envoltura.className = 'print-sheet hoja-guardada';
-          envoltura.appendChild(papel);
-          hueco.appendChild(envoltura);
-          pagina.appendChild(hueco);
-        }
-        // El mapa se queda vivo a proposito: si se le llama remove(), Leaflet
-        // se lleva por delante todas sus teselas y la hoja queda en blanco.
-        printMap = null;
-        if(sobrante) sobrante.remove();
-        document.body.classList.remove('print-preview');
-      }
-    }
-    if(aviso) aviso.textContent = 'Listo: ' + c.paginas + (c.paginas === 1 ? ' pagina.' : ' paginas.');
-    prepararImpresionAgrupada(c);
-  }catch(err){
-    console.error('No se pudo armar el PDF agrupado.', err);
-    if(aviso) aviso.textContent = 'No se pudo armar: ' + err.message;
-  }finally{
-    agruparGenerando = false;
-    if(boton) boton.disabled = false;
-    const descargar = $('agrupar-descargar');
-    if(descargar) descargar.disabled = false;
-  }
-}
-
-// El tamano de pagina no se puede cambiar con una clase: hay que escribir la
-// regla @page, asi que se inyecta al vuelo.
-function prepararImpresionAgrupada(c){
-  const estilo = document.createElement('style');
-  estilo.id = 'agrupar-estilo';
-  estilo.textContent = '@media print{@page{size:A4 '
-    + (agruparOrientacion === 'portrait' ? 'portrait' : 'landscape') + ';margin:0}'
-    + 'html,body{width:auto!important;height:auto!important;overflow:visible!important}'
-    + '.pagina-agrupada{width:' + c.pagina.ancho + 'mm!important;height:' + c.pagina.alto + 'mm!important}}';
-  document.head.appendChild(estilo);
-  document.body.classList.add('agrupado');
-}
-
-function descargarAgrupado(){
-  if(!$('hojas-agrupadas')?.children.length) return;
-  const antes = document.title;
-  document.title = 'Territorios agrupados - Croquis 2026';
-  const limpiar = () => {
-    document.title = antes;
-    window.removeEventListener('afterprint', limpiar);
-  };
-  window.addEventListener('afterprint', limpiar, { once:true });
-  setTimeout(() => window.print(), 250);
-}
-
 function resetPrintSheet(){
   window.removeEventListener('afterprint', resetPrintSheet);
   document.title = originalDocumentTitle;
@@ -6384,19 +6004,14 @@ function calcBoundsPlain(loc, z = DETAIL_ZOOM){
   return { north:nw.lat, south:se.lat, west:nw.lon, east:se.lon };
 }
 
-// Con soloPreparar deja la hoja hecha y no imprime: asi la usa el PDF
-// agrupado, que va guardando una hoja tras otra. Con conservar no borra la
-// anterior, que es justo lo que hay que evitar ahi.
-async function imprimir(opciones = {}){
-  const loc = opciones.loc || LOCS[currentIndex];
+async function imprimir(){
+  const loc = LOCS[currentIndex];
   let src = TILES[currentView] || TILES.osm;
   const screenSrc = src;
   if(!loc) return;
-  if(!opciones.conservar) resetPrintSheet();
-  if(!opciones.soloPreparar){
-    // La barra no vale en un nombre de archivo, asi que ahi va con guion.
-    document.title = displayTerritoryTitle(loc).replace(' / ', ' - ') + ' - Croquis 2026';
-  }
+  resetPrintSheet();
+  // La barra no vale en un nombre de archivo, asi que ahi va con guion.
+  document.title = displayTerritoryTitle(loc).replace(' / ', ' - ') + ' - Croquis 2026';
   $('btn-pr').disabled = true;
 
   // El encuadre primero: de su tamano sale la resolucion de la hoja, y de la
@@ -6619,10 +6234,7 @@ async function imprimir(opciones = {}){
     colocarLeyenda(printMap, loc);
     $('print-wait-text').textContent = 'Listo. El territorio se imprimirá desde esta misma hoja.';
     $('print-ready-button').disabled = false;
-    if(opciones.soloPreparar){
-      const espera = $('print-wait');
-      if(espera) espera.style.display = 'none';
-    }else if(new URLSearchParams(location.search).has('noPrint')){
+    if(new URLSearchParams(location.search).has('noPrint')){
       $('print-wait').style.display = 'none';
     }else{
       setTimeout(printPreparedSheet, 450);
@@ -6698,26 +6310,6 @@ contourEditButton.addEventListener('click', () => {
 });
 colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode));
 $('btn-rename-territory')?.addEventListener('click', renombrarTerritorio);
-$('btn-agrupar')?.addEventListener('click', abrirPanelAgrupar);
-$('agrupar-cerrar')?.addEventListener('click', cerrarPanelAgrupar);
-$('agrupar-generar')?.addEventListener('click', generarAgrupado);
-$('agrupar-descargar')?.addEventListener('click', descargarAgrupado);
-$('agrupar-marcar')?.addEventListener('click', () => {
-  LOCS.forEach(loc => agruparSeleccion.add(String(loc.num)));
-  pintarPanelAgrupar();
-});
-$('agrupar-desmarcar')?.addEventListener('click', () => {
-  agruparSeleccion.clear();
-  pintarPanelAgrupar();
-});
-$('agrupar-orientacion')?.addEventListener('change', event => {
-  agruparOrientacion = event.target.value;
-  pintarPreviaAgrupar();
-});
-$('agrupar-porpagina')?.addEventListener('change', event => {
-  agruparPorPagina = Number(event.target.value) || 1;
-  pintarPreviaAgrupar();
-});
 $('btn-referencias')?.addEventListener('click', abrirPanelReferencias);
 $('ref-panel-close')?.addEventListener('click', cerrarPanelReferencias);
 $('ref-panel-save')?.addEventListener('click', guardarPanelReferencias);
