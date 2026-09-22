@@ -65,6 +65,9 @@ mano: sale un aviso y se aplica en cuanto termines o canceles.
 
 ## Lo que conviene saber
 
+- **También viaja la lista de territorios**: cuáles hay, cómo se llaman y el
+  color del fondo. Eso va en un solo documento aparte, así que agregar o
+  renombrar un territorio le llega a los demás igual que un dibujo.
 - **Cada territorio se guarda por separado.** Si tú pintas Zacamitla y otro
   pinta Opatla, no se pisan. Dentro del mismo territorio gana el último que
   guarde, que es lo razonable porque los dos están viendo lo mismo.
