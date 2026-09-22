@@ -213,7 +213,15 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .agrupar-todos{display:flex;gap:6px;margin-bottom:7px}
 .agrupar-todos .btn{height:26px;font-size:11.5px;padding:0 9px}
 .agrupar-lista{display:flex;flex-direction:column;gap:2px;max-height:34vh;overflow-y:auto;border:1px solid #e2eae5;border-radius:8px;padding:5px}
-.agrupar-fila{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#17251c;padding:2px 3px;border-radius:5px;cursor:pointer}
+.agrupar-fila{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#17251c;padding:2px 3px;border-radius:5px}
+.agrupar-fila.esta{background:#eef7f1}
+.agrupar-nombre{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agrupar-jefe{width:20px;height:20px;flex:0 0 auto;border:0;background:transparent;color:#c9d5ce;font-size:14px;line-height:1;cursor:pointer;padding:0}
+.agrupar-jefe.es{color:#e0a400}
+.agrupar-jefe:disabled{opacity:.35;cursor:default}
+.agrupar-mover{display:flex;gap:2px;flex:0 0 auto}
+.agrupar-mover button{width:18px;height:18px;border:1px solid #d5e2db;background:#fff;color:#1d5331;font-size:9px;line-height:1;border-radius:4px;cursor:pointer;padding:0}
+.agrupar-mover button:disabled{opacity:.3;cursor:default}
 .agrupar-fila:hover{background:#eef5f1}
 .agrupar-fila input{width:15px;height:15px;accent-color:#1f7a47;cursor:pointer}
 .agrupar-opciones{display:flex;gap:10px;margin-top:9px}
@@ -223,8 +231,9 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 /* Cada pagina de la vista previa, a escala: el reparto que se ve aqui es el
    mismo que sale en el PDF. */
 .agrupar-hoja{position:relative;background:#fff;border:1px solid #c5d3cb;box-shadow:0 1px 3px rgba(16,40,26,.12);flex:0 0 auto}
-.agrupar-celda{position:absolute;background:#e7f2ec;border:1px solid #9fc4ae;border-radius:2px;font-size:8px;line-height:1.05;color:#1d5331;padding:2px 3px;overflow:hidden;display:flex;align-items:flex-start}
-.agrupar-quitar{position:absolute;top:0;right:0;width:13px;height:13px;border:0;background:rgba(255,255,255,.85);color:#a11;font-size:11px;line-height:1;cursor:pointer;padding:0}
+.agrupar-celda{position:absolute;background:#e7f2ec;border:1px solid #9fc4ae;border-radius:2px;font-size:7.5px;line-height:1.05;color:#1d5331;padding:2px 3px;overflow:hidden;display:flex;align-items:flex-start}
+.agrupar-celda.es-jefe{background:#d6ebdf;border-color:#5a9e78;font-weight:800}
+.agrupar-banda{position:absolute;left:0;top:0;right:0;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#17251c;border-bottom:1px solid #2b6b45;background:#fff}
 .agrupar-numpag{position:absolute;right:2px;bottom:1px;font-size:8px;color:#8ba193}
 .agrupar-vacio{margin:6px;font-size:12.5px;color:#4a6579}
 .agrupar-resumen{margin:8px 0 0;font-size:12px;line-height:1.5;color:#365269}
@@ -237,6 +246,16 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .pagina-agrupada{position:relative;background:#fff;overflow:hidden}
 .hueco-agrupado{position:absolute;overflow:hidden}
 .hueco-agrupado .print-paper{box-shadow:none}
+/* En la lamina cada croquis va en su recuadro, como en los de toda la vida. */
+.hueco-agrupado.en-lamina{border:.4mm solid #17251c;background:#fff}
+/* Los chicos no llevan los datos de la esquina ni la rosa: a ese tamano solo
+   estorban y el nombre ya sale en su cabecera. */
+.hueco-agrupado.es-chico .print-meta,
+.hueco-agrupado.es-chico .print-compass,
+.hueco-agrupado.es-chico .print-leyenda{display:none!important}
+.banda-lamina{position:absolute;left:0;top:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6mm;background:#fff;border-bottom:1.1mm solid #1f7a47;z-index:5}
+.banda-lamina b{font-size:15px;font-weight:900;color:#17251c;letter-spacing:.01em}
+.banda-lamina span{font-size:10.5px;color:#26372d}
 /* La envoltura solo esta para que sigan valiendo los estilos de .print-sheet:
    no debe pintar ni colocar nada por su cuenta. */
 .print-sheet.hoja-guardada{display:block;position:static;inset:auto;z-index:auto;background:transparent;padding:0;overflow:visible;align-items:initial;justify-content:initial}
@@ -672,12 +691,10 @@ body.print-preview{overflow:hidden}
               <option value="portrait">Vertical</option>
             </select>
           </label>
-          <label>Por pagina
+          <label>Formato
             <select id="agrupar-porpagina">
-              <option value="1">1 croquis</option>
-              <option value="2">2 croquis</option>
-              <option value="4">4 croquis</option>
-              <option value="6">6 croquis</option>
+              <option value="lamina">Lamina: uno grande</option>
+              <option value="sueltas">Una hoja por pagina</option>
             </select>
           </label>
         </div>
@@ -6003,18 +6020,23 @@ function urlFondoSinLetras(fuente){
 }
 
 /* ---- PDF agrupado: varios territorios en un solo archivo --------------
-   No se vuelve a dibujar nada por su cuenta: usa el mismo motor que la hoja
-   suelta, territorio por territorio, y va guardando cada hoja ya terminada.
-   Por eso sale con la misma calidad que descargar uno a uno. */
+   No se dibuja nada nuevo: se usa el mismo motor que la hoja suelta,
+   territorio por territorio, y cada hoja terminada se guarda en su hueco.
+   Por eso sale con la misma calidad que descargarlos uno a uno.
+
+   Dos formas: una hoja por pagina, o lamina -uno grande y el resto en
+   recuadros alrededor, como los croquis de toda la vida-. */
 
 const A4_LARGO = 297;
 const A4_CORTO = 210;
-const AGRUPAR_MARGEN = 6;   // mm de aire alrededor de la pagina
-const AGRUPAR_HUECO = 4;    // mm entre hojas de la misma pagina
+const AGRUPAR_MARGEN = 5;    // mm de aire alrededor de la pagina
+const AGRUPAR_HUECO = 3;     // mm entre recuadros
+const AGRUPAR_TITULO = 15;   // mm de la cabecera de la lamina
 
-let agruparSeleccion = new Set();
+let agruparOrden = [];       // los numeros, en el orden que manda el usuario
+let agruparPrincipal = '';   // cual va en grande
 let agruparOrientacion = 'landscape';
-let agruparPorPagina = 1;
+let agruparModo = 'lamina';  // 'lamina' o 'sueltas'
 let agruparGenerando = false;
 
 function paginaAgrupada(){
@@ -6023,56 +6045,101 @@ function paginaAgrupada(){
     : { ancho:A4_LARGO, alto:A4_CORTO };
 }
 
-// Como se reparten las hojas dentro de una pagina. Se eligen las columnas y
-// filas que dejan cada hoja lo mas grande posible, que es lo que manda en la
-// legibilidad de nombres y numeros.
-function rejillaAgrupada(porPagina, pagina){
-  let mejor = null;
-  for(let columnas = 1; columnas <= porPagina; columnas++){
-    const filas = Math.ceil(porPagina / columnas);
-    const ancho = (pagina.ancho - AGRUPAR_MARGEN * 2 - AGRUPAR_HUECO * (columnas - 1)) / columnas;
-    const alto = (pagina.alto - AGRUPAR_MARGEN * 2 - AGRUPAR_HUECO * (filas - 1)) / filas;
-    if(ancho <= 0 || alto <= 0) continue;
-    const escala = Math.min(ancho / A4_LARGO, alto / A4_CORTO);
-    if(!mejor || escala > mejor.escala) mejor = { columnas, filas, ancho, alto, escala };
-  }
-  return mejor || { columnas:1, filas:1, ancho:pagina.ancho, alto:pagina.alto, escala:1 };
-}
-
 function territoriosAgrupados(){
-  return LOCS.filter(loc => agruparSeleccion.has(String(loc.num)));
+  return agruparOrden
+    .map(num => LOCS.find(loc => String(loc.num) === num))
+    .filter(Boolean);
 }
 
-// Lo que va a salir, calculado sin dibujar nada: cuantas paginas, a que
-// escala queda cada hoja y con cuantos puntos por pulgada.
-function cuentasAgrupadas(){
-  const elegidos = territoriosAgrupados();
+// El principal primero y el resto detras, en el orden elegido.
+function ordenDeLamina(){
+  const todos = territoriosAgrupados();
+  const jefe = todos.find(loc => String(loc.num) === agruparPrincipal) || todos[0];
+  return jefe ? [jefe, ...todos.filter(loc => loc !== jefe)] : [];
+}
+
+// Los huecos de la lamina, en milimetros. El primero es el del principal.
+function huecosDeLamina(cuantos){
   const pagina = paginaAgrupada();
-  const rejilla = rejillaAgrupada(agruparPorPagina, pagina);
-  const paginas = Math.ceil(elegidos.length / agruparPorPagina) || 0;
+  const x0 = AGRUPAR_MARGEN;
+  const y0 = AGRUPAR_MARGEN + AGRUPAR_TITULO;
+  const ancho = pagina.ancho - AGRUPAR_MARGEN * 2;
+  const alto = pagina.alto - AGRUPAR_MARGEN - y0;
+  if(cuantos <= 1) return [{ x:x0, y:y0, w:ancho, h:alto }];
+
+  const resto = cuantos - 1;
+  // La mitad larga a la derecha y el resto debajo, que es como se reparten
+  // estos croquis de siempre.
+  const derecha = Math.min(resto, Math.max(1, Math.ceil(resto / 2)));
+  const abajo = resto - derecha;
+  // Los recuadros se miden con la forma de una hoja A4, que es la que tiene
+  // el croquis que va dentro. Si no, el croquis se queda chico en medio del
+  // recuadro y sobra blanco a los lados.
+  const proporcion = A4_LARGO / A4_CORTO;
+  const altoCaja = (alto - AGRUPAR_HUECO * (derecha - 1)) / derecha;
+  const anchoDerecha = Math.min(ancho * 0.42, altoCaja * proporcion);
+  const anchoIzq = ancho - anchoDerecha - AGRUPAR_HUECO;
+  const anchoAbajo = abajo ? (anchoIzq - AGRUPAR_HUECO * (abajo - 1)) / abajo : 0;
+  const altoAbajo = abajo ? Math.min(alto * 0.4, anchoAbajo / proporcion) : 0;
+
+  const huecos = [];
+  const altoJefe = alto - (abajo ? altoAbajo + AGRUPAR_HUECO : 0);
+  huecos.push({ x:x0, y:y0, w:anchoIzq, h:altoJefe });
+  for(let i = 0; i < derecha; i++){
+    huecos.push({
+      x:x0 + anchoIzq + AGRUPAR_HUECO,
+      y:y0 + i * (altoCaja + AGRUPAR_HUECO),
+      w:anchoDerecha, h:altoCaja
+    });
+  }
+  if(abajo){
+    for(let i = 0; i < abajo; i++){
+      huecos.push({
+        x:x0 + i * (anchoAbajo + AGRUPAR_HUECO),
+        y:y0 + altoJefe + AGRUPAR_HUECO,
+        w:anchoAbajo, h:altoAbajo
+      });
+    }
+  }
+  return huecos;
+}
+
+// Una hoja por pagina: un solo hueco, la pagina entera.
+function huecoDeHojaSuelta(){
+  const pagina = paginaAgrupada();
+  return [{ x:0, y:0, w:pagina.ancho, h:pagina.alto }];
+}
+
+function escalaDeHueco(hueco){
+  return Math.min(hueco.w / A4_LARGO, hueco.h / A4_CORTO);
+}
+
+function cuentasAgrupadas(){
+  const elegidos = ordenDeLamina();
+  const pagina = paginaAgrupada();
+  const lamina = agruparModo === 'lamina';
+  const huecos = lamina ? huecosDeLamina(elegidos.length) : huecoDeHojaSuelta();
+  const paginas = lamina ? (elegidos.length ? 1 : 0) : elegidos.length;
+  const src = TILES[currentView] || TILES.osm;
   let teselas = 0;
   let pppMin = Infinity;
   let pppMax = 0;
-  elegidos.forEach(loc => {
-    const src = TILES[currentView] || TILES.osm;
+  elegidos.forEach((loc, i) => {
     const b = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
     const bounds = L.latLngBounds([b.south, b.west], [b.north, b.east]);
     const escala = choosePrintRenderScale(loc, bounds, src);
     const densidad = escala < 8 ? 4 : 2;
-    // La hoja se dibuja a 1123 px de ancho por cada unidad de escala, y luego
-    // se encoge para caber en su hueco: encoger sube los puntos por pulgada.
-    const ppp = (escala * 96 * (densidad / 2)) / rejilla.escala;
+    const hueco = huecos[Math.min(i, huecos.length - 1)];
+    const k = escalaDeHueco(hueco);
+    const ppp = (escala * 96 * (densidad / 2)) / Math.max(k, .01);
     pppMin = Math.min(pppMin, ppp);
     pppMax = Math.max(pppMax, ppp);
     teselas += Math.ceil((1123 * escala) / 512 + 1) * Math.ceil((714 * escala) / 512 + 1) * 2;
   });
-  // Unos 14 KB por tesela, mas lo que pesa el resto de la hoja. Es una cuenta
-  // aproximada: el peso real depende de cuanto dibujo lleve cada tesela.
   const megas = elegidos.length ? (teselas * 14) / 1024 + paginas * 0.3 : 0;
   return {
-    elegidos, pagina, rejilla, paginas, teselas,
-    pppMin:Number.isFinite(pppMin) ? pppMin : 0,
-    pppMax, megas
+    elegidos, pagina, huecos, paginas, teselas, lamina,
+    pppMin:Number.isFinite(pppMin) ? pppMin : 0, pppMax, megas
   };
 }
 
@@ -6082,18 +6149,59 @@ function pintarPanelAgrupar(){
   lista.innerHTML = '';
   LOCS.forEach(loc => {
     const clave = String(loc.num);
-    const fila = document.createElement('label');
-    fila.className = 'agrupar-fila';
+    const puesto = agruparOrden.indexOf(clave);
+    const fila = document.createElement('div');
+    fila.className = 'agrupar-fila' + (puesto >= 0 ? ' esta' : '');
+
     const marca = document.createElement('input');
     marca.type = 'checkbox';
-    marca.checked = agruparSeleccion.has(clave);
+    marca.checked = puesto >= 0;
+    marca.title = 'Incluir en el PDF';
     marca.addEventListener('change', () => {
-      if(marca.checked) agruparSeleccion.add(clave); else agruparSeleccion.delete(clave);
-      pintarPreviaAgrupar();
+      if(marca.checked){
+        if(!agruparOrden.includes(clave)) agruparOrden.push(clave);
+      }else{
+        agruparOrden = agruparOrden.filter(x => x !== clave);
+        if(agruparPrincipal === clave) agruparPrincipal = agruparOrden[0] || '';
+      }
+      if(!agruparPrincipal) agruparPrincipal = agruparOrden[0] || '';
+      pintarPanelAgrupar();
     });
+
+    const jefe = document.createElement('button');
+    jefe.type = 'button';
+    jefe.className = 'agrupar-jefe' + (agruparPrincipal === clave ? ' es' : '');
+    jefe.textContent = '★';
+    jefe.title = 'Que este salga en grande';
+    jefe.disabled = puesto < 0;
+    jefe.addEventListener('click', () => {
+      agruparPrincipal = clave;
+      pintarPanelAgrupar();
+    });
+
     const nombre = document.createElement('span');
+    nombre.className = 'agrupar-nombre';
     nombre.textContent = '#' + displayTerritoryNumber(loc) + '  ' + displayTerritoryName(loc);
-    fila.append(marca, nombre);
+
+    const mover = document.createElement('span');
+    mover.className = 'agrupar-mover';
+    [['▲', -1], ['▼', 1]].forEach(([signo, paso]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = signo;
+      b.title = paso < 0 ? 'Subir' : 'Bajar';
+      b.disabled = puesto < 0
+        || (paso < 0 && puesto === 0)
+        || (paso > 0 && puesto === agruparOrden.length - 1);
+      b.addEventListener('click', () => {
+        const otro = puesto + paso;
+        [agruparOrden[puesto], agruparOrden[otro]] = [agruparOrden[otro], agruparOrden[puesto]];
+        pintarPanelAgrupar();
+      });
+      mover.appendChild(b);
+    });
+
+    fila.append(marca, jefe, nombre, mover);
     lista.appendChild(fila);
   });
   pintarPreviaAgrupar();
@@ -6108,55 +6216,58 @@ function pintarPreviaAgrupar(){
   if(!c.elegidos.length){
     previa.innerHTML = '<p class="agrupar-vacio">Marca los territorios que quieres juntar.</p>';
   }
-  // Las paginas en pequeno, con cada hoja en su sitio: es el reparto de
-  // verdad, a escala.
-  const anchoPrevia = 250;
-  for(let p = 0; p < c.paginas; p++){
+  const anchoPrevia = c.lamina ? 330 : 190;
+  const cuantasHojas = c.lamina ? 1 : c.paginas;
+  for(let p = 0; p < cuantasHojas; p++){
     const hoja = document.createElement('div');
     hoja.className = 'agrupar-hoja';
     const k = anchoPrevia / c.pagina.ancho;
     hoja.style.width = (c.pagina.ancho * k) + 'px';
     hoja.style.height = (c.pagina.alto * k) + 'px';
-    for(let i = 0; i < agruparPorPagina; i++){
-      const loc = c.elegidos[p * agruparPorPagina + i];
+    if(c.lamina){
+      const banda = document.createElement('div');
+      banda.className = 'agrupar-banda';
+      banda.style.height = (AGRUPAR_TITULO * k) + 'px';
+      banda.textContent = 'MAPA DE TERRITORIOS';
+      hoja.appendChild(banda);
+    }
+    const cuantos = c.lamina ? c.elegidos.length : 1;
+    for(let i = 0; i < cuantos; i++){
+      const loc = c.lamina ? c.elegidos[i] : c.elegidos[p];
       if(!loc) break;
-      const col = i % c.rejilla.columnas;
-      const fil = Math.floor(i / c.rejilla.columnas);
+      const hueco = c.huecos[Math.min(i, c.huecos.length - 1)];
       const celda = document.createElement('div');
-      celda.className = 'agrupar-celda';
-      celda.style.left = ((AGRUPAR_MARGEN + col * (c.rejilla.ancho + AGRUPAR_HUECO)) * k) + 'px';
-      celda.style.top = ((AGRUPAR_MARGEN + fil * (c.rejilla.alto + AGRUPAR_HUECO)) * k) + 'px';
-      celda.style.width = (A4_LARGO * c.rejilla.escala * k) + 'px';
-      celda.style.height = (A4_CORTO * c.rejilla.escala * k) + 'px';
-      celda.textContent = displayTerritoryName(loc);
-      const quitar = document.createElement('button');
-      quitar.type = 'button';
-      quitar.className = 'agrupar-quitar';
-      quitar.title = 'Quitar de la lista';
-      quitar.textContent = '×';
-      quitar.addEventListener('click', () => {
-        agruparSeleccion.delete(String(loc.num));
-        pintarPanelAgrupar();
-      });
-      celda.appendChild(quitar);
+      celda.className = 'agrupar-celda' + (c.lamina && i === 0 ? ' es-jefe' : '');
+      celda.style.left = (hueco.x * k) + 'px';
+      celda.style.top = (hueco.y * k) + 'px';
+      celda.style.width = (hueco.w * k) + 'px';
+      celda.style.height = (hueco.h * k) + 'px';
+      celda.title = displayTerritoryName(loc);
+      const rotulo = document.createElement('span');
+      rotulo.textContent = displayTerritoryName(loc);
+      celda.appendChild(rotulo);
+      previa.appendChild(hoja);
       hoja.appendChild(celda);
     }
-    const num = document.createElement('span');
-    num.className = 'agrupar-numpag';
-    num.textContent = (p + 1) + '/' + c.paginas;
-    hoja.appendChild(num);
-    previa.appendChild(hoja);
+    if(!c.lamina){
+      const num = document.createElement('span');
+      num.className = 'agrupar-numpag';
+      num.textContent = (p + 1) + '/' + c.paginas;
+      hoja.appendChild(num);
+    }
+    if(!hoja.parentElement) previa.appendChild(hoja);
   }
   const ppp = c.pppMax ? (Math.round(c.pppMin) === Math.round(c.pppMax)
     ? Math.round(c.pppMax) + ' ppp'
     : Math.round(c.pppMin) + ' a ' + Math.round(c.pppMax) + ' ppp') : '—';
+  const jefe = c.elegidos[0];
   resumen.innerHTML = ''
     + '<b>' + c.elegidos.length + '</b> ' + (c.elegidos.length === 1 ? 'territorio' : 'territorios')
     + ' · <b>' + c.paginas + '</b> ' + (c.paginas === 1 ? 'pagina' : 'paginas')
     + ' · ' + (agruparOrientacion === 'portrait' ? 'vertical' : 'horizontal')
-    + '<br>cada croquis al <b>' + Math.round(c.rejilla.escala * 100) + '%</b> de la hoja'
-    + ' · resolucion <b>' + ppp + '</b>'
-    + '<br>tamano aproximado <b>' + (c.megas >= 1 ? c.megas.toFixed(1) + ' MB' : '—') + '</b>';
+    + (c.lamina && jefe ? '<br>en grande: <b>' + escapeHtml(displayTerritoryName(jefe)) + '</b>' : '')
+    + '<br>resolucion <b>' + ppp + '</b>'
+    + ' · tamano aproximado <b>' + (c.megas >= 1 ? c.megas.toFixed(1) + ' MB' : '—') + '</b>';
   const boton = $('agrupar-generar');
   if(boton) boton.disabled = !c.elegidos.length || agruparGenerando;
 }
@@ -6164,7 +6275,10 @@ function pintarPreviaAgrupar(){
 function abrirPanelAgrupar(){
   const panel = $('agrupar-panel');
   if(!panel) return;
-  if(!agruparSeleccion.size && LOCS[currentIndex]) agruparSeleccion.add(String(LOCS[currentIndex].num));
+  if(!agruparOrden.length && LOCS[currentIndex]){
+    agruparOrden = [String(LOCS[currentIndex].num)];
+    agruparPrincipal = agruparOrden[0];
+  }
   pintarPanelAgrupar();
   panel.hidden = false;
 }
@@ -6182,6 +6296,16 @@ function limpiarHojasAgrupadas(){
   if(estilo) estilo.remove();
 }
 
+function bandaDeLamina(){
+  const banda = document.createElement('div');
+  banda.className = 'banda-lamina';
+  banda.style.height = AGRUPAR_TITULO + 'mm';
+  banda.innerHTML = '<b>CONGREGACION CRISTIANA DE LOS TESTIGOS DE JEHOVÁ</b>'
+    + '<span>MAPA DE TERRITORIOS CONGREGACION '
+    + escapeHtml(congregacionActual().nombre.toUpperCase()) + '</span>';
+  return banda;
+}
+
 async function generarAgrupado(){
   if(agruparGenerando) return;
   const c = cuentasAgrupadas();
@@ -6194,62 +6318,60 @@ async function generarAgrupado(){
   const caja = $('hojas-agrupadas');
 
   try{
-    for(let p = 0; p < c.paginas; p++){
-      const pagina = document.createElement('div');
-      pagina.className = 'pagina-agrupada';
-      pagina.style.width = c.pagina.ancho + 'mm';
-      pagina.style.height = c.pagina.alto + 'mm';
-      caja.appendChild(pagina);
-      for(let i = 0; i < agruparPorPagina; i++){
-        const loc = c.elegidos[p * agruparPorPagina + i];
-        if(!loc) break;
-        const cuantos = p * agruparPorPagina + i + 1;
-        if(aviso){
-          aviso.textContent = 'Dibujando ' + displayTerritoryName(loc)
-            + '  (' + cuantos + ' de ' + c.elegidos.length + ')';
-        }
-        // El motor de siempre, hoja por hoja. conservar:true para que no
-        // borre la anterior, soloPreparar:true para que no imprima todavia.
-        await imprimir({ loc, soloPreparar:true, conservar:true });
-        const papel = document.querySelector('#print-sheet .print-paper');
-        const sobrante = $('print-sheet');
-        if(papel){
-          // Cada hoja guardada deja de llamarse como la siguiente. Si no, al
-          // dibujar la segunda, L.map('print-map') encuentra primero la hoja
-          // ya guardada y le dibuja encima: la nueva se quedaba en blanco y
-          // la vieja acababa con el mapa que no era.
-          // Solo estos dos: renombrarlos todos rompe el recorte blanco, que es
-          // un <mask> del SVG al que se apunta por su nombre.
-          ['print-map', 'print-leyenda'].forEach(nombre => {
-            const nodo = papel.querySelector('#' + nombre);
-            if(nodo) nodo.id = nombre + '-hoja' + cuantos;
-          });
-          const col = i % c.rejilla.columnas;
-          const fil = Math.floor(i / c.rejilla.columnas);
-          const hueco = document.createElement('div');
-          hueco.className = 'hueco-agrupado';
-          hueco.style.left = (AGRUPAR_MARGEN + col * (c.rejilla.ancho + AGRUPAR_HUECO)) + 'mm';
-          hueco.style.top = (AGRUPAR_MARGEN + fil * (c.rejilla.alto + AGRUPAR_HUECO)) + 'mm';
-          hueco.style.width = (A4_LARGO * c.rejilla.escala) + 'mm';
-          hueco.style.height = (A4_CORTO * c.rejilla.escala) + 'mm';
-          papel.style.transform = 'scale(' + c.rejilla.escala + ')';
-          papel.style.transformOrigin = 'top left';
-          // La hoja sigue viviendo dentro de un .print-sheet. Media pagina de
-          // estilos cuelga de esa clase -que capas se ven, como se mezclan,
-          // como se dibujan las teselas- y al sacarla de ahi el croquis salia
-          // en blanco.
-          const envoltura = document.createElement('div');
-          envoltura.className = 'print-sheet hoja-guardada';
-          envoltura.appendChild(papel);
-          hueco.appendChild(envoltura);
-          pagina.appendChild(hueco);
-        }
-        // El mapa se queda vivo a proposito: si se le llama remove(), Leaflet
-        // se lleva por delante todas sus teselas y la hoja queda en blanco.
-        printMap = null;
-        if(sobrante) sobrante.remove();
-        document.body.classList.remove('print-preview');
+    let pagina = null;
+    for(let i = 0; i < c.elegidos.length; i++){
+      const loc = c.elegidos[i];
+      if(c.lamina ? i === 0 : true){
+        pagina = document.createElement('div');
+        pagina.className = 'pagina-agrupada';
+        pagina.style.width = c.pagina.ancho + 'mm';
+        pagina.style.height = c.pagina.alto + 'mm';
+        if(c.lamina) pagina.appendChild(bandaDeLamina());
+        caja.appendChild(pagina);
       }
+      if(aviso){
+        aviso.textContent = 'Dibujando ' + displayTerritoryName(loc)
+          + '  (' + (i + 1) + ' de ' + c.elegidos.length + ')';
+      }
+      await imprimir({ loc, soloPreparar:true, conservar:true });
+      const papel = document.querySelector('#print-sheet .print-paper');
+      const sobrante = $('print-sheet');
+      if(papel){
+        // Solo estos dos: renombrarlos todos rompe el recorte blanco, que es
+        // un <mask> del SVG al que se apunta por su nombre.
+        ['print-map', 'print-leyenda'].forEach(nombre => {
+          const nodo = papel.querySelector('#' + nombre);
+          if(nodo) nodo.id = nombre + '-hoja' + (i + 1);
+        });
+        const hueco = c.huecos[c.lamina ? Math.min(i, c.huecos.length - 1) : 0];
+        const k = escalaDeHueco(hueco);
+        const caso = document.createElement('div');
+        caso.className = 'hueco-agrupado' + (c.lamina ? ' en-lamina' : '')
+          + (c.lamina && i > 0 ? ' es-chico' : '');
+        caso.style.left = hueco.x + 'mm';
+        caso.style.top = hueco.y + 'mm';
+        caso.style.width = hueco.w + 'mm';
+        caso.style.height = hueco.h + 'mm';
+        // centrado: lo que sobre del recuadro se reparte a los dos lados
+        const sobraX = (hueco.w - A4_LARGO * k) / 2;
+        const sobraY = (hueco.h - A4_CORTO * k) / 2;
+        papel.style.transform = 'translate(' + sobraX.toFixed(2) + 'mm,'
+          + sobraY.toFixed(2) + 'mm) scale(' + k + ')';
+        papel.style.transformOrigin = 'top left';
+        // La hoja sigue viviendo dentro de un .print-sheet. Media pagina de
+        // estilos cuelga de esa clase -que capas se ven, como se mezclan-, y
+        // al sacarla de ahi el croquis salia en blanco.
+        const envoltura = document.createElement('div');
+        envoltura.className = 'print-sheet hoja-guardada';
+        envoltura.appendChild(papel);
+        caso.appendChild(envoltura);
+        pagina.appendChild(caso);
+      }
+      // El mapa se queda vivo a proposito: si se le llama remove(), Leaflet se
+      // lleva por delante todas sus teselas y la hoja queda en blanco.
+      printMap = null;
+      if(sobrante) sobrante.remove();
+      document.body.classList.remove('print-preview');
     }
     if(aviso) aviso.textContent = 'Listo: ' + c.paginas + (c.paginas === 1 ? ' pagina.' : ' paginas.');
     prepararImpresionAgrupada(c);
@@ -6280,7 +6402,7 @@ function prepararImpresionAgrupada(c){
 function descargarAgrupado(){
   if(!$('hojas-agrupadas')?.children.length) return;
   const antes = document.title;
-  document.title = 'Territorios agrupados - Croquis 2026';
+  document.title = 'Mapa de territorios - Croquis 2026';
   const limpiar = () => {
     document.title = antes;
     window.removeEventListener('afterprint', limpiar);
@@ -6703,11 +6825,16 @@ $('agrupar-cerrar')?.addEventListener('click', cerrarPanelAgrupar);
 $('agrupar-generar')?.addEventListener('click', generarAgrupado);
 $('agrupar-descargar')?.addEventListener('click', descargarAgrupado);
 $('agrupar-marcar')?.addEventListener('click', () => {
-  LOCS.forEach(loc => agruparSeleccion.add(String(loc.num)));
+  LOCS.forEach(loc => {
+    const clave = String(loc.num);
+    if(!agruparOrden.includes(clave)) agruparOrden.push(clave);
+  });
+  if(!agruparPrincipal) agruparPrincipal = agruparOrden[0] || '';
   pintarPanelAgrupar();
 });
 $('agrupar-desmarcar')?.addEventListener('click', () => {
-  agruparSeleccion.clear();
+  agruparOrden = [];
+  agruparPrincipal = '';
   pintarPanelAgrupar();
 });
 $('agrupar-orientacion')?.addEventListener('change', event => {
@@ -6715,7 +6842,7 @@ $('agrupar-orientacion')?.addEventListener('change', event => {
   pintarPreviaAgrupar();
 });
 $('agrupar-porpagina')?.addEventListener('change', event => {
-  agruparPorPagina = Number(event.target.value) || 1;
+  agruparModo = event.target.value === 'sueltas' ? 'sueltas' : 'lamina';
   pintarPreviaAgrupar();
 });
 $('btn-referencias')?.addEventListener('click', abrirPanelReferencias);
