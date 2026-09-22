@@ -243,7 +243,10 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .agrupar-vacio{margin:6px;font-size:12.5px;color:#4a6579}
 .agrupar-resumen{margin:8px 0 0;font-size:12px;line-height:1.5;color:#365269}
 .agrupar-aviso{margin:6px 0 0;font-size:12px;color:#1d5331;min-height:16px}
-.agrupar-pie{display:flex;gap:8px;justify-content:flex-end;margin-top:9px}
+.agrupar-formas{margin-top:10px;padding-top:9px;border-top:1px solid #e2eae5}
+.agrupar-formas>b{display:block;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#607068;margin-bottom:6px}
+.agrupar-pie{display:flex;gap:8px;flex-wrap:wrap}
+.agrupar-pie .btn{flex:1 1 auto;justify-content:center;height:34px;font-size:12px}
 /* Las hojas ya dibujadas esperan aqui a que se imprima. Van fuera de la
    pantalla y no escondidas: con display:none no se maquetan, y las teselas
    se quedan sin sitio, asi que al imprimir salia casi todo en blanco. */
@@ -698,8 +701,8 @@ body.print-preview{overflow:hidden}
           </label>
           <label>Formato
             <select id="agrupar-porpagina">
-              <option value="lamina">Lamina: uno grande</option>
-              <option value="sueltas">Una hoja por pagina</option>
+              <option value="lamina">Lamina: todo en 1 pagina, uno grande</option>
+              <option value="sueltas">Una pagina por territorio</option>
             </select>
           </label>
         </div>
@@ -709,9 +712,18 @@ body.print-preview{overflow:hidden}
         <p class="agrupar-pista" id="agrupar-pista"></p>
         <p class="agrupar-resumen" id="agrupar-resumen"></p>
         <p class="agrupar-aviso" id="agrupar-aviso"></p>
-        <div class="agrupar-pie">
-          <button class="btn primary" id="agrupar-generar" type="button">Generar</button>
-          <button class="btn secondary" id="agrupar-descargar" type="button" disabled>Descargar PDF</button>
+        <div class="agrupar-formas">
+          <b>Formas de descarga</b>
+          <div class="agrupar-pie">
+            <button class="btn secondary" id="agrupar-uno" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg>
+              Descargar territorio seleccionado en PDF
+            </button>
+            <button class="btn primary" id="agrupar-generar" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path></svg>
+              Descargar agrupación
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -6140,9 +6152,14 @@ function cuentasAgrupadas(){
     const ppp = (escala * 96 * (densidad / 2)) / Math.max(k, .01);
     pppMin = Math.min(pppMin, ppp);
     pppMax = Math.max(pppMax, ppp);
-    teselas += Math.ceil((1123 * escala) / 512 + 1) * Math.ceil((714 * escala) / 512 + 1) * 2;
+    teselas += Math.ceil((1123 * escala) / 512 + 1) * Math.ceil((714 * escala) / 512 + 1);
   });
-  const megas = elegidos.length ? (teselas * 14) / 1024 + paginas * 0.3 : 0;
+  // Ajustado con hojas ya medidas: Ixhuatlan son 1107 teselas de rejilla y
+  // pesa 5.4 MB, Zacamitla 70 y pesa 1.8. Antes se contaban el doble de
+  // teselas a 14 KB y una hoja de Ixhuatlan se anunciaba en 30 MB.
+  const megas = elegidos.length
+    ? paginas * 0.4 + teselas * 0.0042 + elegidos.length * 0.8
+    : 0;
   return {
     elegidos, pagina, huecos, paginas, teselas, lamina,
     pppMin:Number.isFinite(pppMin) ? pppMin : 0, pppMax, megas
@@ -6366,6 +6383,8 @@ async function generarAgrupado(){
   const aviso = $('agrupar-aviso');
   const boton = $('agrupar-generar');
   if(boton) boton.disabled = true;
+  const suelto = $('agrupar-uno');
+  if(suelto) suelto.disabled = true;
   const caja = $('hojas-agrupadas');
 
   try{
@@ -6426,14 +6445,17 @@ async function generarAgrupado(){
     }
     if(aviso) aviso.textContent = 'Listo: ' + c.paginas + (c.paginas === 1 ? ' pagina.' : ' paginas.');
     prepararImpresionAgrupada(c);
+    // Un solo paso: se arma y se descarga. Antes habia que darle a otro boton
+    // y ese segundo boton se confundia con el de bajar un territorio suelto.
+    descargarAgrupado();
   }catch(err){
     console.error('No se pudo armar el PDF agrupado.', err);
     if(aviso) aviso.textContent = 'No se pudo armar: ' + err.message;
   }finally{
     agruparGenerando = false;
     if(boton) boton.disabled = false;
-    const descargar = $('agrupar-descargar');
-    if(descargar) descargar.disabled = false;
+    const suelto = $('agrupar-uno');
+    if(suelto) suelto.disabled = false;
   }
 }
 
@@ -6874,7 +6896,10 @@ $('btn-rename-territory')?.addEventListener('click', renombrarTerritorio);
 $('btn-agrupar')?.addEventListener('click', abrirPanelAgrupar);
 $('agrupar-cerrar')?.addEventListener('click', cerrarPanelAgrupar);
 $('agrupar-generar')?.addEventListener('click', generarAgrupado);
-$('agrupar-descargar')?.addEventListener('click', descargarAgrupado);
+$('agrupar-uno')?.addEventListener('click', () => {
+  cerrarPanelAgrupar();
+  imprimir();
+});
 $('agrupar-marcar')?.addEventListener('click', () => {
   LOCS.forEach(loc => {
     const clave = String(loc.num);
