@@ -1656,6 +1656,7 @@ function renombrarTerritorio(){
   applyCustomTerritories();
   populateSelect();
   goTo(currentIndex, true);
+  publicarLista();
   setStatus('Territorio renombrado: ' + displayTerritoryTitle(LOCS[currentIndex]) + '.', 'warn');
 }
 
@@ -1887,6 +1888,7 @@ function addCustomTerritoryFromBounds(bounds){
   applyCustomTerritories();
   populateSelect();
   goTo(LOCS.length - 1);
+  publicarLista();
   setStatus('Territorio agregado con el recuadro seleccionado. Ya puedes pintar y guardar cambios.', 'warn');
 }
 
@@ -1967,6 +1969,7 @@ function deleteCurrentTerritory(){
   applyCustomTerritories();
   populateSelect();
   if(LOCS.length) goTo(Math.max(0, nextIndex), true); else limpiarMapaSinTerritorios();
+  publicarLista();
   setStatus('Territorio eliminado de la lista.', 'warn');
 }
 
@@ -4517,6 +4520,7 @@ const NUBE_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 let nubePiezas = null;     // Firebase se monta una sola vez
 let nube = null;           // { fs, db }
 let nubeCorte = null;      // corta la suscripcion al cambiar de congregacion
+let nubeCorteLista = null; // la de la lista de territorios, aparte
 let nubeAplicando = false; // lo que llega de fuera no se vuelve a mandar
 // Dos cosas distintas a proposito: "yo" es esta pestana y sirve para no
 // recoger el eco de lo que uno mismo acaba de mandar; "quien" es el nombre
@@ -4612,7 +4616,16 @@ async function conectarNube(silencioso){
 function escucharCongregacion(){
   if(!nube) return;
   if(nubeCorte){ nubeCorte(); nubeCorte = null; }
+  if(nubeCorteLista){ nubeCorteLista(); nubeCorteLista = null; }
   const { fs, db } = nube;
+  nubeCorteLista = fs.onSnapshot(
+    fs.doc(db, 'congregaciones', congregacionActivaId, 'ajustes', 'lista'),
+    instantanea => {
+      const d = instantanea.data();
+      if(!d || d.de === nubeYo) return;   // el eco de lo que yo mismo mande
+      aplicarListaRemota(d);
+    },
+    err => console.error('Se corto la escucha de la lista.', err));
   nubeCorte = fs.onSnapshot(
     fs.collection(db, 'congregaciones', congregacionActivaId, 'territorios'),
     instantanea => {
@@ -4676,6 +4689,71 @@ function aplicarTerritorioRemoto(num, d){
   renderManualIcons(loc);
   updateColorControls(loc);
   setStatus(quien + ' acaba de cambiar este territorio.', 'warn');
+}
+
+// La lista de territorios tambien se comparte: cuales hay, como se llaman y
+// de que color va el fondo. Es lo unico que quedaba viajando solo por GitHub,
+// asi que agregar o renombrar un territorio no le llegaba a nadie hasta que
+// alguien cargaba el respaldo.
+async function publicarLista(){
+  if(!nube || nubeAplicando) return;
+  try{
+    const { fs, db } = nube;
+    await fs.setDoc(fs.doc(db, 'congregaciones', congregacionActivaId, 'ajustes', 'lista'), {
+      // como texto, igual que los territorios: Firestore no admite listas
+      // dentro de listas y los territorios guardados llevan sus recuadros
+      custom:JSON.stringify(loadCustomTerritorySettings()),
+      ocultos:JSON.stringify(loadHiddenTerritorySettings()),
+      nombres:JSON.stringify(nombresSettings || {}),
+      fondo:colorFondoImpresion(),
+      de:nubeYo,
+      porQuien:nubeQuien,
+      cuando:Date.now()
+    });
+  }catch(err){
+    console.error('No se pudo compartir la lista de territorios.', err);
+  }
+}
+
+function aplicarListaRemota(d){
+  const antes = LOCS[currentIndex] ? String(LOCS[currentIndex].num) : '';
+  nubeAplicando = true;
+  try{
+    const custom = JSON.parse(d.custom || '[]');
+    const ocultos = JSON.parse(d.ocultos || '[]');
+    const nombres = JSON.parse(d.nombres || '{}');
+    if(Array.isArray(custom)) saveCustomTerritorySettings(custom);
+    if(Array.isArray(ocultos)) saveHiddenTerritorySettings(ocultos);
+    nombresSettings = (nombres && typeof nombres === 'object') ? nombres : {};
+    saveNombresSettings();
+    if(d.fondo){
+      try{ almacen.setItem(FONDO_IMPRESION_STORAGE_KEY, d.fondo); }catch(e){}
+      fondoPersonalizado = !FONDOS_IMPRESION.some(par => par[0] === d.fondo);
+      sincronizarFondoImpresion();
+    }
+  }catch(e){
+    console.error('No se pudo leer la lista que llego.', e);
+    nubeAplicando = false;
+    return;
+  }
+  nubeAplicando = false;
+
+  applyCustomTerritories();
+  populateSelect();
+  const quien = d.porQuien || 'alguien';
+  // Si esta a medio dibujar no se le cambia el mapa bajo la mano: la lista ya
+  // quedo guardada y el desplegable ya la enseña.
+  if(nubeEditando()){
+    setStatus(quien + ' cambio la lista de territorios. Termina lo que estas marcando y se acomoda.', 'warn');
+    return;
+  }
+  if(!LOCS.length){
+    limpiarMapaSinTerritorios();
+  }else{
+    const donde = LOCS.findIndex(loc => String(loc.num) === antes);
+    if(map) goTo(donde >= 0 ? donde : 0, true);
+  }
+  setStatus(quien + ' cambio la lista de territorios.', 'warn');
 }
 
 async function publicarTerritorio(loc){
@@ -5948,6 +6026,7 @@ function colorFondoImpresion(){
 function guardarFondoImpresion(valor){
   try{ almacen.setItem(FONDO_IMPRESION_STORAGE_KEY, valor); }catch(e){}
   sincronizarFondoImpresion();
+  if(typeof publicarLista === 'function') publicarLista();
 }
 
 function sincronizarFondoImpresion(){
