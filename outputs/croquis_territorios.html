@@ -232,7 +232,12 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
    mismo que sale en el PDF. */
 .agrupar-hoja{position:relative;background:#fff;border:1px solid #c5d3cb;box-shadow:0 1px 3px rgba(16,40,26,.12);flex:0 0 auto}
 .agrupar-celda{position:absolute;background:#e7f2ec;border:1px solid #9fc4ae;border-radius:2px;font-size:7.5px;line-height:1.05;color:#1d5331;padding:2px 3px;overflow:hidden;display:flex;align-items:flex-start}
+.agrupar-celda{cursor:grab}
+.agrupar-celda:active{cursor:grabbing}
 .agrupar-celda.es-jefe{background:#d6ebdf;border-color:#5a9e78;font-weight:800}
+.agrupar-celda.arrastrando{opacity:.35}
+.agrupar-celda.encima{outline:2px dashed #1f7a47;outline-offset:-2px;background:#cfe8da}
+.agrupar-pista{margin:7px 0 0;font-size:11.5px;line-height:1.35;color:#60726a}
 .agrupar-banda{position:absolute;left:0;top:0;right:0;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;color:#17251c;border-bottom:1px solid #2b6b45;background:#fff}
 .agrupar-numpag{position:absolute;right:2px;bottom:1px;font-size:8px;color:#8ba193}
 .agrupar-vacio{margin:6px;font-size:12.5px;color:#4a6579}
@@ -701,6 +706,7 @@ body.print-preview{overflow:hidden}
       </div>
       <div class="agrupar-der">
         <div class="agrupar-previa" id="agrupar-previa"></div>
+        <p class="agrupar-pista" id="agrupar-pista"></p>
         <p class="agrupar-resumen" id="agrupar-resumen"></p>
         <p class="agrupar-aviso" id="agrupar-aviso"></p>
         <div class="agrupar-pie">
@@ -6207,6 +6213,43 @@ function pintarPanelAgrupar(){
   pintarPreviaAgrupar();
 }
 
+// Cambia de sitio dos croquis de la lamina. El puesto 0 es el grande, asi
+// que arrastrar uno chico hasta el grande es justo lo que hace que pase a
+// ser el principal, sin tener que tocar la estrella.
+function moverEnLamina(desde, hasta){
+  const actual = ordenDeLamina();
+  if(desde === hasta || !actual[desde] || !actual[hasta]) return;
+  const copia = actual.slice();
+  const guarda = copia[desde];
+  copia[desde] = copia[hasta];
+  copia[hasta] = guarda;
+  agruparPrincipal = String(copia[0].num);
+  agruparOrden = copia.map(loc => String(loc.num));
+  pintarPanelAgrupar();
+}
+
+function hacerArrastrable(celda, puesto){
+  celda.draggable = true;
+  celda.addEventListener('dragstart', ev => {
+    ev.dataTransfer.setData('text/plain', String(puesto));
+    ev.dataTransfer.effectAllowed = 'move';
+    celda.classList.add('arrastrando');
+  });
+  celda.addEventListener('dragend', () => celda.classList.remove('arrastrando'));
+  celda.addEventListener('dragover', ev => {
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = 'move';
+    celda.classList.add('encima');
+  });
+  celda.addEventListener('dragleave', () => celda.classList.remove('encima'));
+  celda.addEventListener('drop', ev => {
+    ev.preventDefault();
+    celda.classList.remove('encima');
+    const desde = Number(ev.dataTransfer.getData('text/plain'));
+    if(Number.isFinite(desde)) moverEnLamina(desde, puesto);
+  });
+}
+
 function pintarPreviaAgrupar(){
   const previa = $('agrupar-previa');
   const resumen = $('agrupar-resumen');
@@ -6242,10 +6285,12 @@ function pintarPreviaAgrupar(){
       celda.style.top = (hueco.y * k) + 'px';
       celda.style.width = (hueco.w * k) + 'px';
       celda.style.height = (hueco.h * k) + 'px';
-      celda.title = displayTerritoryName(loc);
+      const puesto = c.lamina ? i : p;
+      celda.title = displayTerritoryName(loc) + ' — arrastralo sobre otro para cambiarlos de sitio';
       const rotulo = document.createElement('span');
       rotulo.textContent = displayTerritoryName(loc);
       celda.appendChild(rotulo);
+      hacerArrastrable(celda, puesto);
       previa.appendChild(hoja);
       hoja.appendChild(celda);
     }
@@ -6268,6 +6313,12 @@ function pintarPreviaAgrupar(){
     + (c.lamina && jefe ? '<br>en grande: <b>' + escapeHtml(displayTerritoryName(jefe)) + '</b>' : '')
     + '<br>resolucion <b>' + ppp + '</b>'
     + ' · tamano aproximado <b>' + (c.megas >= 1 ? c.megas.toFixed(1) + ' MB' : '—') + '</b>';
+  const pista = $('agrupar-pista');
+  if(pista){
+    pista.textContent = c.elegidos.length > 1
+      ? 'Arrastra un croquis sobre otro para cambiarlos de sitio. El de arriba a la izquierda es el que sale en grande.'
+      : '';
+  }
   const boton = $('agrupar-generar');
   if(boton) boton.disabled = !c.elegidos.length || agruparGenerando;
 }
