@@ -711,11 +711,11 @@ body.print-preview{overflow:hidden}
         <div class="agrupar-formas">
           <b>Formas de descarga</b>
           <div class="agrupar-pie">
-            <button class="btn secondary" id="agrupar-uno" type="button">
+            <button class="btn secondary" id="agrupar-uno" type="button" title="Cada territorio marcado en su propia pagina, todo en un archivo">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg>
-              Descargar territorio seleccionado en PDF
+              Descargar territorios seleccionados
             </button>
-            <button class="btn primary" id="agrupar-generar" type="button">
+            <button class="btn primary" id="agrupar-generar" type="button" title="Todos los marcados en una sola pagina, uno en grande">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path></svg>
               Descargar agrupación
             </button>
@@ -6372,8 +6372,14 @@ function bandaDeLamina(){
   return banda;
 }
 
-async function generarAgrupado(){
+async function generarAgrupado(modo){
   if(agruparGenerando) return;
+  // Cada boton trae su formato: el azul una pagina por territorio, el verde
+  // la lamina. El desplegable solo manda en lo que se ve en la vista previa.
+  if(modo === 'lamina' || modo === 'sueltas'){
+    agruparModo = modo;
+    pintarPreviaAgrupar();
+  }
   const c = cuentasAgrupadas();
   if(!c.elegidos.length) return;
   agruparGenerando = true;
@@ -6894,11 +6900,8 @@ colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode
 $('btn-rename-territory')?.addEventListener('click', renombrarTerritorio);
 $('btn-agrupar')?.addEventListener('click', abrirPanelAgrupar);
 $('agrupar-cerrar')?.addEventListener('click', cerrarPanelAgrupar);
-$('agrupar-generar')?.addEventListener('click', generarAgrupado);
-$('agrupar-uno')?.addEventListener('click', () => {
-  cerrarPanelAgrupar();
-  imprimir();
-});
+$('agrupar-generar')?.addEventListener('click', () => generarAgrupado('lamina'));
+$('agrupar-uno')?.addEventListener('click', () => generarAgrupado('sueltas'));
 $('agrupar-marcar')?.addEventListener('click', () => {
   LOCS.forEach(loc => {
     const clave = String(loc.num);
