@@ -225,7 +225,10 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .agrupar-mover button:disabled{opacity:.3;cursor:default}
 .agrupar-fila:hover{background:#eef5f1}
 .agrupar-fila input{width:15px;height:15px;accent-color:#1f7a47;cursor:pointer}
-.agrupar-opciones{display:flex;gap:10px;margin-top:9px}
+.agrupar-opciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.agrupar-opciones>label{flex:1 1 110px}
+.agrupar-tinte{flex:0 0 auto!important}
+.agrupar-tinte .color-swatch{width:100%;height:30px}
 .agrupar-opciones label{flex:1;display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#607068}
 .agrupar-opciones select{min-width:0;width:100%}
 .agrupar-previa{display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start;max-height:34vh;overflow-y:auto;background:#f4f7f5;border:1px solid #e2eae5;border-radius:8px;padding:7px}
@@ -508,8 +511,6 @@ body.print-preview{overflow:hidden}
       <output class="opacity-value" id="fill-opacity-value" for="fill-opacity">35%</output>
       </span>
       <span class="tool-group">
-      <select class="fondo-select" id="fondo-impresion" disabled title="Color de lo que queda fuera del territorio en el PDF" aria-label="Color del fondo del PDF"></select>
-      <input class="color-swatch" id="fondo-impresion-color" type="color" value="#ffffff" hidden title="Color personalizado del fondo" aria-label="Color personalizado del fondo">
       <input class="text-input" id="text-value" type="text" value="" placeholder="Texto" disabled title="Texto. Usa / para separar renglones" aria-label="Texto">
       <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de texto" aria-label="Tamaño de texto">
       <output class="text-size-value" id="text-size-value" for="text-size">22</output>
@@ -698,6 +699,12 @@ body.print-preview{overflow:hidden}
               <option value="portrait">Vertical</option>
             </select>
           </label>
+          <label>Fondo
+            <select id="fondo-impresion" title="Color de lo que queda fuera del territorio"></select>
+          </label>
+          <label class="agrupar-tinte" id="agrupar-tinte" hidden>Tono
+            <input class="color-swatch" id="fondo-impresion-color" type="color" value="#ffffff" title="Color personalizado del fondo">
+          </label>
           <label>Formato
             <select id="agrupar-porpagina">
               <option value="lamina">Lamina: todo en 1 pagina, uno grande</option>
@@ -794,6 +801,10 @@ const FONDOS_IMPRESION = [
   ['personalizado', 'Color personalizado...']
 ];
 const FONDO_IMPRESION_STORAGE_KEY = 'croquis-fondo-impresion-v1';
+// Hace falta recordarlo: al elegir "personalizado" el color de partida es el
+// blanco, que tambien esta en la lista, y el desplegable se replegaba solo a
+// "Blanco" antes de que diera tiempo a tocar el tono.
+let fondoPersonalizado = false;
 const PRINT_RENDER_SCALE_MAX = 18;
 // El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
 // porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
@@ -2413,8 +2424,7 @@ function updateColorControls(loc = LOCS[currentIndex]){
   colorOpacityInput.disabled = !enabled;
   textInput.disabled = !enabled;
   if(manualIconSelect) manualIconSelect.disabled = !enabled;
-  const fondoSel = $('fondo-impresion');
-  if(fondoSel) fondoSel.disabled = !enabled;
+
   syncIconPicker();
   if(textSizeInput) textSizeInput.disabled = !enabled;
   colorEditButton.disabled = !enabled || !loc || (getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0);
@@ -5945,11 +5955,14 @@ function sincronizarFondoImpresion(){
   if(!sel) return;
   const valor = colorFondoImpresion();
   const conocido = FONDOS_IMPRESION.some(par => par[0] === valor);
-  sel.value = conocido ? valor : 'personalizado';
-  if(tinte){
-    tinte.hidden = sel.value !== 'personalizado';
-    if(!conocido) tinte.value = valor;
-  }
+  sel.value = (conocido && !fondoPersonalizado) ? valor : 'personalizado';
+  const caja = $('agrupar-tinte');
+  if(caja) caja.hidden = sel.value !== 'personalizado';
+  if(tinte && !conocido) tinte.value = valor;
+  // la hoja de la vista previa se pinta del color elegido, para verlo antes
+  document.querySelectorAll('.agrupar-hoja').forEach(hoja => {
+    hoja.style.background = valor === 'transparente' ? '#fff' : valor;
+  });
 }
 
 function renderPrintColorMask(targetMap, loc, opciones = {}){
@@ -6961,10 +6974,12 @@ $('btn-rename-territory')?.addEventListener('click', renombrarTerritorio);
   });
   sel.addEventListener('change', () => {
     if(sel.value === 'personalizado'){
+      fondoPersonalizado = true;
       const tinte = $('fondo-impresion-color');
-      if(tinte){ tinte.hidden = false; guardarFondoImpresion(tinte.value); }
+      if(tinte) guardarFondoImpresion(tinte.value);
       return;
     }
+    fondoPersonalizado = false;
     guardarFondoImpresion(sel.value);
   });
   $('fondo-impresion-color')?.addEventListener('input', event => {
