@@ -584,13 +584,9 @@ body.print-preview{overflow:hidden}
   </button>
   </div>
   <div class="bar-group grupo-doc">
-  <button class="btn secondary" id="btn-pr" type="button" disabled title="Preparar la hoja para descargar" aria-label="Descargar PDF">
+  <button class="btn secondary" id="btn-agrupar" type="button" disabled title="Descargar un territorio o varios juntos" aria-label="Agrupar y descargar PDF">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
-    Descargar PDF
-  </button>
-  <button class="btn ghost" id="btn-agrupar" type="button" disabled title="Juntar varios territorios en un solo PDF" aria-label="Agrupar territorios">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M16 3h3a2 2 0 0 1 2 2v3"></path><path d="M8 21H5a2 2 0 0 1-2-2v-3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path><path d="M8 9h8v6H8z"></path></svg>
-    Agrupar
+    Agrupar y descargar PDF
   </button>
   </div>
   <div class="bar-group grupo-terr">
@@ -680,7 +676,7 @@ body.print-preview{overflow:hidden}
   </div>
   <div class="agrupar-panel" id="agrupar-panel" hidden>
     <div class="agrupar-head">
-      <b>Agrupar territorios en un solo PDF</b>
+      <b>Descargar en PDF</b>
       <button class="icon-btn" id="agrupar-cerrar" type="button" title="Cerrar" aria-label="Cerrar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
       </button>
@@ -5423,7 +5419,9 @@ function updateInfo(loc){
 }
 
 function updateButtons(){
-  $('btn-pr').disabled = !map;
+  // El boton de la hoja suelta ya no esta en la barra: vive dentro del panel.
+  const botonPdf = $('btn-pr');
+  if(botonPdf) botonPdf.disabled = !map;
   $('btn-add-territory').disabled = !map;
   const botonNombre = $('btn-rename-territory');
   if(botonNombre) botonNombre.disabled = !map || !LOCS[currentIndex];
@@ -6592,7 +6590,8 @@ async function imprimir(opciones = {}){
     // La barra no vale en un nombre de archivo, asi que ahi va con guion.
     document.title = displayTerritoryTitle(loc).replace(' / ', ' - ') + ' - Croquis 2026';
   }
-  $('btn-pr').disabled = true;
+  const botonPdf = $('btn-pr');
+  if(botonPdf) botonPdf.disabled = true;
 
   // El encuadre primero: de su tamano sale la resolucion de la hoja, y de la
   // resolucion sale el tamano del lienzo que se arma justo despues.
@@ -6945,7 +6944,7 @@ colorUndoButton.addEventListener('click', undoDraftColorPoint);
 colorClearButton.addEventListener('click', clearColorAreasForCurrent);
 $('btn-prev').addEventListener('click', () => navigate(-1));
 $('btn-next').addEventListener('click', () => navigate(1));
-$('btn-pr').addEventListener('click', imprimir);
+$('btn-pr')?.addEventListener('click', imprimir);
 $('btn-menu-help')?.addEventListener('click', showWelcomeScreen);
 $('btn-add-territory')?.addEventListener('click', addCustomTerritory);
 $('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
