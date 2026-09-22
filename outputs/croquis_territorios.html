@@ -72,6 +72,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .bar-actions{flex:1 1 100%;display:flex;align-items:center;gap:7px 8px;flex-wrap:wrap}
 .bar-actions .bar-spacer{flex:1;min-width:0}
 .color-swatch{width:38px;height:38px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;padding:3px;cursor:pointer}
+.fondo-select{height:30px;min-width:96px;max-width:134px;padding:0 6px;font-size:11.5px;border:1px solid #c9d5ce;border-radius:7px;background:#fff;color:#17251c}
 .color-control input[type=range]{width:86px;accent-color:#1f7a47}
 .text-input{height:38px;width:150px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;color:#17251c;padding:0 9px;font-size:13px;font-weight:700}
 .text-input:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
@@ -507,6 +508,8 @@ body.print-preview{overflow:hidden}
       <output class="opacity-value" id="fill-opacity-value" for="fill-opacity">35%</output>
       </span>
       <span class="tool-group">
+      <select class="fondo-select" id="fondo-impresion" disabled title="Color de lo que queda fuera del territorio en el PDF" aria-label="Color del fondo del PDF"></select>
+      <input class="color-swatch" id="fondo-impresion-color" type="color" value="#ffffff" hidden title="Color personalizado del fondo" aria-label="Color personalizado del fondo">
       <input class="text-input" id="text-value" type="text" value="" placeholder="Texto" disabled title="Texto. Usa / para separar renglones" aria-label="Texto">
       <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de texto" aria-label="Tamaño de texto">
       <output class="text-size-value" id="text-size-value" for="text-size">22</output>
@@ -741,7 +744,9 @@ const PRINT_ASPECT = 297 / 189;
 // El techo de resolucion, el de siempre. Los territorios grandes lo usan.
 // Cuanto se agrandan los numeros de zona solo en la hoja impresa. En
 // pantalla se quedan como estaban.
-const PRINT_ZONE_NUMBER_BOOST = 1.5;
+// Los numeros de zona y los textos se agrandan esto sobre su tamano
+// guardado. Estuvo en 1.5 y salian demasiado gordos en la hoja.
+const PRINT_ZONE_NUMBER_BOOST = 1.05;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
 const PRINT_BACKGROUND_BLUR = .38;
@@ -772,12 +777,23 @@ function escalaTeselaImpresion(){
 // El de abajo tapa el mapa de fondo y va pegado a las zonas: el verde del
 // campo sale de esa capa, asi que no asoma nada alrededor del territorio.
 const PRINT_MASK_GROW_FONDO = 3;
-// La capa de nombres ya no se recorta. Cualquier recorte parte por la mitad
-// el nombre que lo cruce: agrandarlo solo mueve el corte de sitio, y al
-// agrandarlo lo bastante para que no parta nada, entraban flotando los nombres
-// del pueblo de al lado. Sin recorte, alrededor del territorio solo asoman el
-// trazo fino de las calles y algun nombre suelto, que ademas situan el
-// territorio.
+// La capa de nombres tambien se recorta, para que fuera del territorio no
+// quede ni un nombre ni un trazo de calle. Se deja un poco mas de aire que el
+// fondo: lo justo para que un nombre que empieza dentro alcance a terminar.
+// El que cruce el borde igual se parte; es el precio de tener el blanco
+// limpio, y es lo que se ha pedido.
+const PRINT_MASK_GROW_NOMBRES = 14;
+
+// El color del area de fuera. 'transparente' no pinta nada, asi que por ahi
+// se asoma el mapa alrededor del territorio.
+const FONDOS_IMPRESION = [
+  ['#ffffff', 'Blanco'],
+  ['#eef1ef', 'Gris claro'],
+  ['#17251c', 'Negro'],
+  ['transparente', 'Transparente: se ve el mapa'],
+  ['personalizado', 'Color personalizado...']
+];
+const FONDO_IMPRESION_STORAGE_KEY = 'croquis-fondo-impresion-v1';
 const PRINT_RENDER_SCALE_MAX = 18;
 // El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
 // porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
@@ -2397,6 +2413,8 @@ function updateColorControls(loc = LOCS[currentIndex]){
   colorOpacityInput.disabled = !enabled;
   textInput.disabled = !enabled;
   if(manualIconSelect) manualIconSelect.disabled = !enabled;
+  const fondoSel = $('fondo-impresion');
+  if(fondoSel) fondoSel.disabled = !enabled;
   syncIconPicker();
   if(textSizeInput) textSizeInput.disabled = !enabled;
   colorEditButton.disabled = !enabled || !loc || (getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0);
@@ -5907,6 +5925,33 @@ function getPrintRoadLabelPlacement(targetMap, latLngs){
 
 // Recorte del croquis: todo lo que quede fuera de las zonas pintadas se tapa
 // en blanco, para que la hoja muestre solo el territorio y no el resto del pueblo.
+// El color con el que se tapa todo lo que queda fuera del territorio.
+function colorFondoImpresion(){
+  try{
+    const guardado = almacen.getItem(FONDO_IMPRESION_STORAGE_KEY);
+    if(guardado) return guardado;
+  }catch(e){}
+  return '#ffffff';
+}
+
+function guardarFondoImpresion(valor){
+  try{ almacen.setItem(FONDO_IMPRESION_STORAGE_KEY, valor); }catch(e){}
+  sincronizarFondoImpresion();
+}
+
+function sincronizarFondoImpresion(){
+  const sel = $('fondo-impresion');
+  const tinte = $('fondo-impresion-color');
+  if(!sel) return;
+  const valor = colorFondoImpresion();
+  const conocido = FONDOS_IMPRESION.some(par => par[0] === valor);
+  sel.value = conocido ? valor : 'personalizado';
+  if(tinte){
+    tinte.hidden = sel.value !== 'personalizado';
+    if(!conocido) tinte.value = valor;
+  }
+}
+
 function renderPrintColorMask(targetMap, loc, opciones = {}){
   const container = targetMap?.getContainer?.();
   if(!container) return;
@@ -5977,7 +6022,9 @@ function renderPrintColorMask(targetMap, loc, opciones = {}){
   cover.setAttribute('y', '0');
   cover.setAttribute('width', String(size.x));
   cover.setAttribute('height', String(size.y));
-  cover.setAttribute('fill', '#fff');
+  const fondo = colorFondoImpresion();
+  if(fondo === 'transparente') return;   // sin tapar: se ve el mapa alrededor
+  cover.setAttribute('fill', fondo);
   cover.setAttribute('fill-opacity', '1');
   cover.setAttribute('mask', 'url(#' + maskId + ')');
   svg.appendChild(cover);
@@ -6655,6 +6702,10 @@ async function imprimir(opciones = {}){
     printMap.getPane('territoryRoadPane').classList.add('territory-road-pane');
     printMap.createPane('territoryBaseMaskPane');
     printMap.getPane('territoryBaseMaskPane').style.zIndex = 530;
+    // Por encima de los nombres del mapa (540) y por debajo de los nuestros.
+    printMap.createPane('territoryMaskPane');
+    printMap.getPane('territoryMaskPane').style.zIndex = 545;
+    printMap.getPane('territoryMaskPane').style.pointerEvents = 'none';
     printMap.getPane('territoryBaseMaskPane').style.pointerEvents = 'none';
     printMap.createPane('territoryLabelPane');
     printMap.getPane('territoryLabelPane').style.zIndex = 550;
@@ -6812,7 +6863,8 @@ async function imprimir(opciones = {}){
       $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
       // Primero el de abajo, pegado a las zonas, que tapa el mapa de fondo.
       renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO });
-      // La capa de nombres va sin recortar, para que no se parta ninguno.
+      // Y encima el de los nombres, con su pizca de aire.
+      renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:PRINT_MASK_GROW_NOMBRES });
     }
     // Al final: antes de encuadrar el mapa no tiene tamano todavia, y la
     // esquina se elegiria con cuentas sin sentido.
@@ -6898,6 +6950,28 @@ contourEditButton.addEventListener('click', () => {
 });
 colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode));
 $('btn-rename-territory')?.addEventListener('click', renombrarTerritorio);
+(() => {
+  const sel = $('fondo-impresion');
+  if(!sel) return;
+  FONDOS_IMPRESION.forEach(([valor, nombre]) => {
+    const opcion = document.createElement('option');
+    opcion.value = valor;
+    opcion.textContent = nombre;
+    sel.appendChild(opcion);
+  });
+  sel.addEventListener('change', () => {
+    if(sel.value === 'personalizado'){
+      const tinte = $('fondo-impresion-color');
+      if(tinte){ tinte.hidden = false; guardarFondoImpresion(tinte.value); }
+      return;
+    }
+    guardarFondoImpresion(sel.value);
+  });
+  $('fondo-impresion-color')?.addEventListener('input', event => {
+    guardarFondoImpresion(event.target.value);
+  });
+  sincronizarFondoImpresion();
+})();
 $('btn-agrupar')?.addEventListener('click', abrirPanelAgrupar);
 $('agrupar-cerrar')?.addEventListener('click', cerrarPanelAgrupar);
 $('agrupar-generar')?.addEventListener('click', () => generarAgrupado('lamina'));
