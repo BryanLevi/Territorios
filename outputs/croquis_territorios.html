@@ -106,6 +106,16 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .btn.ghost{background:#eef4f0;color:#1d5331;border:1px solid #cfe0d6}
 /* El punto dice de un vistazo si se esta compartiendo o no. */
 .nube-punto{width:8px;height:8px;border-radius:50%;background:#c2ccc6;flex:0 0 auto}
+/* Mismo lenguaje que el boton de la nube: un punto que se enciende. */
+.ubic-punto{width:8px;height:8px;border-radius:50%;background:#c2ccc6;flex:0 0 auto}
+#btn-ubicacion.is-on{background:#e8f1fa;border-color:#9ec4e6;color:#14548a}
+#btn-ubicacion.is-on .ubic-punto{background:#1769aa;box-shadow:0 0 0 3px rgba(23,105,170,.18)}
+#btn-ubicacion.is-on svg{animation:ubic-gira 2.6s linear infinite}
+@keyframes ubic-gira{to{transform:rotate(360deg)}}
+/* El punto de "estoy aqui". Azul a proposito: ningun territorio se pinta de
+   este azul, asi que no se confunde con una zona. */
+.yo-punto{width:18px;height:18px;border-radius:50%;background:#1769aa;border:3px solid #fff;box-shadow:0 0 0 1px rgba(23,105,170,.55),0 2px 8px rgba(0,0,0,.35)}
+.yo-marca{background:none;border:0}
 #btn-nube.is-on{background:#e7f5ec;border-color:#9fd3b4;color:#14682f}
 #btn-nube.is-on .nube-punto{background:#1f9d4d;box-shadow:0 0 0 3px rgba(31,157,77,.18)}
 /* z-index propio: aisla los paneles de Leaflet (llegan a 700) para que no tapen la barra */
@@ -660,6 +670,13 @@ body.print-preview{overflow:hidden}
   <button class="btn ghost" id="btn-next" type="button" disabled title="Territorio siguiente" aria-label="Territorio siguiente">
     Siguiente
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+  </button>
+  </div>
+  <div class="bar-group grupo-ubic">
+  <button class="btn ghost" id="btn-ubicacion" type="button" disabled title="Ver en que parte del territorio estas parado" aria-label="Mi ubicacion" aria-pressed="false">
+    <span class="ubic-punto" aria-hidden="true"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"></circle><circle cx="12" cy="12" r="7.6"></circle><path d="M12 2v2.4"></path><path d="M12 19.6V22"></path><path d="M2 12h2.4"></path><path d="M19.6 12H22"></path></svg>
+    <span id="btn-ubicacion-texto">Mi ubicación</span>
   </button>
   </div>
   <div class="bar-group grupo-doc">
@@ -5593,6 +5610,7 @@ function initApp(){
   viewSel.disabled = false;
   $('btn-prev').disabled = false;
   $('btn-next').disabled = false;
+  $('btn-ubicacion').disabled = false;
 
   // Una congregacion recien creada no tiene ni un territorio todavia, asi que
   // el centro de arranque no puede darse por hecho.
@@ -5620,6 +5638,11 @@ function initApp(){
   map.createPane('territoryDraftPane');
   map.getPane('territoryDraftPane').style.zIndex = 430;
   map.getPane('territoryDraftPane').style.pointerEvents = 'auto';
+  // El punto de "estoy aqui" va encima de todo y no atrapa clics: si los
+  // atrapara, al pintar encima de uno mismo no se anadiria el vertice.
+  map.createPane('ubicacionPane');
+  map.getPane('ubicacionPane').style.zIndex = 690;
+  map.getPane('ubicacionPane').style.pointerEvents = 'none';
   L.control.scale({ imperial:false, metric:true, position:'bottomleft' }).addTo(map);
   colorLayer = L.layerGroup().addTo(map);
   draftLayer = L.layerGroup().addTo(map);
@@ -5631,6 +5654,14 @@ function initApp(){
   manualWhiteRoadLayer = L.layerGroup().addTo(map);
   manualRiverLayer = L.layerGroup().addTo(map);
   map.on('click', handleColorMapClick);
+  // Si el usuario arrastra el mapa deja de recentrarse solo: si no, no se
+  // puede mirar la calle de al lado mientras el GPS te trae de vuelta. El
+  // boton lo dice, y con el se vuelve al punto.
+  map.on('dragstart', () => {
+    if(ubicacionVigia === null || !ubicacionSigue) return;
+    ubicacionSigue = false;
+    marcarBotonUbicacion(true, 'Volver a mí');
+  });
   // Doble clic -o doble toque- cierra lo que se este dibujando. Antes eso solo
   // lo hacia el boton de guardar, que ya no esta; con Ctrl+S tambien, pero en
   // el telefono no hay Ctrl.
@@ -7413,6 +7444,239 @@ async function imprimir(opciones = {}){
   }
 }
 
+/* ---- Donde estoy -------------------------------------------------------
+   Sirve para lo de siempre: llegas a una calle y no sabes si ya es del
+   territorio de al lado. El telefono dice donde estas y la pagina dice de
+   quien es ese trozo. No se guarda ni se comparte con nadie: la posicion se
+   queda en el telefono de quien la pide y se borra al apagar el boton. */
+
+const UBICACION_OPCIONES = { enableHighAccuracy:true, timeout:20000, maximumAge:4000 };
+// Por encima de esto la lectura viene de la antena o del wifi y no sirve para
+// decir en que calle estas.
+const UBICACION_PRECISION_MALA = 120;
+let ubicacionVigia = null;      // el id que devuelve watchPosition
+let ubicacionCapa = null;       // el punto y el cerco de precision
+let ubicacionSigue = true;      // false en cuanto el usuario mueve el mapa
+let ubicacionUltima = null;
+
+// Rayo horizontal: se cuenta cuantos lados cruza. Impar, esta dentro.
+// Parece el mismo calculo que isInsidePrintZones, pero no lo es: aquel trabaja
+// en pixeles de un mapa ya dibujado y este en las coordenadas guardadas, que
+// es lo unico que hay para los territorios que no estan en pantalla.
+function puntoEnPoligono(lat, lng, points){
+  if(!Array.isArray(points) || points.length < 3) return false;
+  let dentro = false;
+  for(let i = 0, j = points.length - 1; i < points.length; j = i++){
+    const yi = Number(points[i][0]), xi = Number(points[i][1]);
+    const yj = Number(points[j][0]), xj = Number(points[j][1]);
+    if(!Number.isFinite(yi) || !Number.isFinite(xi)) continue;
+    if(!Number.isFinite(yj) || !Number.isFinite(xj)) continue;
+    const cruza = (yi > lat) !== (yj > lat)
+      && lng < (xj - xi) * (lat - yi) / (yj - yi) + xi;
+    if(cruza) dentro = !dentro;
+  }
+  return dentro;
+}
+
+// El numero de la zona no lo lleva la zona: son las etiquetas de texto que se
+// pusieron encima. Se busca la que cae dentro del poligono y es un numero.
+function numeroDeZona(loc, area){
+  const etiquetas = getTextLabelsForLoc(loc);
+  for(const etiqueta of etiquetas){
+    if(etiqueta.type === 'carretera') continue;
+    const texto = String(etiqueta.text == null ? '' : etiqueta.text).trim();
+    if(!/^[0-9]{1,3}$/.test(texto)) continue;
+    const lat = Number(etiqueta.lat), lng = Number(etiqueta.lng);
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    if(puntoEnPoligono(lat, lng, area.points)) return texto;
+  }
+  return '';
+}
+
+// Recorre los territorios de la congregacion abierta y dice en cual de sus
+// zonas pintadas cae el punto.
+function zonaDeLaUbicacion(lat, lng){
+  for(let i = 0; i < LOCS.length; i++){
+    const loc = LOCS[i];
+    const areas = getExportColorAreasForLoc(loc);
+    for(let z = 0; z < areas.length; z++){
+      if(puntoEnPoligono(lat, lng, areas[z].points)){
+        return { loc, indice:i, area:areas[z], numero:numeroDeZona(loc, areas[z]) };
+      }
+    }
+  }
+  return null;
+}
+
+// Si no cae en ninguna zona, al menos el territorio mas cercano y a cuanto.
+function territorioMasCerca(lat, lng){
+  let mejor = null;
+  LOCS.forEach((loc, indice) => {
+    const la = Number(loc.lat), lo = Number(loc.lon);
+    if(!Number.isFinite(la) || !Number.isFinite(lo)) return;
+    const metros = map.distance([lat, lng], [la, lo]);
+    if(!mejor || metros < mejor.metros) mejor = { loc, indice, metros };
+  });
+  return mejor;
+}
+
+function enDistancia(metros){
+  if(!Number.isFinite(metros)) return '';
+  if(metros < 1000) return Math.round(metros) + ' m';
+  return (metros / 1000).toFixed(metros < 10000 ? 1 : 0) + ' km';
+}
+
+// La frase que lee la persona. Es lo que de verdad se pidio: saber donde esta
+// parada, dicho con los nombres del territorio y no con coordenadas.
+function fraseDeUbicacion(lat, lng, precision){
+  const partes = [];
+  const zona = zonaDeLaUbicacion(lat, lng);
+  if(zona){
+    partes.push('Estás en ' + displayTerritoryName(zona.loc)
+      + (zona.numero ? ', zona ' + zona.numero : ', en una zona pintada') + '.');
+  }else{
+    const cerca = territorioMasCerca(lat, lng);
+    partes.push(cerca
+      ? 'No estás dentro de ninguna zona pintada. Lo más cerca es '
+        + displayTerritoryName(cerca.loc) + ', a ' + enDistancia(cerca.metros) + '.'
+      : 'No estás dentro de ninguna zona pintada.');
+  }
+  if(Number.isFinite(precision)){
+    partes.push(precision > UBICACION_PRECISION_MALA
+      ? 'La señal es floja: el punto puede moverse hasta ' + enDistancia(precision)
+        + '. Sal a cielo abierto y espera un poco.'
+      : 'Precisión de más o menos ' + enDistancia(precision) + '.');
+  }
+  return partes.join(' ');
+}
+
+function pintarUbicacion(lat, lng, precision){
+  if(!map || !window.L) return;
+  if(!ubicacionCapa) ubicacionCapa = L.layerGroup().addTo(map);
+  ubicacionCapa.clearLayers();
+  if(Number.isFinite(precision) && precision > 6){
+    L.circle([lat, lng], {
+      radius:precision,
+      color:'#1769aa',
+      weight:1.4,
+      opacity:.55,
+      fillColor:'#1769aa',
+      fillOpacity:.1,
+      interactive:false,
+      pane:'ubicacionPane'
+    }).addTo(ubicacionCapa);
+  }
+  L.marker([lat, lng], {
+    icon:L.divIcon({ className:'yo-marca', html:'<div class="yo-punto"></div>', iconSize:[18,18], iconAnchor:[9,9] }),
+    interactive:false,
+    keyboard:false,
+    pane:'ubicacionPane'
+  }).addTo(ubicacionCapa);
+}
+
+function marcarBotonUbicacion(encendido, texto){
+  const boton = $('btn-ubicacion');
+  if(!boton) return;
+  boton.classList.toggle('is-on', !!encendido);
+  boton.setAttribute('aria-pressed', encendido ? 'true' : 'false');
+  const etiqueta = $('btn-ubicacion-texto');
+  if(etiqueta) etiqueta.textContent = texto || (encendido ? 'Siguiéndote' : 'Mi ubicación');
+}
+
+function apagarUbicacion(aviso){
+  if(ubicacionVigia !== null && navigator.geolocation){
+    navigator.geolocation.clearWatch(ubicacionVigia);
+  }
+  ubicacionVigia = null;
+  ubicacionUltima = null;
+  if(ubicacionCapa){
+    ubicacionCapa.clearLayers();
+    if(map) map.removeLayer(ubicacionCapa);
+    ubicacionCapa = null;
+  }
+  marcarBotonUbicacion(false);
+  if(aviso) setStatus(aviso, 'warn');
+}
+
+function fallaDeUbicacion(error){
+  const codigo = error && error.code;
+  if(codigo === 1){
+    return 'El navegador tiene bloqueado el permiso de ubicación para esta página. '
+      + 'Ábrelo en el candado de la barra de direcciones y permite la ubicación.';
+  }
+  if(codigo === 3){
+    return 'El teléfono tardó demasiado en dar la ubicación. Sal a cielo abierto, '
+      + 'comprueba que el GPS esté encendido y vuelve a intentar.';
+  }
+  return 'No se pudo obtener la ubicación. Comprueba que el GPS esté encendido.';
+}
+
+// Solo al encender, y solo si de verdad esta en otro territorio: preguntarlo
+// en cada lectura seria insoportable andando por la calle.
+function ofrecerCambioDeTerritorio(lat, lng){
+  const zona = zonaDeLaUbicacion(lat, lng);
+  if(!zona || zona.indice === currentIndex) return;
+  if(colorDrawMode || roadPencilMode || riverPencilMode || contourEditMode){
+    setStatus('Estás en ' + displayTerritoryName(zona.loc)
+      + ', pero tienes algo a medio dibujar aquí. Guarda o cancela y vuelve a tocar Mi ubicación.', 'warn');
+    return;
+  }
+  const ir = window.confirm('Estás dentro de ' + displayTerritoryName(zona.loc)
+    + (zona.numero ? ', zona ' + zona.numero : '')
+    + '.\n\n¿Abrir ese territorio?');
+  if(ir) goTo(zona.indice);
+}
+
+function pedirUbicacion(){
+  if(ubicacionVigia !== null){
+    // Si se solto el seguimiento al arrastrar el mapa, el primer toque
+    // regresa al punto en vez de apagar: es lo que espera quien va andando.
+    if(!ubicacionSigue && ubicacionUltima){
+      ubicacionSigue = true;
+      map.setView([ubicacionUltima.lat, ubicacionUltima.lng], Math.max(map.getZoom(), 17));
+      marcarBotonUbicacion(true);
+      return;
+    }
+    apagarUbicacion('Ubicación apagada.');
+    return;
+  }
+  if(!navigator.geolocation){
+    setStatus('Este navegador no sabe dar la ubicación.', 'error');
+    return;
+  }
+  // Sin https el navegador ni pregunta. Pasa al abrir el archivo a mano.
+  const enCasa = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if(!window.isSecureContext && !enCasa){
+    setStatus('El navegador solo da la ubicación en páginas seguras. Abre la página '
+      + 'por su dirección de internet (https) y no como archivo suelto.', 'error');
+    return;
+  }
+  marcarBotonUbicacion(true, 'Buscando...');
+  setStatus('Buscando tu ubicación. La primera lectura puede tardar unos segundos.', 'warn');
+  ubicacionSigue = true;
+  let primera = true;
+  ubicacionVigia = navigator.geolocation.watchPosition(posicion => {
+    const lat = posicion.coords.latitude;
+    const lng = posicion.coords.longitude;
+    const precision = posicion.coords.accuracy;
+    ubicacionUltima = { lat, lng, precision };
+    pintarUbicacion(lat, lng, precision);
+    if(ubicacionSigue){
+      map.setView([lat, lng], Math.max(map.getZoom(), 17), { animate:!primera });
+    }
+    marcarBotonUbicacion(true);
+    if(primera){
+      primera = false;
+      setStatus(fraseDeUbicacion(lat, lng, precision), 'warn');
+      ofrecerCambioDeTerritorio(lat, lng);
+    }
+  }, error => {
+    apagarUbicacion();
+    setStatus(fallaDeUbicacion(error), 'error');
+  }, UBICACION_OPCIONES);
+}
+
+$('btn-ubicacion').addEventListener('click', pedirUbicacion);
 locSel.addEventListener('change', () => goTo(locSel.value));
 viewSel.addEventListener('change', () => changeView(viewSel.value));
 frameScaleInput.addEventListener('input', () => setFrameScaleForCurrent(frameScaleInput.value));
