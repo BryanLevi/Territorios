@@ -4718,6 +4718,18 @@ async function publicarRegistro(){
   }
 }
 
+// Se juntan las dos listas en vez de que una pise a la otra. Si no, el
+// ultimo que conecta borraria las congregaciones que el otro tenia y que
+// nunca llegaron a subirse.
+function fusionarRegistro(remotas){
+  const porId = new Map();
+  (remotas || []).forEach(c => { if(c && c.id && c.id !== CONGREGACION_BASE_ID) porId.set(String(c.id), c); });
+  cargarCongregaciones().forEach(c => {
+    if(c.id !== CONGREGACION_BASE_ID && !porId.has(String(c.id))) porId.set(String(c.id), c);
+  });
+  return [...porId.values()];
+}
+
 function escucharRegistro(){
   if(!nube) return;
   if(nubeCorteRegistro){ nubeCorteRegistro(); nubeCorteRegistro = null; }
@@ -4726,19 +4738,26 @@ function escucharRegistro(){
     fs.doc(db, 'congregaciones', NUBE_REGISTRO),
     instantanea => {
       const d = instantanea.data();
-      if(!d || d.de === nubeYo) return;
+      // Todavia no hay nada alla arriba: sube lo que haya en este equipo. Asi
+      // se suben tambien las congregaciones creadas antes de que esto
+      // existiera, que es lo que dejaba a un equipo viendo una y al otro no.
+      if(!d){ publicarRegistro(); return; }
+      if(d.de === nubeYo) return;
       let lista;
       try{ lista = JSON.parse(d.lista || '[]'); }catch(e){ return; }
       if(!Array.isArray(lista)) return;
       const antes = cargarCongregaciones().length;
+      const fusion = fusionarRegistro(lista);
       nubeAplicando = true;
-      guardarCongregaciones(lista);
+      guardarCongregaciones(fusion);
       nubeAplicando = false;
       refrescarCongregacionesEnInicio();
       const ahora = cargarCongregaciones().length;
       if(ahora !== antes){
         setStatus((d.porQuien || 'alguien') + ' cambio la lista de congregaciones.', 'warn');
       }
+      // si este equipo tenia alguna que alla no estaba, se sube
+      if(fusion.length !== lista.length) publicarRegistro();
     },
     err => console.error('Se corto la escucha del registro.', err));
 }
