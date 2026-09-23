@@ -338,8 +338,8 @@ body.print-preview{overflow:hidden}
 .welcome-nube:hover{background:#e2f2e8}
 .welcome-nube.is-on{background:#1f7a47;border-color:#1f7a47;color:#fff}
 .welcome-nube.is-on .nube-punto{background:#c8f7d8;box-shadow:0 0 0 3px rgba(255,255,255,.28)}
-.welcome-respaldo{grid-column:1 / -1;display:flex;gap:7px;margin-top:2px}
-.welcome-respaldo .btn{flex:1 1 auto;justify-content:center;height:34px;font-size:12px}
+.welcome-respaldo{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:7px;margin-top:2px}
+.welcome-respaldo .btn{flex:1 1 140px;justify-content:center;height:34px;font-size:12px}
 .welcome-cong-nota{grid-column:1 / -1;margin:0;font-size:12.5px;line-height:1.45;color:#4a6579}
 .welcome-guide{padding:28px 28px 26px}
 .welcome-guide h3{margin:0 0 12px;font-size:18px;color:#0b2945}
@@ -467,7 +467,12 @@ body.print-preview{overflow:hidden}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
             Importar respaldo
           </button>
+          <button class="btn ghost" id="btn-cloud-load" type="button" title="Traer a este equipo la ultima copia guardada en GitHub">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg>
+            Cargar de GitHub
+          </button>
         </div>
+        <p class="welcome-cong-nota">Estos tres son para recuperar. Cargar de GitHub y el respaldo pisan lo que haya en este equipo, y no se lo mandan a los demas.</p>
         <p class="welcome-cong-nota">Cada congregacion lleva su propia lista de territorios. La nueva empieza vacia y sus territorios se agregan con el boton <b>+</b> del mapa.</p>
       </div>
     </div>
@@ -653,10 +658,6 @@ body.print-preview{overflow:hidden}
   <button class="btn primary" id="btn-cloud-save" type="button" title="Guardar cambios en GitHub" aria-label="Guardar cambios en GitHub">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg>
     Guardar GitHub
-  </button>
-  <button class="btn ghost" id="btn-cloud-load" type="button" title="Cargar cambios desde GitHub" aria-label="Cargar cambios desde GitHub">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg>
-    Cargar GitHub
   </button>
   </div>
   <div class="bar-group grupo-nube">
