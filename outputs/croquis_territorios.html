@@ -2795,12 +2795,16 @@ function drawRuntimeVectorRoads(roadWays){
   const placedLabelBoxes = [];
   const waterways = roadWays.filter(isWaterway);
   const streets = roadWays.filter(way => !isWaterway(way));
+  const fondoSinNombres = !!(TILES[currentView] || {}).sinNombres;
+  // El rio lo dibujamos solo cuando el mapa de fondo no lo trae, que en la
+  // practica es el satelite. Sobre Google salia dos veces -el suyo y el
+  // nuestro encima- y como las dos geometrias no coinciden del todo, parecian
+  // dos rios corriendo en paralelo.
   // Los rios van primero para que los puentes y calles crucen por encima.
-  drawRuntimeWaterways(waterways, hasAreas ? WATERWAY_OVERLAY_OPACITY : .55);
+  if(fondoSinNombres) drawRuntimeWaterways(waterways, hasAreas ? WATERWAY_OVERLAY_OPACITY : .55);
   // El nombre de la calle solo lo ponemos nosotros cuando el mapa de fondo no
   // lo trae. Sobre Google o Carto salia el nombre dos veces, el suyo y el
   // nuestro encima. Los rios se siguen rotulando siempre: esos no los trae.
-  const fondoSinNombres = !!(TILES[currentView] || {}).sinNombres;
   if(fondoSinNombres) streets.forEach(way => {
     const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
     if(latLngs.length < 2) return;
