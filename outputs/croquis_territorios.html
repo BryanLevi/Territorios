@@ -4427,6 +4427,59 @@ function exportBackup(){
   setStatus('Respaldo exportado. Guarda ese archivo para recuperar colores y textos despues.', 'warn');
 }
 
+// Cuanto trabajo lleva un respaldo, para poder comparar antes de pisar nada.
+function cuentaTrabajo(datos){
+  const suma = bolsa => Object.values(bolsa || {})
+    .reduce((a, v) => a + (Array.isArray(v) ? v.length : 0), 0);
+  return {
+    territorios:Object.keys(datos?.colorAreas || {}).length,
+    zonas:suma(datos?.colorAreas),
+    textos:suma(datos?.textLabels),
+    iconos:suma(datos?.manualIcons)
+  };
+}
+
+function comoSeLee(c){
+  return c.territorios + ' territorios pintados, ' + c.zonas + ' zonas, '
+    + c.textos + ' textos y ' + c.iconos + ' iconos';
+}
+
+// Una copia de lo que hay ahora, al disco, antes de reemplazarlo. Es la red
+// que faltaba: cargar pisaba el trabajo local sin dejar a donde volver.
+function bajarCopiaPrevia(motivo){
+  try{
+    const payload = buildBackupPayload();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'Antes de ' + motivo + ' - ' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 800);
+    return true;
+  }catch(e){
+    console.error('No se pudo bajar la copia previa.', e);
+    return false;
+  }
+}
+
+// Lo que se enseña antes de pisar el trabajo de este equipo.
+function permisoParaPisar(payload, deDonde){
+  const viene = cuentaTrabajo(getBackupData(payload));
+  const hay = cuentaTrabajo(buildBackupPayload().data);
+  const masAqui = hay.zonas > viene.zonas || hay.territorios > viene.territorios;
+  const salto = String.fromCharCode(10);
+  const lineas = [];
+  if(masAqui) lineas.push('OJO: en este equipo hay MAS trabajo del que vas a traer.', '');
+  lineas.push('Vas a traer ' + deDonde + ':', '   ' + comoSeLee(viene), '');
+  lineas.push('En este equipo tienes ahora:', '   ' + comoSeLee(hay), '');
+  lineas.push('Esto reemplaza lo de este equipo y no se lo manda a los demas.');
+  lineas.push('Antes de seguir se bajara una copia de lo que tienes ahora.', '');
+  lineas.push('Continuar?');
+  return window.confirm(lineas.join(salto));
+}
 function getBackupData(payload){
   if(!payload || typeof payload !== 'object') return null;
   const data = payload.data && typeof payload.data === 'object' ? payload.data : payload;
@@ -4524,6 +4577,11 @@ async function handleBackupFileSelected(event){
   try{
     const text = await readBackupFile(file);
     const payload = JSON.parse(text);
+    if(!permisoParaPisar(payload, 'del archivo')) {
+      setStatus('No se importo nada.', 'warn');
+      return;
+    }
+    bajarCopiaPrevia('importar respaldo');
     importBackupPayload(payload);
   }catch(err){
     console.error('No se pudo importar el respaldo.', err);
@@ -5110,14 +5168,19 @@ async function saveCloudBackup(){
 async function loadCloudBackup(options = {}){
   const auto = Boolean(options.auto);
   if(auto && hasLocalSavedWork()) return false;
-  if(!auto){
-    const ok = window.confirm('Esto reemplazara en este dispositivo los colores, textos e iconos locales por lo guardado en GitHub. Continuar?');
-    if(!ok) return false;
-  }
   setCloudButtonsBusy(true);
-  if(!auto) setStatus('Cargando respaldo desde GitHub...', 'warn');
+  if(!auto) setStatus('Mirando que hay guardado en GitHub...', 'warn');
   try{
+    // Se trae primero y se pregunta despues, para poder decir cuanto trabajo
+    // viene y cuanto se va a pisar. Antes se preguntaba a ciegas.
     const payload = await fetchCloudBackupPayload({ publicOnly:auto });
+    if(!auto){
+      if(!permisoParaPisar(payload, 'desde GitHub')){
+        setStatus('No se cargo nada.', 'warn');
+        return false;
+      }
+      bajarCopiaPrevia('cargar de GitHub');
+    }
     const loaded = importBackupPayload(payload);
     if(loaded) setStatus(auto ? 'Cambios cargados automaticamente desde GitHub.' : 'Cambios cargados desde GitHub.', 'warn');
     return loaded;
