@@ -325,6 +325,12 @@ body.print-preview{overflow:hidden}
 .welcome-cong-nueva:hover{background:#dceafa}
 /* El respaldo a archivo vive aqui: no es del dia a dia, solo el paracaidas
    por si el token o GitHub fallan. */
+/* Conectar antes de entrar a un territorio: es lo primero que hace falta
+   cuando trabajan varios. */
+.welcome-nube{grid-column:1 / -1;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;border:1px solid #1f7a47;border-radius:8px;background:#f1f9f4;color:#17512f;font:inherit;font-weight:900;font-size:13px;cursor:pointer;margin-top:2px}
+.welcome-nube:hover{background:#e2f2e8}
+.welcome-nube.is-on{background:#1f7a47;border-color:#1f7a47;color:#fff}
+.welcome-nube.is-on .nube-punto{background:#c8f7d8;box-shadow:0 0 0 3px rgba(255,255,255,.28)}
 .welcome-respaldo{grid-column:1 / -1;display:flex;gap:7px;margin-top:2px}
 .welcome-respaldo .btn{flex:1 1 auto;justify-content:center;height:34px;font-size:12px}
 .welcome-cong-nota{grid-column:1 / -1;margin:0;font-size:12.5px;line-height:1.45;color:#4a6579}
@@ -441,6 +447,10 @@ body.print-preview{overflow:hidden}
         <label for="welcome-cong-sel">Congregacion</label>
         <select id="welcome-cong-sel"></select>
         <button class="welcome-cong-nueva" id="welcome-cong-nueva" type="button">Empezar nueva congregacion</button>
+        <button class="welcome-nube" id="welcome-nube" type="button">
+          <span class="nube-punto" aria-hidden="true"></span>
+          <span id="welcome-nube-texto">Conectar para trabajar entre varios</span>
+        </button>
         <div class="welcome-respaldo">
           <button class="btn ghost" id="btn-backup-export" type="button" title="Bajar una copia de todo a un archivo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>
@@ -4546,11 +4556,24 @@ function nubeEditando(){
 
 function pintarEstadoNube(texto, encendido){
   const boton = $('btn-nube');
-  if(!boton) return;
-  boton.classList.toggle('is-on', !!encendido);
-  boton.title = texto;
-  const rotulo = $('btn-nube-texto');
-  if(rotulo) rotulo.textContent = encendido ? 'En linea' : 'Conectar';
+  if(boton){
+    boton.classList.toggle('is-on', !!encendido);
+    boton.title = texto;
+    const rotulo = $('btn-nube-texto');
+    if(rotulo) rotulo.textContent = encendido ? 'En linea' : 'Conectar';
+  }
+  // el del inicio dice lo mismo, con mas palabras porque ahi hay sitio
+  const enInicio = $('welcome-nube');
+  if(enInicio){
+    enInicio.classList.toggle('is-on', !!encendido);
+    enInicio.title = texto;
+    const rotulo = $('welcome-nube-texto');
+    if(rotulo){
+      rotulo.textContent = encendido
+        ? 'En linea: los cambios se ven al momento'
+        : 'Conectar para trabajar entre varios';
+    }
+  }
 }
 
 // Firebase se monta una sola vez por pagina. Si se monta dos veces, la
@@ -7201,6 +7224,7 @@ $('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
 $('welcome-start')?.addEventListener('click', hideWelcomeScreen);
 $('welcome-cong-nueva')?.addEventListener('click', crearCongregacion);
 $('btn-nube')?.addEventListener('click', () => conectarNube(false));
+$('welcome-nube')?.addEventListener('click', () => conectarNube(false));
 // si ya se entro antes en este dispositivo, se reengancha solo
 if(nubeConfigurada()) conectarNube(true);
 $('welcome-cong-sel')?.addEventListener('change', event => {
