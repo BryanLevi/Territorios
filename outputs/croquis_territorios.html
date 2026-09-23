@@ -320,7 +320,20 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
    suelta y en el PDF de siempre sigue verde, como se pidio en su dia. Los
    cuadritos de la lista de referencias no entran aqui: esos siguen verdes. */
 .hueco-agrupado.en-lamina .print-reference-icon svg g[stroke="#0a8f22"],
-.hueco-agrupado.en-lamina .manual-map-icon svg g[stroke="#0a8f22"]{stroke:#000}
+.hueco-agrupado.en-lamina .manual-map-icon svg g[stroke="#0a8f22"]{stroke:#000;stroke-width:2.9}
+/* Y mas fino. El filo de 4.2 contra un dibujo de 2.4 dejaba casi el doble de
+   tinta que de dibujo: los trazos se tocaban entre si y el icono salia como
+   una mancha negra que borraba la calle de debajo. Con 3.4 y 2.8 el filo es
+   un contorno y no un bloque, y el icono se achica un poco: en la lamina se
+   ve a un tamano en el que 46 px tapaban media manzana. */
+.hueco-agrupado.en-lamina .print-reference-icon svg g[stroke="currentColor"],
+.hueco-agrupado.en-lamina .manual-map-icon svg g[stroke="currentColor"]{stroke-width:2}
+.hueco-agrupado.en-lamina .print-reference-icon{
+  width:calc(34px * var(--print-label-scale,1));
+  height:calc(34px * var(--print-label-scale,1))}
+.hueco-agrupado.en-lamina .manual-map-icon{
+  width:calc(25px * var(--manual-icon-scale,1));
+  height:calc(25px * var(--manual-icon-scale,1))}
 .rotulo-hueco{position:absolute;left:0;top:0;right:0;display:flex;align-items:center;padding:0 1.6mm;font-weight:900;letter-spacing:.02em;color:#000;background:#fff;border-bottom:.25mm solid #000;z-index:6;overflow:hidden;white-space:nowrap}
 .banda-lamina{position:absolute;left:0;top:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6mm;background:#fff;border-bottom:.9mm solid #1f7a47;z-index:5}
 .banda-lamina b{font-size:15px;font-weight:900;color:#17251c;letter-spacing:.01em}
