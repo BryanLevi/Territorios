@@ -85,6 +85,9 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
    iconos seguidos, adivinar cual es cual costaba mas que leerlo. */
 .icon-btn.con-rotulo{width:auto;min-width:44px;height:auto;padding:5px 5px 4px;flex-direction:column;gap:3px;line-height:1}
 .icon-btn.con-rotulo svg{width:19px;height:19px}
+.btn-rotulo{font-size:9.5px;font-weight:800;letter-spacing:.01em;white-space:nowrap;opacity:.92}
+.grupo-terr .btn{flex-direction:column;gap:2px;height:auto;padding:4px 8px 3px;line-height:1}
+.grupo-terr .btn svg{width:17px;height:17px}
 .icon-btn-rotulo{font-size:9px;font-weight:800;letter-spacing:.01em;color:#5b7a67;white-space:nowrap}
 .icon-btn.con-rotulo.active .icon-btn-rotulo,
 .icon-btn.con-rotulo:disabled .icon-btn-rotulo{color:inherit}
@@ -628,14 +631,15 @@ body.print-preview{overflow:hidden}
   <div class="bar-group grupo-terr">
   <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-    Agregar
+    <span class="btn-rotulo">Agregar territorio</span>
   </button>
-  <button class="btn ghost" id="btn-rename-territory" type="button" disabled title="Cambiar el nombre del territorio" aria-label="Cambiar el nombre del territorio">
+  <button class="btn ghost" id="btn-rename-territory" type="button" disabled title="Cambiar el nombre del territorio" aria-label="Renombrar territorio">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
+    <span class="btn-rotulo">Renombrar territorio</span>
   </button>
   <button class="btn danger" id="btn-delete-territory" type="button" disabled title="Eliminar territorio actual" aria-label="Eliminar territorio actual">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg>
-    Eliminar
+    <span class="btn-rotulo">Eliminar territorio actual</span>
   </button>
   </div>
   <span class="bar-spacer"></span>
