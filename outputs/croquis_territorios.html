@@ -279,12 +279,38 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
    filo del mapa como una raya fina dentro del recuadro. */
 .hueco-agrupado.en-lamina .leaflet-container{background:#fff!important}
 .hueco-agrupado.en-lamina .print-paper{background:#fff;border:0;box-shadow:none}
-/* El recuadro pone su propio rotulo arriba, asi que la cabecera de la hoja y
-   la rosa sobran: quedarian recortadas o repitiendo el nombre. La cabecera se
-   esconde pero sigue ocupando sus 15 mm: si se quita del todo, el mapa sube
-   esos 15 mm y el recorte deja de caer donde toca. */
+/* El recuadro pone su propio rotulo arriba, asi que la cabecera de la hoja
+   sobra: repetiria el nombre. Se esconde pero sigue ocupando sus 15 mm: si se
+   quita del todo, el mapa sube esos 15 mm y el recorte deja de caer donde
+   toca. La rosa si se queda, una en cada recuadro. */
 .hueco-agrupado.en-lamina .print-hdr{visibility:hidden!important}
-.hueco-agrupado.en-lamina .print-compass{display:none!important}
+/* La sombra de la rosa es un filtro, y Chrome aplasta a 300 ppp la capa que
+   lleve filtro al imprimir. Ademas el halo gris parecia otro filo. */
+.hueco-agrupado.en-lamina .print-compass{filter:none}
+/* Dentro del recuadro no va ni un trazo verde. Lo que en la hoja suelta es
+   verde oscuro -el filo de la rosa, el de la lista de referencias- aqui se
+   pone negro. Los cuadritos verdes de los iconos si se quedan: son los que
+   identifican los iconos del mapa. */
+.hueco-agrupado.en-lamina .print-compass [stroke]{stroke:#000}
+.hueco-agrupado.en-lamina .print-compass path[fill="#17251c"],
+.hueco-agrupado.en-lamina .print-compass text{fill:#000}
+.hueco-agrupado.en-lamina .print-leyenda{border-color:#000;box-shadow:none}
+.hueco-agrupado.en-lamina .print-leyenda b{color:#000}
+/* Cada nombre de calle y cada numero de zona lleva una cajita blanca con filo
+   verde oscuro. Son decenas por croquis, y ese filo se montaba sobre las
+   lineas negras del mapa. */
+.hueco-agrupado.en-lamina .territory-text-label{border-color:rgba(0,0,0,.55)}
+/* El disco de la rosa es blanco al 82%: colgada del recuadro se pinta encima
+   de todo, y sobre una zona pintada el disco se tenia de su color. */
+.hueco-agrupado.en-lamina .print-compass circle{fill-opacity:1}
+/* Cada icono del mapa se traza dos veces: primero un filo grueso verde y
+   encima el dibujo en blanco, asi que lo que se ve es el filo. Ese trazo va
+   por encima del tapado blanco y se comia las lineas negras de calles por
+   donde pasaba. Dentro del recuadro va en negro; en la pantalla, en la hoja
+   suelta y en el PDF de siempre sigue verde, como se pidio en su dia. Los
+   cuadritos de la lista de referencias no entran aqui: esos siguen verdes. */
+.hueco-agrupado.en-lamina .print-reference-icon svg g[stroke="#0a8f22"],
+.hueco-agrupado.en-lamina .manual-map-icon svg g[stroke="#0a8f22"]{stroke:#000}
 .rotulo-hueco{position:absolute;left:0;top:0;right:0;display:flex;align-items:center;padding:0 1.6mm;font-weight:900;letter-spacing:.02em;color:#000;background:#fff;border-bottom:.25mm solid #000;z-index:6;overflow:hidden;white-space:nowrap}
 .banda-lamina{position:absolute;left:0;top:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6mm;background:#fff;border-bottom:.9mm solid #1f7a47;z-index:5}
 .banda-lamina b{font-size:15px;font-weight:900;color:#17251c;letter-spacing:.01em}
@@ -439,6 +465,9 @@ body.print-preview{overflow:hidden}
   .bar,.map-wrap,.map-status,.legend,.welcome-screen{display:none!important}
   .print-sheet,.print-sheet.is-open{display:block!important;position:static!important;inset:auto!important;width:297mm;height:210mm;padding:0;background:#fff;overflow:hidden}
   .print-paper{width:297mm;height:210mm;min-width:0;box-shadow:none}
+  /* Chrome aplasta a 300 ppp cualquier capa con filter al imprimir, y la
+     sombra de la rosa es un filter. */
+  .print-compass{filter:none!important}
   .print-wait{display:none!important}
   /* Con el PDF agrupado manda la pila de paginas: la hoja suelta se esconde
      y se deja que el documento crezca a lo largo. */
@@ -820,7 +849,14 @@ function escalaTeselaImpresion(){
 // del poligono, que va centrado, asi que el aire real es la mitad.
 // El de abajo tapa el mapa de fondo y va pegado a las zonas: el verde del
 // campo sale de esa capa, asi que no asoma nada alrededor del territorio.
-const PRINT_MASK_GROW_FONDO = 3;
+// Baja de 3 a 1. Con 3 el agujero se pasaba metro y medio de trazo por fuera
+// del poligono, y por esa rendija asomaba una cinta del verde del campo
+// pegada al filo de cada zona: era el contorno verde que se veia.
+// No baja a cero aunque la cinta desaparezca del todo: medido, con cero las
+// calles y las manzanas dejan de salir marcadas y el croquis queda lavado,
+// con las calles en blanco. Uno es el punto donde no se ve la cinta y el
+// dibujo sigue entero. Si algun dia se toca, mirar las dos cosas.
+const PRINT_MASK_GROW_FONDO = 1;
 // La capa de nombres tambien se recorta, para que fuera del territorio no
 // quede ni un nombre ni un trazo de calle. Se deja un poco mas de aire que el
 // fondo: lo justo para que un nombre que empieza dentro alcance a terminar.
@@ -6287,7 +6323,10 @@ function renderPrintColorMask(targetMap, loc, opciones = {}){
   // entero sin respetar el orden de carriles.
   const destino = targetMap.getPane(opciones.pane || 'territoryBaseMaskPane') || container;
   destino.querySelectorAll?.('.print-color-mask').forEach(node => node.remove());
-  const areas = getExportColorAreasForLoc(loc);
+  // La lamina manda sus propias zonas y su propio fondo: un territorio sin
+  // pintar no tenia ningun tapado y el recuadro salia lleno del verde del
+  // campo de Google, y con el fondo en 'transparente' pasaba lo mismo.
+  const areas = opciones.areas || getExportColorAreasForLoc(loc);
   if(!areas.length) return;
   const size = targetMap.getSize();
   if(!size?.x || !size?.y) return;
@@ -6356,7 +6395,7 @@ function renderPrintColorMask(targetMap, loc, opciones = {}){
   cover.setAttribute('y', String(-sobra));
   cover.setAttribute('width', String(anchoTapa));
   cover.setAttribute('height', String(altoTapa));
-  const fondo = colorFondoImpresion();
+  const fondo = opciones.fondo || colorFondoImpresion();
   if(fondo === 'transparente') return;   // sin tapar: se ve el mapa alrededor
   cover.setAttribute('fill', fondo);
   cover.setAttribute('fill-opacity', '1');
@@ -6757,7 +6796,10 @@ function bandaDeLamina(){
 function medidaDeLasZonas(mapa, loc){
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   try{
-    getColorAreasForLoc(loc).forEach(area => (area.points || []).forEach(punto => {
+    // Las mismas que usa el tapado. Con getColorAreasForLoc, una zona a medio
+    // dibujar daba medida al recorte pero no contaba como zona, y el recuadro
+    // se acercaba a ese trocito sin ningun blanco encima.
+    getExportColorAreasForLoc(loc).forEach(area => (area.points || []).forEach(punto => {
       const lat = Number(punto && punto[0]);
       const lng = Number(punto && punto[1]);
       if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -6831,6 +6873,41 @@ function acomodarLeyendaEnHueco(caso, papel, k){
   caja.style.top = (caja.offsetTop + dy / k).toFixed(1) + 'px';
 }
 
+// La rosa va anclada a la esquina de la hoja entera, asi que con el recorte de
+// la lamina se quedaba fuera del trozo visible, y ademas encogia con la hoja.
+// En vez de perseguirla dentro del escenario -que recorta lo que se salga- se
+// la cuelga del propio recuadro: ahi se queda en su esquina y a su tamano,
+// sin enterarse del recorte.
+function acomodarRosaEnHueco(caso, papel, hueco, alturaRotulo){
+  const rosa = papel && papel.querySelector('.print-compass');
+  if(!rosa || !hueco) return;
+  // Proporcionada al recuadro, ni diminuta en los chicos ni enorme en el
+  // grande. La rosa es 13 x 15.3 mm, asi que el ancho sale del alto. Se mide
+  // contra lo que queda bajo el rotulo, que es el sitio que hay de verdad.
+  const util = hueco.h - (alturaRotulo || 0);
+  const alto = Math.max(6, Math.min(16, util * .12, hueco.w * .09));
+  rosa.style.left = 'auto';
+  rosa.style.top = 'auto';
+  rosa.style.right = '3mm';
+  rosa.style.bottom = '3mm';
+  rosa.style.width = (alto * 13 / 15.3).toFixed(2) + 'mm';
+  rosa.style.height = alto.toFixed(2) + 'mm';
+  rosa.style.transform = 'none';
+  caso.appendChild(rosa);
+  // Si la lista de referencias acabo en esa misma esquina, la rosa se le
+  // pondria encima y le taparia las filas: se pasa a la otra esquina.
+  const ley = papel.querySelector('.print-leyenda');
+  if(ley){
+    const r = rosa.getBoundingClientRect();
+    const l = ley.getBoundingClientRect();
+    const chocan = !(r.right < l.left || r.left > l.right || r.bottom < l.top || r.top > l.bottom);
+    if(chocan){
+      rosa.style.right = 'auto';
+      rosa.style.left = '3mm';
+    }
+  }
+}
+
 async function generarAgrupado(modo){
   if(agruparGenerando) return;
   // Cada boton trae su formato: el azul una pagina por territorio, el verde
@@ -6866,7 +6943,7 @@ async function generarAgrupado(modo){
         aviso.textContent = 'Dibujando ' + displayTerritoryName(loc)
           + '  (' + (i + 1) + ' de ' + c.elegidos.length + ')';
       }
-      await imprimir({ loc, soloPreparar:true, conservar:true });
+      await imprimir({ loc, soloPreparar:true, conservar:true, lamina:c.lamina });
       const papel = document.querySelector('#print-sheet .print-paper');
       const sobrante = $('print-sheet');
       if(papel){
@@ -6918,7 +6995,10 @@ async function generarAgrupado(modo){
         envoltura.appendChild(papel);
         caso.appendChild(envoltura);
         pagina.appendChild(caso);
-        if(c.lamina) acomodarLeyendaEnHueco(caso, papel, k);
+        if(c.lamina){
+          acomodarLeyendaEnHueco(caso, papel, k);
+          acomodarRosaEnHueco(caso, papel, hueco, alturaRotulo);
+        }
       }
       // El mapa se queda vivo a proposito: si se le llama remove(), Leaflet se
       // lleva por delante todas sus teselas y la hoja queda en blanco.
@@ -7239,7 +7319,10 @@ async function imprimir(opciones = {}){
     }
     if(usingColorMask){
       drawPrintColorAreaOutlines(printMap, loc);
-    }else{
+    }else if(!opciones.lamina){
+      // El marco a rayas verdes marca hasta donde llega la hoja cuando el
+      // territorio no tiene nada pintado. En la lamina sobra: el recuadro ya
+      // trae su filo negro, y este quedaba justo por dentro tapandolo.
       L.rectangle(bounds, {
         color:'#0f7a3b',
         weight:2.5 * printRenderScale,
@@ -7291,12 +7374,24 @@ async function imprimir(opciones = {}){
     const zonasPintadas = usingColorMask ? buildPrintZoneShapes(printMap, loc) : null;
     drawPrintTextLabels(printMap, loc, ocupadas);
     drawPrintReferences(printMap, readOverpassCache(loc, 'refs') || [], loc, ocupadas, zonasPintadas);
+    // En la lamina el tapado es blanco si o si: la opcion 'transparente' deja
+    // el campo verde de Google tocando el filo negro del recuadro.
+    const fondoTapa = opciones.lamina ? '#ffffff' : undefined;
     if(usingColorMask){
       $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
       // Primero el de abajo, pegado a las zonas, que tapa el mapa de fondo.
-      renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO });
+      renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO, fondo:fondoTapa });
       // Y encima el de los nombres, con su pizca de aire.
-      renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:PRINT_MASK_GROW_NOMBRES });
+      renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:PRINT_MASK_GROW_NOMBRES, fondo:fondoTapa });
+    }else if(opciones.lamina){
+      // Sin zonas pintadas no habia tapado ninguno. Se usa el marco de la hoja
+      // como unico agujero, asi que por fuera queda blanco y el verde del
+      // campo no llega al filo del recuadro.
+      const marco = [{ points:[[bounds.getNorth(), bounds.getWest()],
+                               [bounds.getNorth(), bounds.getEast()],
+                               [bounds.getSouth(), bounds.getEast()],
+                               [bounds.getSouth(), bounds.getWest()]] }];
+      renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO, areas:marco, fondo:'#ffffff' });
     }
     // Al final: antes de encuadrar el mapa no tiene tamano todavia, y la
     // esquina se elegiria con cuentas sin sentido.
