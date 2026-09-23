@@ -270,11 +270,11 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .hueco-agrupado .print-paper{box-shadow:none}
 /* En la lamina cada croquis va en su recuadro, como en los de toda la vida. */
 .hueco-agrupado.en-lamina{border:.4mm solid #17251c;background:#fff}
-/* Los chicos no llevan los datos de la esquina ni la rosa: a ese tamano solo
-   estorban y el nombre ya sale en su cabecera. */
-.hueco-agrupado.es-chico .print-meta,
-.hueco-agrupado.es-chico .print-compass,
-.hueco-agrupado.es-chico .print-leyenda{display:none!important}
+/* El recuadro pone su propio rotulo arriba, asi que la cabecera de la hoja y
+   la rosa sobran: quedarian recortadas o repitiendo el nombre. */
+.hueco-agrupado.en-lamina .print-hdr,
+.hueco-agrupado.en-lamina .print-compass{display:none!important}
+.rotulo-hueco{position:absolute;left:0;top:0;right:0;display:flex;align-items:center;padding:0 2mm;font-weight:900;letter-spacing:.02em;color:#17251c;background:#fff;border-bottom:.3mm solid #1f7a47;z-index:6;overflow:hidden;white-space:nowrap}
 .banda-lamina{position:absolute;left:0;top:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6mm;background:#fff;border-bottom:1.1mm solid #1f7a47;z-index:5}
 .banda-lamina b{font-size:15px;font-weight:900;color:#17251c;letter-spacing:.01em}
 .banda-lamina span{font-size:10.5px;color:#26372d}
@@ -6736,6 +6736,34 @@ function bandaDeLamina(){
   return banda;
 }
 
+// El trozo de hoja que ocupa el croquis, en milimetros de la propia hoja.
+// Con eso se recorta: si se mete la hoja entera en el recuadro, el territorio
+// queda chiquito en medio y sobra blanco, que es lo que pasaba.
+function recorteDelCroquis(mapa, loc){
+  const hoja = { x:0, y:15, w:297, h:189 };   // la cabecera son 15 mm
+  try{
+    const b = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+    const noroeste = mapa.latLngToContainerPoint([b.north, b.west]);
+    const sureste = mapa.latLngToContainerPoint([b.south, b.east]);
+    const anchoLienzo = printMapW();
+    const altoLienzo = printMapH();
+    const x0 = Math.max(0, Math.min(noroeste.x, sureste.x)) / anchoLienzo;
+    const x1 = Math.min(anchoLienzo, Math.max(noroeste.x, sureste.x)) / anchoLienzo;
+    const y0 = Math.max(0, Math.min(noroeste.y, sureste.y)) / altoLienzo;
+    const y1 = Math.min(altoLienzo, Math.max(noroeste.y, sureste.y)) / altoLienzo;
+    if(!(x1 > x0 && y1 > y0)) return hoja;
+    const aire = 1.5;   // mm de respiro alrededor
+    return {
+      x:Math.max(0, x0 * 297 - aire),
+      y:Math.max(15, 15 + y0 * 189 - aire),
+      w:Math.min(297, (x1 - x0) * 297 + aire * 2),
+      h:Math.min(189, (y1 - y0) * 189 + aire * 2)
+    };
+  }catch(e){
+    return hoja;
+  }
+}
+
 async function generarAgrupado(modo){
   if(agruparGenerando) return;
   // Cada boton trae su formato: el azul una pagina por territorio, el verde
@@ -6782,19 +6810,32 @@ async function generarAgrupado(modo){
           if(nodo) nodo.id = nombre + '-hoja' + (i + 1);
         });
         const hueco = c.huecos[c.lamina ? Math.min(i, c.huecos.length - 1) : 0];
-        const k = escalaDeHueco(hueco);
         const caso = document.createElement('div');
-        caso.className = 'hueco-agrupado' + (c.lamina ? ' en-lamina' : '')
-          + (c.lamina && i > 0 ? ' es-chico' : '');
+        caso.className = 'hueco-agrupado' + (c.lamina ? ' en-lamina' : '');
         caso.style.left = hueco.x + 'mm';
         caso.style.top = hueco.y + 'mm';
         caso.style.width = hueco.w + 'mm';
         caso.style.height = hueco.h + 'mm';
-        // centrado: lo que sobre del recuadro se reparte a los dos lados
-        const sobraX = (hueco.w - A4_LARGO * k) / 2;
-        const sobraY = (hueco.h - A4_CORTO * k) / 2;
-        papel.style.transform = 'translate(' + sobraX.toFixed(2) + 'mm,'
-          + sobraY.toFixed(2) + 'mm) scale(' + k + ')';
+        let alturaRotulo = 0;
+        if(c.lamina){
+          const rotulo = document.createElement('div');
+          rotulo.className = 'rotulo-hueco';
+          rotulo.textContent = displayTerritoryName(loc).toUpperCase();
+          caso.appendChild(rotulo);
+          alturaRotulo = i === 0 ? 7 : 5;
+          rotulo.style.height = alturaRotulo + 'mm';
+          rotulo.style.fontSize = (i === 0 ? 11 : 7) + 'px';
+        }
+        // El croquis se recorta a lo que ocupa el territorio y ese trozo se
+        // estira hasta llenar el hueco.
+        const rec = recorteDelCroquis(printMap, loc);
+        const util = { w:hueco.w - 2, h:hueco.h - alturaRotulo - 2 };
+        const k = Math.min(util.w / rec.w, util.h / rec.h);
+        const sobraX = (util.w - rec.w * k) / 2;
+        const sobraY = (util.h - rec.h * k) / 2;
+        papel.style.transform = 'translate('
+          + (1 + sobraX - rec.x * k).toFixed(2) + 'mm,'
+          + (alturaRotulo + 1 + sobraY - rec.y * k).toFixed(2) + 'mm) scale(' + k + ')';
         papel.style.transformOrigin = 'top left';
         // La hoja sigue viviendo dentro de un .print-sheet. Media pagina de
         // estilos cuelga de esa clase -que capas se ven, como se mezclan-, y
