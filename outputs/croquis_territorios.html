@@ -4608,6 +4608,11 @@ async function conectarNube(silencioso){
     nube = { fs, db };
     escucharCongregacion();
     escucharRegistro();
+    // Se sube lo que tenga este equipo nada mas conectar, sin esperar a que
+    // alguien cambie algo. Es lo que hace que suban las congregaciones y las
+    // listas de antes, creadas cuando esto todavia no existia.
+    publicarRegistro();
+    publicarLista();
     pintarEstadoNube('Conectado como ' + nubeQuien, true);
     if(!silencioso) setStatus('Trabajo compartido encendido. Los cambios se ven al momento.', 'warn');
     return true;
@@ -4715,6 +4720,7 @@ async function publicarRegistro(){
     });
   }catch(err){
     console.error('No se pudo compartir la lista de congregaciones.', err);
+    setStatus('No se pudo compartir la lista de congregaciones: ' + err.message, 'error');
   }
 }
 
@@ -4783,6 +4789,7 @@ async function publicarLista(){
     });
   }catch(err){
     console.error('No se pudo compartir la lista de territorios.', err);
+    setStatus('No se pudo compartir la lista de territorios: ' + err.message, 'error');
   }
 }
 
