@@ -268,14 +268,25 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .pagina-agrupada{position:relative;background:#fff;overflow:hidden}
 .hueco-agrupado{position:absolute;overflow:hidden}
 .hueco-agrupado .print-paper{box-shadow:none}
-/* En la lamina cada croquis va en su recuadro, como en los de toda la vida. */
-.hueco-agrupado.en-lamina{border:.4mm solid #17251c;background:#fff}
+/* En la lamina cada croquis va en su recuadro, como en los de toda la vida:
+   un solo filo negro y nada mas. */
+.hueco-agrupado.en-lamina{border:.3mm solid #000;background:#fff;box-shadow:none}
+/* El escenario del mapa tiene un gris verdoso de fondo que, dentro del
+   recuadro, asomaba alrededor del croquis y parecia un segundo marco verde. */
+.hueco-agrupado.en-lamina .print-map-stage,
+.hueco-agrupado.en-lamina .print-map,
+/* Leaflet pinta su contenedor de gris por defecto, y ese gris asomaba por el
+   filo del mapa como una raya fina dentro del recuadro. */
+.hueco-agrupado.en-lamina .leaflet-container{background:#fff!important}
+.hueco-agrupado.en-lamina .print-paper{background:#fff;border:0;box-shadow:none}
 /* El recuadro pone su propio rotulo arriba, asi que la cabecera de la hoja y
-   la rosa sobran: quedarian recortadas o repitiendo el nombre. */
-.hueco-agrupado.en-lamina .print-hdr,
+   la rosa sobran: quedarian recortadas o repitiendo el nombre. La cabecera se
+   esconde pero sigue ocupando sus 15 mm: si se quita del todo, el mapa sube
+   esos 15 mm y el recorte deja de caer donde toca. */
+.hueco-agrupado.en-lamina .print-hdr{visibility:hidden!important}
 .hueco-agrupado.en-lamina .print-compass{display:none!important}
-.rotulo-hueco{position:absolute;left:0;top:0;right:0;display:flex;align-items:center;padding:0 2mm;font-weight:900;letter-spacing:.02em;color:#17251c;background:#fff;border-bottom:.3mm solid #1f7a47;z-index:6;overflow:hidden;white-space:nowrap}
-.banda-lamina{position:absolute;left:0;top:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6mm;background:#fff;border-bottom:1.1mm solid #1f7a47;z-index:5}
+.rotulo-hueco{position:absolute;left:0;top:0;right:0;display:flex;align-items:center;padding:0 1.6mm;font-weight:900;letter-spacing:.02em;color:#000;background:#fff;border-bottom:.25mm solid #000;z-index:6;overflow:hidden;white-space:nowrap}
+.banda-lamina{position:absolute;left:0;top:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6mm;background:#fff;border-bottom:.9mm solid #1f7a47;z-index:5}
 .banda-lamina b{font-size:15px;font-weight:900;color:#17251c;letter-spacing:.01em}
 .banda-lamina span{font-size:10.5px;color:#26372d}
 /* La envoltura solo esta para que sigan valiendo los estilos de .print-sheet:
@@ -6280,28 +6291,34 @@ function renderPrintColorMask(targetMap, loc, opciones = {}){
   if(!areas.length) return;
   const size = targetMap.getSize();
   if(!size?.x || !size?.y) return;
+  // El tapado se pasa de largo por los cuatro lados. Antes acababa justo en
+  // el borde del mapa, y al recortar un croquis para la lamina asomaba por el
+  // filo el verde del campo, que parecia un marco.
+  const sobra = Math.max(size.x, size.y);
+  const anchoTapa = size.x + sobra * 2;
+  const altoTapa = size.y + sobra * 2;
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   const maskId = 'print-color-mask-' + Date.now() + '-' + Math.round(Math.random() * 100000);
   svg.classList.add('print-color-mask');
-  svg.setAttribute('viewBox', '0 0 ' + size.x + ' ' + size.y);
+  svg.setAttribute('viewBox', (-sobra) + ' ' + (-sobra) + ' ' + anchoTapa + ' ' + altoTapa);
   svg.setAttribute('preserveAspectRatio', 'none');
   svg.setAttribute('aria-hidden', 'true');
 
   const defs = document.createElementNS(ns, 'defs');
   const mask = document.createElementNS(ns, 'mask');
   mask.setAttribute('id', maskId);
-  mask.setAttribute('x', '0');
-  mask.setAttribute('y', '0');
-  mask.setAttribute('width', String(size.x));
-  mask.setAttribute('height', String(size.y));
+  mask.setAttribute('x', String(-sobra));
+  mask.setAttribute('y', String(-sobra));
+  mask.setAttribute('width', String(anchoTapa));
+  mask.setAttribute('height', String(altoTapa));
   mask.setAttribute('maskUnits', 'userSpaceOnUse');
 
   const full = document.createElementNS(ns, 'rect');
-  full.setAttribute('x', '0');
-  full.setAttribute('y', '0');
-  full.setAttribute('width', String(size.x));
-  full.setAttribute('height', String(size.y));
+  full.setAttribute('x', String(-sobra));
+  full.setAttribute('y', String(-sobra));
+  full.setAttribute('width', String(anchoTapa));
+  full.setAttribute('height', String(altoTapa));
   full.setAttribute('fill', '#fff');
   mask.appendChild(full);
 
@@ -6330,15 +6347,15 @@ function renderPrintColorMask(targetMap, loc, opciones = {}){
   defs.appendChild(mask);
   svg.appendChild(defs);
   const origen = targetMap.containerPointToLayerPoint([0, 0]);
-  svg.style.left = origen.x + 'px';
-  svg.style.top = origen.y + 'px';
-  svg.style.width = size.x + 'px';
-  svg.style.height = size.y + 'px';
+  svg.style.left = (origen.x - sobra) + 'px';
+  svg.style.top = (origen.y - sobra) + 'px';
+  svg.style.width = anchoTapa + 'px';
+  svg.style.height = altoTapa + 'px';
   const cover = document.createElementNS(ns, 'rect');
-  cover.setAttribute('x', '0');
-  cover.setAttribute('y', '0');
-  cover.setAttribute('width', String(size.x));
-  cover.setAttribute('height', String(size.y));
+  cover.setAttribute('x', String(-sobra));
+  cover.setAttribute('y', String(-sobra));
+  cover.setAttribute('width', String(anchoTapa));
+  cover.setAttribute('height', String(altoTapa));
   const fondo = colorFondoImpresion();
   if(fondo === 'transparente') return;   // sin tapar: se ve el mapa alrededor
   cover.setAttribute('fill', fondo);
@@ -6736,6 +6753,23 @@ function bandaDeLamina(){
   return banda;
 }
 
+// Hasta donde llega lo pintado, en pixeles del mapa de impresion.
+function medidaDeLasZonas(mapa, loc){
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  try{
+    getColorAreasForLoc(loc).forEach(area => (area.points || []).forEach(punto => {
+      const lat = Number(punto && punto[0]);
+      const lng = Number(punto && punto[1]);
+      if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const q = mapa.latLngToContainerPoint([lat, lng]);
+      x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x);
+      y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y);
+    }));
+  }catch(e){ return null; }
+  if(!Number.isFinite(x0) || !(x1 > x0) || !(y1 > y0)) return null;
+  return { x0, y0, x1, y1 };
+}
+
 // El trozo de hoja que ocupa el croquis, en milimetros de la propia hoja.
 // Con eso se recorta: si se mete la hoja entera en el recuadro, el territorio
 // queda chiquito en medio y sobra blanco, que es lo que pasaba.
@@ -6747,10 +6781,21 @@ function recorteDelCroquis(mapa, loc){
     const sureste = mapa.latLngToContainerPoint([b.south, b.east]);
     const anchoLienzo = printMapW();
     const altoLienzo = printMapH();
-    const x0 = Math.max(0, Math.min(noroeste.x, sureste.x)) / anchoLienzo;
-    const x1 = Math.min(anchoLienzo, Math.max(noroeste.x, sureste.x)) / anchoLienzo;
-    const y0 = Math.max(0, Math.min(noroeste.y, sureste.y)) / altoLienzo;
-    const y1 = Math.min(altoLienzo, Math.max(noroeste.y, sureste.y)) / altoLienzo;
+    let a = Math.min(noroeste.x, sureste.x), c = Math.max(noroeste.x, sureste.x);
+    let d = Math.min(noroeste.y, sureste.y), e = Math.max(noroeste.y, sureste.y);
+    // El marco de exportacion suele dejar mucho campo vacio por fuera de lo
+    // pintado. En la lamina interesa el dibujo, asi que se recorta a las zonas
+    // y el marco solo pone el limite.
+    const zonas = medidaDeLasZonas(mapa, loc);
+    if(zonas){
+      const holgura = Math.max((zonas.x1 - zonas.x0), (zonas.y1 - zonas.y0)) * 0.04;
+      a = Math.max(a, zonas.x0 - holgura); c = Math.min(c, zonas.x1 + holgura);
+      d = Math.max(d, zonas.y0 - holgura); e = Math.min(e, zonas.y1 + holgura);
+    }
+    const x0 = Math.max(0, a) / anchoLienzo;
+    const x1 = Math.min(anchoLienzo, c) / anchoLienzo;
+    const y0 = Math.max(0, d) / altoLienzo;
+    const y1 = Math.min(altoLienzo, e) / altoLienzo;
     if(!(x1 > x0 && y1 > y0)) return hoja;
     const aire = 1.5;   // mm de respiro alrededor
     return {
@@ -6762,6 +6807,28 @@ function recorteDelCroquis(mapa, loc){
   }catch(e){
     return hoja;
   }
+}
+
+// La leyenda va pegada a la hoja entera, pero en la lamina solo se ve el trozo
+// del territorio: quedaba fuera del recorte y el rotulo se la comia. Aqui se
+// mide donde cayo de verdad y se empuja hasta que entre en el recuadro.
+function acomodarLeyendaEnHueco(caso, papel, k){
+  const caja = papel && papel.querySelector('.print-leyenda');
+  if(!caja || !(k > 0)) return;
+  const rotulo = caso.querySelector('.rotulo-hueco');
+  const marco = caso.getBoundingClientRect();
+  const l = caja.getBoundingClientRect();
+  if(!l.width || !l.height) return;
+  const techo = rotulo ? rotulo.getBoundingClientRect().bottom : marco.top;
+  const aire = Math.max(3, marco.width * 0.012);
+  let dx = 0, dy = 0;
+  if(l.top < techo + aire) dy = (techo + aire) - l.top;
+  if(l.bottom + dy > marco.bottom - aire) dy = (marco.bottom - aire) - l.bottom;
+  if(l.left < marco.left + aire) dx = (marco.left + aire) - l.left;
+  if(l.right + dx > marco.right - aire) dx = (marco.right - aire) - l.right;
+  if(!dx && !dy) return;
+  caja.style.left = (caja.offsetLeft + dx / k).toFixed(1) + 'px';
+  caja.style.top = (caja.offsetTop + dy / k).toFixed(1) + 'px';
 }
 
 async function generarAgrupado(modo){
@@ -6826,17 +6893,23 @@ async function generarAgrupado(modo){
           rotulo.style.height = alturaRotulo + 'mm';
           rotulo.style.fontSize = (i === 0 ? 11 : 7) + 'px';
         }
-        // El croquis se recorta a lo que ocupa el territorio y ese trozo se
-        // estira hasta llenar el hueco.
-        const rec = recorteDelCroquis(printMap, loc);
-        const util = { w:hueco.w - 2, h:hueco.h - alturaRotulo - 2 };
-        const k = Math.min(util.w / rec.w, util.h / rec.h);
-        const sobraX = (util.w - rec.w * k) / 2;
-        const sobraY = (util.h - rec.h * k) / 2;
-        papel.style.transform = 'translate('
-          + (1 + sobraX - rec.x * k).toFixed(2) + 'mm,'
-          + (alturaRotulo + 1 + sobraY - rec.y * k).toFixed(2) + 'mm) scale(' + k + ')';
-        papel.style.transformOrigin = 'top left';
+        // Solo en la lamina se recorta: ahi el croquis comparte pagina y hay
+        // que estirarlo hasta llenar su recuadro. Una hoja suelta es la misma
+        // que sale del boton de siempre, con su cabecera y su rosa, asi que se
+        // queda tal cual.
+        let k = 1;
+        if(c.lamina){
+          const rec = recorteDelCroquis(printMap, loc);
+          // el croquis no toca el filo: se le deja aire a los cuatro lados
+          const util = { w:hueco.w - 5, h:hueco.h - alturaRotulo - 5 };
+          k = Math.min(util.w / rec.w, util.h / rec.h);
+          const sobraX = (util.w - rec.w * k) / 2;
+          const sobraY = (util.h - rec.h * k) / 2;
+          papel.style.transform = 'translate('
+            + (2.5 + sobraX - rec.x * k).toFixed(2) + 'mm,'
+            + (alturaRotulo + 2.5 + sobraY - rec.y * k).toFixed(2) + 'mm) scale(' + k + ')';
+          papel.style.transformOrigin = 'top left';
+        }
         // La hoja sigue viviendo dentro de un .print-sheet. Media pagina de
         // estilos cuelga de esa clase -que capas se ven, como se mezclan-, y
         // al sacarla de ahi el croquis salia en blanco.
@@ -6845,6 +6918,7 @@ async function generarAgrupado(modo){
         envoltura.appendChild(papel);
         caso.appendChild(envoltura);
         pagina.appendChild(caso);
+        if(c.lamina) acomodarLeyendaEnHueco(caso, papel, k);
       }
       // El mapa se queda vivo a proposito: si se le llama remove(), Leaflet se
       // lleva por delante todas sus teselas y la hoja queda en blanco.
