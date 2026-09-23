@@ -5050,7 +5050,16 @@ function getGithubToken(forcePrompt = false){
   let saved = '';
   try{ saved = sessionStorage.getItem(CLOUD_SYNC_TOKEN_SESSION_KEY) || ''; }catch(e){}
   if(saved && !forcePrompt) return saved;
-  const token = window.prompt('Pega tu token de GitHub para guardar en BryanLevi/Territorios.\n\nUsa un token de acceso personal detallado (fine-grained) limitado solo al repositorio Territorios, con permiso Contents: read and write.\n\nSi quieres no volver a pegarlo, activa "Recordar en este dispositivo" en Inicio.');
+  const salto = String.fromCharCode(10);
+  const token = window.prompt([
+    'Esto es solo para quien lleva el respaldo de la congregacion.',
+    '',
+    'Si no eres tu, dale a Cancelar: tu trabajo ya se guardo y los demas',
+    'ya lo estan viendo. El respaldo es otra cosa y lo hace una sola persona.',
+    '',
+    'Si eres tu, pega aqui el token de GitHub: uno detallado (fine-grained),',
+    'limitado al repositorio Territorios, con permiso Contents: read and write.'
+  ].join(salto));
   if(token == null) return null;
   const clean = token.trim();
   if(!clean){
