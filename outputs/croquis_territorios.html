@@ -338,6 +338,8 @@ body.print-preview{overflow:hidden}
 .welcome-nube:hover{background:#e2f2e8}
 .welcome-nube.is-on{background:#1f7a47;border-color:#1f7a47;color:#fff}
 .welcome-nube.is-on .nube-punto{background:#c8f7d8;box-shadow:0 0 0 3px rgba(255,255,255,.28)}
+.welcome-respaldo{grid-column:1 / -1;display:flex;gap:7px;margin-top:2px}
+.welcome-respaldo .btn{flex:1 1 auto;justify-content:center;height:34px;font-size:12px}
 .welcome-cong-nota{grid-column:1 / -1;margin:0;font-size:12.5px;line-height:1.45;color:#4a6579}
 .welcome-guide{padding:28px 28px 26px}
 .welcome-guide h3{margin:0 0 12px;font-size:18px;color:#0b2945}
@@ -397,7 +399,6 @@ body.print-preview{overflow:hidden}
   .bar.tools-collapsed #tools-panel,
   .bar.tools-collapsed .frame-field,
   .bar.tools-collapsed .grupo-terr,
-  .bar.tools-collapsed .grupo-resp,
   .bar.tools-collapsed .grupo-sync{display:none}
   .bar.tools-collapsed .brand span{display:none}
   .bar.tools-collapsed .campo-mapa{display:none}
@@ -582,9 +583,9 @@ body.print-preview{overflow:hidden}
       </button>
       </span>
       <span class="tool-group tools-actions">
-      <button class="icon-btn con-rotulo" id="btn-save-changes" type="button" disabled title="Guardar cambios" aria-label="Guardar cambios">
+      <button class="icon-btn con-rotulo" id="btn-save-changes" type="button" disabled title="Guardar y cerrar lo que estes dibujando" aria-label="Guardar datos">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
-        <span class="icon-btn-rotulo">Guardar</span>
+        <span class="icon-btn-rotulo">Guardar datos</span>
       </button>
       <button class="icon-btn con-rotulo" id="btn-referencias" type="button" disabled title="Lista de referencias del PDF" aria-label="Lista de referencias del PDF">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M4.5 6h.01"></path><path d="M4.5 12h.01"></path><path d="M4.5 18h.01"></path></svg>
@@ -638,24 +639,14 @@ body.print-preview{overflow:hidden}
   </button>
   </div>
   <span class="bar-spacer"></span>
-  <div class="bar-group grupo-resp">
-  <button class="btn ghost" id="btn-backup-export" type="button" title="Bajar a un archivo todo lo guardado, de todas las congregaciones" aria-label="Exportar respaldo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>
-    Exportar
-  </button>
-  <button class="btn ghost" id="btn-backup-import" type="button" title="Recuperar desde un archivo. Pisa lo que haya en este equipo" aria-label="Importar respaldo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
-    Importar
-  </button>
-  </div>
   <div class="bar-group grupo-sync">
-  <button class="btn primary" id="btn-cloud-save" type="button" title="Guardar cambios en GitHub" aria-label="Guardar cambios en GitHub">
+  <button class="btn primary" id="btn-cloud-save" type="button" title="Dejar una copia con historial en GitHub" aria-label="Guardar respaldo">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg>
-    Guardar GitHub
+    Guardar respaldo
   </button>
-  <button class="btn ghost" id="btn-cloud-load" type="button" title="Traer la ultima copia guardada en GitHub. Pisa lo que haya en este equipo" aria-label="Cargar de GitHub">
+  <button class="btn ghost" id="btn-cloud-load" type="button" title="Traer la ultima copia guardada. Avisa antes de pisar nada" aria-label="Recuperar respaldo">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg>
-    Cargar GitHub
+    Recuperar respaldo
   </button>
   </div>
   <div class="bar-group grupo-nube">
@@ -2232,6 +2223,7 @@ function hasColorExportMask(loc){
 
 function setColorAreasForLoc(loc, areas, options = {}){
   if(!loc) return false;
+  publicarTerritorioPronto(loc);
   const key = String(loc.num);
   const before = cloneData(getColorAreasForLoc(loc));
   const validAreas = (areas || []).filter(area => Array.isArray(area.points) && area.points.length >= 3);
@@ -2258,6 +2250,7 @@ function getTextLabelsForLoc(loc){
 
 function setTextLabelsForLoc(loc, labels, options = {}){
   if(!loc) return false;
+  publicarTerritorioPronto(loc);
   const key = String(loc.num);
   const before = cloneData(getTextLabelsForLoc(loc));
   const validLabels = (labels || []).filter(label => label && String(label.text || '').trim());
@@ -2311,6 +2304,7 @@ function getManualIconsForLoc(loc){
 
 function setManualIconsForLoc(loc, icons, options = {}){
   if(!loc) return false;
+  publicarTerritorioPronto(loc);
   const key = String(loc.num);
   const before = cloneData(getManualIconsForLoc(loc));
   const validIcons = (icons || []).map(normalizeManualIcon).filter(Boolean);
@@ -2350,6 +2344,7 @@ function getWhiteRoadsForLoc(loc){
 
 function setWhiteRoadsForLoc(loc, roads, options = {}){
   if(!loc) return false;
+  publicarTerritorioPronto(loc);
   const key = String(loc.num);
   const before = cloneData(getWhiteRoadsForLoc(loc));
   const validRoads = (roads || []).map(normalizeWhiteRoad).filter(Boolean);
@@ -2386,6 +2381,7 @@ function getManualRiversForLoc(loc){
 
 function setManualRiversForLoc(loc, rivers, options = {}){
   if(!loc) return false;
+  publicarTerritorioPronto(loc);
   const key = String(loc.num);
   const before = cloneData(getManualRiversForLoc(loc));
   const validRivers = (rivers || []).map(normalizeManualRiver).filter(Boolean);
@@ -2491,7 +2487,7 @@ function updateColorControls(loc = LOCS[currentIndex]){
     iconAddButton.disabled = !enabled || !loc;
     iconAddButton.classList.toggle('active', iconAddMode);
   }
-  saveChangesButton.disabled = !enabled || !loc;
+  if(saveChangesButton) saveChangesButton.disabled = !enabled || !loc;
   const canUndoSavedChange = undoHistory.length > 0;
   colorUndoButton.disabled = !enabled || ((!colorDrawMode || draftPoints.length < 1) && (!roadPencilMode || roadDraftPoints.length < 1) && (!riverPencilMode || riverDraftPoints.length < 1) && !(contourEditMode && selectedAreaIndex != null && getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.length > 3) && !canUndoSavedChange);
   colorClearButton.disabled = !enabled || !loc || (!draftPoints.length && !roadDraftPoints.length && !riverDraftPoints.length && getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0 && getManualRiversForLoc(loc).length === 0);
@@ -3528,6 +3524,13 @@ function finishRoadDraft(){
   return saved;
 }
 
+// Mientras se dibuja, el doble clic cierra el trazo en vez de acercar el mapa.
+function ajustarDobleClic(){
+  if(!map || !map.doubleClickZoom) return;
+  const dibujando = colorDrawMode || roadPencilMode || riverPencilMode;
+  if(dibujando) map.doubleClickZoom.disable(); else map.doubleClickZoom.enable();
+}
+
 function setRoadPencilMode(active, showMessage = true, carretera = false){
   roadPencilMode = !!active;
   modoCarretera = roadPencilMode && !!carretera;
@@ -3549,13 +3552,14 @@ function setRoadPencilMode(active, showMessage = true, carretera = false){
   if(showMessage){
     if(roadPencilMode){
       setStatus(modoCarretera
-        ? 'Carretera: marca los puntos por donde va y guarda. Despues te pregunta hacia donde lleva.'
-        : 'Lapiz de calle blanca: marca puntos siguiendo la calle y guarda con el boton de guardar.', 'warn');
+        ? 'Carretera: marca los puntos por donde va y cierra con doble clic. Despues te pregunta hacia donde lleva.'
+        : 'Lapiz de calle blanca: marca puntos siguiendo la calle y cierra con doble clic o Ctrl+S.', 'warn');
     }else if(statusBox.classList.contains('warn') &&
              (statusBox.textContent.includes('Lapiz de calle blanca') || statusBox.textContent.includes('Carretera:'))){
       setStatus('', '');
     }
   }
+  ajustarDobleClic();
   updateColorControls();
 }
 
@@ -3625,11 +3629,12 @@ function setRiverPencilMode(active, showMessage = true){
   document.querySelector('.map-wrap')?.classList.toggle('is-river-pencil', riverPencilMode);
   if(showMessage){
     if(riverPencilMode){
-      setStatus('Lapiz de rio: marca puntos siguiendo el cauce y guarda con el boton de guardar.', 'warn');
+      setStatus('Lapiz de rio: marca puntos siguiendo el cauce y cierra con doble clic o Ctrl+S.', 'warn');
     }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Lapiz de rio')){
       setStatus('', '');
     }
   }
+  ajustarDobleClic();
   updateColorControls();
 }
 
@@ -3648,6 +3653,7 @@ function setColorDrawMode(active){
   }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Dibujando area')){
     setStatus('', '');
   }
+  ajustarDobleClic();
   updateColorControls();
 }
 
@@ -4933,6 +4939,16 @@ function aplicarListaRemota(d){
   setStatus(quien + ' cambio la lista de territorios.', 'warn');
 }
 
+// Se publica solo, en cuanto se cambia algo. Con una espera corta, porque
+// dibujando se guarda muchas veces seguidas y no hace falta subir cada una.
+let publicarPendiente = null;
+function publicarTerritorioPronto(loc){
+  if(!nube || !loc || nubeAplicando) return;
+  clearTimeout(publicarPendiente);
+  const cual = loc;
+  publicarPendiente = setTimeout(() => publicarTerritorio(cual), 1200);
+}
+
 async function publicarTerritorio(loc){
   if(!nube || !loc || nubeAplicando) return;
   const clave = String(loc.num);
@@ -5551,6 +5567,14 @@ function initApp(){
   manualWhiteRoadLayer = L.layerGroup().addTo(map);
   manualRiverLayer = L.layerGroup().addTo(map);
   map.on('click', handleColorMapClick);
+  // Doble clic -o doble toque- cierra lo que se este dibujando. Antes eso solo
+  // lo hacia el boton de guardar, que ya no esta; con Ctrl+S tambien, pero en
+  // el telefono no hay Ctrl.
+  map.on('dblclick', event => {
+    if(!(colorDrawMode || roadPencilMode || riverPencilMode)) return;
+    if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
+    saveAllChanges();
+  });
   map.on('mousemove', handleMapMouseMove);
   map.on('moveend zoomend', () => updateLabelOverlayVisibility());
   // El filtro de tramos cortos depende del zoom, asi que hay que rehacer los puntos
@@ -5907,6 +5931,7 @@ function guardarPanelReferencias(){
     };
   });
   leyendaSettings[String(loc.num)] = datos;
+  publicarTerritorioPronto(loc);
   if(saveLeyendaSettings()){
     const cuantas = Object.values(datos).filter(d => d.ver).length;
     setStatus(cuantas
@@ -7288,7 +7313,7 @@ textAddButton.addEventListener('click', () => {
   }
 });
 iconAddButton?.addEventListener('click', () => setIconAddMode(!iconAddMode));
-saveChangesButton.addEventListener('click', saveAllChanges);
+saveChangesButton?.addEventListener('click', saveAllChanges);
 backupExportButton?.addEventListener('click', exportBackup);
 backupImportButton?.addEventListener('click', chooseBackupFile);
 cloudSaveButton?.addEventListener('click', saveCloudBackup);
