@@ -31,10 +31,10 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .frame-control{height:32px;display:flex;align-items:center;gap:8px;width:190px}
 .frame-control input[type=range]{flex:1;min-width:0;accent-color:#1f7a47}
 .frame-value{width:43px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
-.color-field{flex:1 1 100%;align-items:center;gap:9px;background:#f7faf8;border:1px solid #e4ede8;border-radius:10px;padding:5px 9px}
-.color-control{min-height:32px;display:flex;align-items:center;gap:0;flex:1;flex-wrap:wrap;row-gap:8px}
+.color-field{flex:1 1 100%;align-items:center;gap:10px;background:#f7faf8;border:1px solid #e4ede8;border-radius:10px;padding:6px 10px}
+.color-control{min-height:44px;display:flex;align-items:center;gap:0;flex:1;flex-wrap:wrap;row-gap:8px}
 .tool-group{display:flex;align-items:center;gap:6px}
-.tool-group+.tool-group{margin-left:13px}
+.tool-group+.tool-group{margin-left:10px;padding-left:10px;border-left:1px solid #e4ede8}
 .tool-group.tools-edit{margin-left:14px;padding-left:14px;border-left:1px solid #dde7e1}
 .color-field .icon-btn{background:#fff;border-color:#d5e2db}
 .color-field .icon-btn.active{background:#1f7a47;border-color:#1f7a47}
@@ -42,7 +42,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 /* Selector de icono: muestra el dibujo real junto al nombre */
 .manual-icon-select{position:absolute;left:0;top:0;width:1px;min-width:0;max-width:1px;height:1px;min-height:0;padding:0;margin:-1px;border:0;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;pointer-events:none;opacity:0}
 .icon-picker{position:relative}
-.icon-picker-trigger{height:38px;min-width:206px;display:inline-flex;align-items:center;gap:8px;padding:0 8px 0 6px;border:1px solid #d5e2db;border-radius:9px 0 0 9px;background:#fff;color:#17251c;font:inherit;font-size:13px;cursor:pointer;text-align:left}
+.icon-picker-trigger{height:34px;min-width:158px;display:inline-flex;align-items:center;gap:8px;padding:0 8px 0 6px;border:1px solid #d5e2db;border-radius:9px 0 0 9px;background:#fff;color:#17251c;font:inherit;font-size:13px;cursor:pointer;text-align:left}
 .icon-picker-trigger:hover:not(:disabled){background:#f2f8f5}
 .icon-picker-trigger:disabled{cursor:not-allowed;opacity:.45}
 .icon-picker-trigger[aria-expanded=true]{border-color:#217142;box-shadow:0 0 0 3px rgba(33,113,66,.18)}
@@ -74,13 +74,20 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .color-swatch{width:38px;height:38px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;padding:3px;cursor:pointer}
 .fondo-select{height:30px;min-width:96px;max-width:134px;padding:0 6px;font-size:11.5px;border:1px solid #c9d5ce;border-radius:7px;background:#fff;color:#17251c}
 .color-control input[type=range]{width:86px;accent-color:#1f7a47}
-.text-input{height:38px;width:150px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;color:#17251c;padding:0 9px;font-size:13px;font-weight:700}
+.text-input{height:34px;width:118px;border:1px solid #cfe0d6;border-radius:8px;background:#fff;color:#17251c;padding:0 9px;font-size:13px;font-weight:700}
 .text-input:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
-.text-size-slider{width:72px;accent-color:#1f7a47}
+.text-size-slider{width:62px;accent-color:#1f7a47}
 .text-size-value{width:24px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
 .opacity-value{width:34px;text-align:right;font-size:12px;font-weight:900;color:#1d5331;white-space:nowrap}
 .icon-btn{width:32px;height:32px;border:1px solid #cfe0d6;border-radius:7px;background:#eef4f0;color:#1d5331;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s,filter .15s}
 .icon-btn svg{width:17px;height:17px}
+/* Los botones de la fila de herramientas llevan su nombre debajo: con doce
+   iconos seguidos, adivinar cual es cual costaba mas que leerlo. */
+.icon-btn.con-rotulo{width:auto;min-width:44px;height:auto;padding:5px 5px 4px;flex-direction:column;gap:3px;line-height:1}
+.icon-btn.con-rotulo svg{width:19px;height:19px}
+.icon-btn-rotulo{font-size:9px;font-weight:800;letter-spacing:.01em;color:#5b7a67;white-space:nowrap}
+.icon-btn.con-rotulo.active .icon-btn-rotulo,
+.icon-btn.con-rotulo:disabled .icon-btn-rotulo{color:inherit}
 .icon-btn.active{background:#1f7a47;color:#fff;border-color:#1f7a47}
 .icon-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.04)}
 .icon-btn:disabled{cursor:not-allowed;opacity:.45;transform:none}
@@ -548,47 +555,59 @@ body.print-preview{overflow:hidden}
         <div class="icon-picker-list" id="icon-picker-list" role="listbox" aria-label="Icono de referencia" hidden></div>
       </div>
       <select class="manual-icon-select" id="manual-icon-kind" disabled title="Icono de referencia" aria-label="Icono de referencia" tabindex="-1"></select>
-      <button class="icon-btn" id="btn-icon-add" type="button" disabled title="Agregar icono" aria-label="Agregar icono">
+      <button class="icon-btn con-rotulo" id="btn-icon-add" type="button" disabled title="Agregar icono" aria-label="Agregar icono">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+        <span class="icon-btn-rotulo">Icono</span>
       </button>
       </span>
       <span class="tool-group tools-edit">
-      <button class="icon-btn" id="btn-color-edit" type="button" disabled title="Editar pintada, texto o icono" aria-label="Editar pintada, texto o icono">
+      <button class="icon-btn con-rotulo" id="btn-color-edit" type="button" disabled title="Editar pintada, texto o icono" aria-label="Editar pintada, texto o icono">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
+        <span class="icon-btn-rotulo">Editar</span>
       </button>
-      <button class="icon-btn" id="btn-contour-edit" type="button" disabled title="Editar contorno" aria-label="Editar contorno">
+      <button class="icon-btn con-rotulo" id="btn-contour-edit" type="button" disabled title="Editar contorno" aria-label="Editar contorno">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 7 5-2.7 8.4H7.7L5 9z"></path><circle cx="12" cy="4" r="1.7" fill="currentColor"></circle><circle cx="19" cy="9" r="1.7" fill="currentColor"></circle><circle cx="16.3" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="7.7" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="5" cy="9" r="1.7" fill="currentColor"></circle></svg>
+        <span class="icon-btn-rotulo">Contorno</span>
       </button>
       </span>
       <span class="tool-group tools-draw">
-      <button class="icon-btn" id="btn-color-draw" type="button" disabled title="Seleccionar area con color" aria-label="Seleccionar area con color">
+      <button class="icon-btn con-rotulo" id="btn-color-draw" type="button" disabled title="Seleccionar area con color" aria-label="Seleccionar area con color">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg>
+        <span class="icon-btn-rotulo">Pintar</span>
       </button>
-      <button class="icon-btn" id="btn-road-pencil" type="button" disabled title="Dibujar calle blanca" aria-label="Dibujar calle blanca">
+      <button class="icon-btn con-rotulo" id="btn-road-pencil" type="button" disabled title="Dibujar calle blanca" aria-label="Dibujar calle blanca">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg>
+        <span class="icon-btn-rotulo">Calle</span>
       </button>
-      <button class="icon-btn" id="btn-carretera" type="button" disabled title="Trazar carretera y escribir hacia donde va" aria-label="Trazar carretera con destino">
+      <button class="icon-btn con-rotulo" id="btn-carretera" type="button" disabled title="Trazar carretera y escribir hacia donde va" aria-label="Trazar carretera con destino">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l3 3-3 3H4z"></path><path d="M9 10v10"></path><path d="M6 20h6"></path></svg>
+        <span class="icon-btn-rotulo">Carretera</span>
       </button>
-      <button class="icon-btn" id="btn-river-pencil" type="button" disabled title="Dibujar rio o arroyo" aria-label="Dibujar rio o arroyo">
+      <button class="icon-btn con-rotulo" id="btn-river-pencil" type="button" disabled title="Dibujar rio o arroyo" aria-label="Dibujar rio o arroyo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg>
+        <span class="icon-btn-rotulo">Rio</span>
       </button>
-      <button class="icon-btn" id="btn-text-add" type="button" disabled title="Agregar texto" aria-label="Agregar texto">
+      <button class="icon-btn con-rotulo" id="btn-text-add" type="button" disabled title="Agregar texto" aria-label="Agregar texto">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg>
+        <span class="icon-btn-rotulo">Texto</span>
       </button>
       </span>
       <span class="tool-group tools-actions">
-      <button class="icon-btn" id="btn-save-changes" type="button" disabled title="Guardar cambios" aria-label="Guardar cambios">
+      <button class="icon-btn con-rotulo" id="btn-save-changes" type="button" disabled title="Guardar cambios" aria-label="Guardar cambios">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
+        <span class="icon-btn-rotulo">Guardar</span>
       </button>
-      <button class="icon-btn" id="btn-referencias" type="button" disabled title="Lista de referencias del PDF" aria-label="Lista de referencias del PDF">
+      <button class="icon-btn con-rotulo" id="btn-referencias" type="button" disabled title="Lista de referencias del PDF" aria-label="Lista de referencias del PDF">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M4.5 6h.01"></path><path d="M4.5 12h.01"></path><path d="M4.5 18h.01"></path></svg>
+        <span class="icon-btn-rotulo">Referencias</span>
       </button>
-      <button class="icon-btn" id="btn-color-undo" type="button" disabled title="Regresar / deshacer" aria-label="Regresar o deshacer">
+      <button class="icon-btn con-rotulo" id="btn-color-undo" type="button" disabled title="Regresar / deshacer" aria-label="Regresar o deshacer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg>
+        <span class="icon-btn-rotulo">Deshacer</span>
       </button>
-      <button class="icon-btn" id="btn-color-clear" type="button" disabled title="Borrar lo seleccionado, o todo el territorio si no hay nada seleccionado" aria-label="Borrar lo seleccionado o todo el territorio">
+      <button class="icon-btn con-rotulo" id="btn-color-clear" type="button" disabled title="Borrar lo seleccionado, o todo el territorio si no hay nada seleccionado" aria-label="Borrar lo seleccionado o todo el territorio">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+        <span class="icon-btn-rotulo">Borrar</span>
       </button>
       </span>
     </div>
