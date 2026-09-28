@@ -256,8 +256,59 @@
     box-shadow: var(--shadow-glass);
   }
   .map-wrap > #territory-counter b { color: var(--color-accent-deep); font-weight: 750; }
-  .map-wrap > #map-status { border-radius: var(--radius-lg); font-family: var(--font-body); font-size: var(--text-control); box-shadow: 0 6px 18px var(--color-shadow-float); }
-  .map-wrap > #map-status:not(.warn):not(.error) { background: var(--color-ink); color: var(--color-accent-ink); }
+  .map-wrap > #map-status {
+    --notice-accent: #137b8a;
+    --notice-ink: #16374d;
+    --notice-border: #b9dce7;
+    --notice-surface: linear-gradient(120deg, #f5fdff, #eaf3ff);
+    box-sizing: border-box;
+    max-width: min(440px, calc(100% - 28px));
+    max-height: min(180px, 25vh);
+    padding: 15px 18px 15px 58px;
+    border: 1px solid var(--notice-border);
+    border-left: 4px solid var(--notice-accent);
+    border-radius: 18px;
+    background: var(--notice-surface);
+    color: var(--notice-ink);
+    font-family: var(--font-body);
+    font-size: var(--text-control);
+    font-weight: 500;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    box-shadow: 0 10px 28px var(--color-shadow-float), inset 0 1px 0 var(--color-glass-rule);
+    animation: notice-arrive 220ms var(--ease-out) both;
+  }
+  .map-wrap > #map-status::before {
+    content: 'i';
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--notice-accent);
+    color: #fff;
+    font-family: Georgia, serif;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .map-wrap > #map-status.error {
+    --notice-accent: var(--color-error);
+    --notice-ink: var(--color-error);
+    --notice-border: #e5b7be;
+    --notice-surface: var(--color-error-soft);
+  }
+  .map-wrap > #map-status.error::before { content: '!'; font-family: var(--font-body); }
+  @keyframes notice-arrive {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
 }
 
 @media screen and (hover: hover) {
@@ -277,6 +328,7 @@
   .map-wrap > #agrupar-panel .agrupar-cuerpo { grid-template-columns: minmax(0, 1fr); }
   .map-wrap > #agrupar-panel .agrupar-lista { max-height: 38vh; }
   .map-wrap > #territory-counter { max-width: calc(100% - 20px); flex-wrap: wrap; gap: var(--space-xs) var(--space-sm); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-lg); }
+  .map-wrap > #map-status { max-width: none; padding-right: var(--space-md); }
 }
 
 @media screen and (max-width: 360px) {
@@ -288,6 +340,7 @@
 }
 
 @media screen and (prefers-reduced-motion: reduce) {
+  .map-wrap > #map-status { animation: none; }
   .map-wrap > :is(#icon-actions, #ref-panel, #agrupar-panel) :is(button, input, select) { transition: none; }
 }
 

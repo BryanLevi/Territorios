@@ -394,7 +394,7 @@
   .premium-toolbar .brand strong { font-size: var(--text-title); }
   .premium-toolbar .brand span { display: inline; }
   .premium-toolbar .brand-copy { flex: 1; }
-  .premium-toolbar .brand-credit { display: none; }
+  .premium-toolbar .brand .brand-credit { display: block; }
   .premium-toolbar .workspace-settings { flex-wrap: wrap; width: 100%; justify-content: flex-start; align-items: flex-end; gap: var(--space-sm); }
   .premium-toolbar .workspace-settings .grow,
   .premium-toolbar.tools-collapsed .workspace-settings .grow { flex: 1 1 160px; width: auto; min-width: 0; max-width: none; display: flex; flex-direction: column; align-items: stretch; }
@@ -445,7 +445,7 @@
   .premium-toolbar.tools-collapsed .campo-mapa { display: none; }
   .premium-toolbar.tools-collapsed .brand span { display: inline; }
   .premium-toolbar .brand .brand-mark, .premium-toolbar.tools-collapsed .brand .brand-mark { display: inline-flex; }
-  .premium-toolbar.tools-collapsed .brand .brand-credit { display: none; }
+  .premium-toolbar.tools-collapsed .brand .brand-credit { display: block; }
   .premium-toolbar .workspace-settings .territory-selection-group { flex: 1 1 100%; width: 100%; min-width: 0; max-width: none; }
   .premium-toolbar .territory-selection-group .field.grow,
   .premium-toolbar.tools-collapsed .territory-selection-group .field.grow { flex: 1 1 100%; width: 100%; min-width: 0; max-width: none; }

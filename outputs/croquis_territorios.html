@@ -506,9 +506,9 @@ body.print-preview{overflow:hidden}
 }
 </style>
 <link rel="stylesheet" href="../tokens.css?v=blue-bubbles-1">
-<link rel="stylesheet" href="./toolbar-premium.css?v=territory-controls-1">
-<link rel="stylesheet" href="./welcome-premium.css?v=welcome-motion-1">
-<link rel="stylesheet" href="./editor-premium.css?v=precise-selection-1">
+<link rel="stylesheet" href="./toolbar-premium.css?v=creator-credit-1">
+<link rel="stylesheet" href="./welcome-premium.css?v=welcome-motion-2">
+<link rel="stylesheet" href="./editor-premium.css?v=notice-glass-1">
 </head>
 <body>
 <section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
@@ -517,7 +517,7 @@ body.print-preview{overflow:hidden}
     <div class="welcome-main">
       <div class="welcome-brand">
         <span class="welcome-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"></path><path d="M9 3v15M15 6v15"></path></svg></span>
-        <span class="welcome-brand-copy"><strong>Croquis de territorios</strong><small>Predicación 2026</small></span>
+        <span class="welcome-brand-copy"><strong>Croquis de territorios</strong><small>Predicación 2026</small><span class="welcome-brand-credit">Creado por <b>Bryan Levi</b></span></span>
       </div>
       <h2 id="welcome-title">Prepara tu <span>próximo croquis.</span></h2>
       <p class="welcome-intro">Selecciona una congregación para revisar sus territorios, dibujar referencias y preparar el PDF.</p>
@@ -553,9 +553,9 @@ body.print-preview{overflow:hidden}
         <div class="welcome-step"><b>2</b><span><strong>Dale forma al croquis</strong><span>Pinta zonas y añade referencias.</span></span></div>
         <div class="welcome-step"><b>3</b><span><strong>Prepara el PDF</strong><span>Guarda, imprime o comparte.</span></span></div>
       </div>
-      <div class="welcome-credit">Creado por Bryan Levi</div>
     </div>
     <aside class="welcome-guide" aria-labelledby="welcome-guide-title">
+      <div class="welcome-map-display">
       <div class="welcome-map-bubble" aria-hidden="true">
         <span class="map-bubble-orbit"></span><span class="map-bubble-small"></span><span class="map-bubble-tiny"></span>
         <div class="map-bubble-core">
@@ -565,11 +565,16 @@ body.print-preview{overflow:hidden}
             <path class="bubble-map-fold" d="M90 27v109M150 47v109"></path>
             <path class="bubble-map-road" d="m32 104 58-21 60 20 59-20M64 36v51l51 18v39M178 38v68"></path>
             <ellipse class="bubble-pin-shadow" cx="128" cy="124" rx="18" ry="6"></ellipse>
-            <path class="bubble-map-pin" d="M128 56a24 24 0 0 0-24 24c0 18 24 40 24 40s24-22 24-40a24 24 0 0 0-24-24Z"></path>
-            <circle class="bubble-pin-center" cx="128" cy="80" r="8"></circle>
+            <g class="bubble-map-pin-group"><path class="bubble-map-pin" d="M128 56a24 24 0 0 0-24 24c0 18 24 40 24 40s24-22 24-40a24 24 0 0 0-24-24Z"></path>
+            <circle class="bubble-pin-center" cx="128" cy="80" r="8"></circle></g>
             <circle class="bubble-map-point" cx="65" cy="110" r="5"></circle><circle class="bubble-map-point" cx="180" cy="112" r="5"></circle>
           </svg>
         </div>
+      </div>
+      <button class="welcome-motion-toggle" id="welcome-motion-toggle" type="button" aria-label="Pausar animaciones" title="Pausar animaciones" aria-pressed="false">
+        <svg class="motion-pause-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14"></path></svg>
+        <svg class="motion-play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" hidden><path d="m8 5 11 7-11 7z"></path></svg>
+      </button>
       </div>
       <span class="welcome-guide-kicker">Referencia rápida</span>
       <h3 id="welcome-guide-title">Guía de herramientas</h3>
@@ -649,7 +654,7 @@ body.print-preview{overflow:hidden}
     <div class="brand-copy">
       <strong>Croquis de territorios</strong>
       <span id="brand-congregacion">Predicación 2026 · Ixhuatlán del Café</span>
-      <span class="brand-credit">Por Bryan Levi</span>
+      <span class="brand-credit">Creado por Bryan Levi</span>
     </div>
   </div>
   <div class="workspace-settings">
@@ -933,7 +938,7 @@ body.print-preview{overflow:hidden}
       </div>
     </div>
   </div>
-  <div class="map-status" id="map-status">Cargando mapa y nombres de calles...</div>
+  <div class="map-status" id="map-status" role="status" aria-live="polite" aria-atomic="true">Cargando mapa y nombres de calles...</div>
 </div>
 
 <div id="hojas-agrupadas" aria-hidden="true"></div>
@@ -2060,7 +2065,7 @@ function activarCongregacion(id, silencioso){
     mostrarEstadoCongregaciones('Congregación ' + destino.nombre + ' seleccionada.');
     setStatus(LOCS.length
       ? 'Congregación ' + destino.nombre + '. ' + LOCS.length + (LOCS.length === 1 ? ' territorio.' : ' territorios.')
-      : 'Congregación ' + destino.nombre + '. Todavía no tiene territorios: agrega el primero con el botón +.', 'warn');
+      : 'Congregación ' + destino.nombre + '. Crea su primer territorio con Nuevo.', 'warn');
   }
   return true;
 }
@@ -2474,6 +2479,19 @@ function showWelcomeScreen(){
   document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
   refrescarCongregacionesEnInicio();
   ($('welcome-cong-sel')?.disabled ? $('welcome-cong-nueva') : $('welcome-cong-sel'))?.focus();
+}
+
+function toggleWelcomeMotion(){
+  const screen = $('welcome-screen'), button = $('welcome-motion-toggle');
+  if(!screen || !button) return;
+  const paused = !screen.classList.contains('is-motion-paused');
+  screen.classList.toggle('is-motion-paused', paused);
+  button.setAttribute('aria-pressed', String(paused));
+  const label = paused ? 'Reanudar animaciones' : 'Pausar animaciones';
+  button.setAttribute('aria-label', label);
+  button.title = label;
+  button.querySelector('.motion-pause-icon').toggleAttribute('hidden', paused);
+  button.querySelector('.motion-play-icon').toggleAttribute('hidden', !paused);
 }
 
 function clearHeavyUndoStorage(){
@@ -8607,6 +8625,7 @@ $('btn-menu-help')?.addEventListener('click', showWelcomeScreen);
 $('btn-add-territory')?.addEventListener('click', addCustomTerritory);
 $('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
 $('welcome-start')?.addEventListener('click', hideWelcomeScreen);
+$('welcome-motion-toggle')?.addEventListener('click', toggleWelcomeMotion);
 $('welcome-cong-nueva')?.addEventListener('click', crearCongregacion);
 $('welcome-cong-renombrar')?.addEventListener('click', renombrarCongregacion);
 $('welcome-cong-eliminar')?.addEventListener('click', confirmarEliminarCongregacion);
