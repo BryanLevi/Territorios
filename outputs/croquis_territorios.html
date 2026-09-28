@@ -507,7 +507,7 @@ body.print-preview{overflow:hidden}
 </style>
 <link rel="stylesheet" href="../tokens.css?v=blue-bubbles-1">
 <link rel="stylesheet" href="./toolbar-premium.css?v=creator-credit-1">
-<link rel="stylesheet" href="./welcome-premium.css?v=welcome-motion-2">
+<link rel="stylesheet" href="./welcome-premium.css?v=welcome-auto-fast-1">
 <link rel="stylesheet" href="./editor-premium.css?v=notice-glass-1">
 </head>
 <body>
@@ -571,10 +571,6 @@ body.print-preview{overflow:hidden}
           </svg>
         </div>
       </div>
-      <button class="welcome-motion-toggle" id="welcome-motion-toggle" type="button" aria-label="Pausar animaciones" title="Pausar animaciones" aria-pressed="false">
-        <svg class="motion-pause-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14"></path></svg>
-        <svg class="motion-play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" hidden><path d="m8 5 11 7-11 7z"></path></svg>
-      </button>
       </div>
       <span class="welcome-guide-kicker">Referencia rápida</span>
       <h3 id="welcome-guide-title">Guía de herramientas</h3>
@@ -2479,19 +2475,6 @@ function showWelcomeScreen(){
   document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
   refrescarCongregacionesEnInicio();
   ($('welcome-cong-sel')?.disabled ? $('welcome-cong-nueva') : $('welcome-cong-sel'))?.focus();
-}
-
-function toggleWelcomeMotion(){
-  const screen = $('welcome-screen'), button = $('welcome-motion-toggle');
-  if(!screen || !button) return;
-  const paused = !screen.classList.contains('is-motion-paused');
-  screen.classList.toggle('is-motion-paused', paused);
-  button.setAttribute('aria-pressed', String(paused));
-  const label = paused ? 'Reanudar animaciones' : 'Pausar animaciones';
-  button.setAttribute('aria-label', label);
-  button.title = label;
-  button.querySelector('.motion-pause-icon').toggleAttribute('hidden', paused);
-  button.querySelector('.motion-play-icon').toggleAttribute('hidden', !paused);
 }
 
 function clearHeavyUndoStorage(){
@@ -8625,7 +8608,6 @@ $('btn-menu-help')?.addEventListener('click', showWelcomeScreen);
 $('btn-add-territory')?.addEventListener('click', addCustomTerritory);
 $('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
 $('welcome-start')?.addEventListener('click', hideWelcomeScreen);
-$('welcome-motion-toggle')?.addEventListener('click', toggleWelcomeMotion);
 $('welcome-cong-nueva')?.addEventListener('click', crearCongregacion);
 $('welcome-cong-renombrar')?.addEventListener('click', renombrarCongregacion);
 $('welcome-cong-eliminar')?.addEventListener('click', confirmarEliminarCongregacion);
