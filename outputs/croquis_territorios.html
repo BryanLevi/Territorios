@@ -505,19 +505,21 @@ body.print-preview{overflow:hidden}
   body.agrupado .pagina-agrupada:last-child{page-break-after:auto;break-after:auto}
 }
 </style>
-<link rel="stylesheet" href="../tokens.css?v=home-1">
-<link rel="stylesheet" href="./toolbar-premium.css?v=home-1">
-<link rel="stylesheet" href="./welcome-premium.css?v=home-1">
+<link rel="stylesheet" href="../tokens.css?v=blue-bubbles-1">
+<link rel="stylesheet" href="./toolbar-premium.css?v=blue-bubbles-1">
+<link rel="stylesheet" href="./welcome-premium.css?v=blue-bubbles-1">
+<link rel="stylesheet" href="./editor-premium.css?v=blue-bubbles-1">
 </head>
 <body>
 <section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
+  <div class="welcome-bubbles" aria-hidden="true"><span></span><span></span><span></span></div>
   <div class="welcome-panel">
     <div class="welcome-main">
       <div class="welcome-brand">
         <span class="welcome-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"></path><path d="M9 3v15M15 6v15"></path></svg></span>
         <span class="welcome-brand-copy"><strong>Croquis de territorios</strong><small>Predicación 2026</small></span>
       </div>
-      <h2 id="welcome-title">Prepara tu próximo croquis.</h2>
+      <h2 id="welcome-title">Prepara tu <span>próximo croquis.</span></h2>
       <p class="welcome-intro">Selecciona una congregación para revisar sus territorios, dibujar referencias y preparar el PDF.</p>
       <div class="welcome-selection">
         <div class="welcome-cong">
@@ -554,11 +556,26 @@ body.print-preview{overflow:hidden}
       <div class="welcome-credit">Creado por Bryan Levi</div>
     </div>
     <aside class="welcome-guide" aria-labelledby="welcome-guide-title">
+      <div class="welcome-map-bubble" aria-hidden="true">
+        <span class="map-bubble-orbit"></span><span class="map-bubble-small"></span><span class="map-bubble-tiny"></span>
+        <div class="map-bubble-core">
+          <svg viewBox="0 0 240 180" fill="none">
+            <path class="bubble-map-sheet" d="m31 47 59-20 60 20 59-20v109l-59 20-60-20-59 20z"></path>
+            <path class="bubble-map-land" d="m92 39 48 16v53l-48-16zM43 86l37-13v44l-37 13zM160 100l36-12v35l-36 13z"></path>
+            <path class="bubble-map-fold" d="M90 27v109M150 47v109"></path>
+            <path class="bubble-map-road" d="m32 104 58-21 60 20 59-20M64 36v51l51 18v39M178 38v68"></path>
+            <ellipse class="bubble-pin-shadow" cx="128" cy="124" rx="18" ry="6"></ellipse>
+            <path class="bubble-map-pin" d="M128 56a24 24 0 0 0-24 24c0 18 24 40 24 40s24-22 24-40a24 24 0 0 0-24-24Z"></path>
+            <circle class="bubble-pin-center" cx="128" cy="80" r="8"></circle>
+            <circle class="bubble-map-point" cx="65" cy="110" r="5"></circle><circle class="bubble-map-point" cx="180" cy="112" r="5"></circle>
+          </svg>
+        </div>
+      </div>
       <span class="welcome-guide-kicker">Referencia rápida</span>
       <h3 id="welcome-guide-title">Guía de herramientas</h3>
       <p class="welcome-guide-intro">Abre una sección para consultar sus herramientas.</p>
       <details class="guide-section">
-        <summary><span><b>Pintura y edición</b><small>Colores, contornos y trazos</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
+        <summary><i class="guide-category-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14 4 6 6-8 8H6v-6zM11 7l6 6M4 20h16"></path></svg></i><span><b>Pintura y edición</b><small>Colores, contornos y trazos</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
         <div class="tool-grid">
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><span><b>Restablecer recuadro</b><span>Devuelve el recuadro del territorio a su tamaño inicial.</span></span></div>
           <div class="tool-item"><span class="tool-icon color-dot"></span><span><b>Color y transparencia</b><span>Elige el color de relleno y su transparencia sobre el mapa.</span></span></div>
@@ -573,7 +590,7 @@ body.print-preview{overflow:hidden}
         </div>
       </details>
       <details class="guide-section">
-        <summary><span><b>Textos y referencias</b><small>Nombres, destinos e iconos</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
+        <summary><i class="guide-category-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7V4h14v3M12 4v16M8 20h8"></path></svg></i><span><b>Textos y referencias</b><small>Nombres, destinos e iconos</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
         <div class="tool-grid">
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separar renglones.</span></span></div>
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><b>Agregar iconos</b><span>Elige la referencia, pulsa Icono y marca su posición en el mapa.</span></span></div>
@@ -581,7 +598,7 @@ body.print-preview{overflow:hidden}
         </div>
       </details>
       <details class="guide-section">
-        <summary><span><b>Guardar y compartir</b><small>PDF, respaldos y recuperación</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
+        <summary><i class="guide-category-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8V3h12v5M6 17H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"></path></svg></i><span><b>Guardar y compartir</b><small>PDF, respaldos y recuperación</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
         <div class="tool-grid">
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores, textos e iconos del territorio actual.</span></span></div>
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg></span><span><b>Exportar respaldo</b><span>Descarga una copia de tu trabajo para conservarla o llevarla a otro equipo.</span></span></div>
@@ -592,7 +609,7 @@ body.print-preview{overflow:hidden}
         </div>
       </details>
       <details class="guide-section">
-        <summary><span><b>Territorios y navegación</b><small>Inicio y administración del mapa</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
+        <summary><i class="guide-category-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"></path></svg></i><span><b>Territorios y navegación</b><small>Inicio y administración del mapa</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
         <div class="tool-grid">
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></span><span><b>Volver al inicio</b><span>Elige otra congregación o consulta esta guía.</span></span></div>
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span><span><b>Agregar territorios</b><span>Marca dos esquinas para crear el recuadro y escribe su nombre.</span></span></div>

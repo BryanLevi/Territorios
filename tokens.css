@@ -1,34 +1,41 @@
-/* Hallmark · component: workspace toolbar · genre: modern-minimal · theme: forest paper
- * Pre-emit critique: P5 H5 E4 S5 R5 V4 · existing Segoe UI retained.
- * Component scope: no page macrostructure; these tokens are screen-only.
+/* UI/UX Pro Max · component: croquis workspace · theme: blue bubbles
+ * Blue glass surfaces, navy text and cobalt actions; existing Segoe UI retained.
+ * Semantic status colors stay distinct. These tokens are screen-only.
  */
 @media screen {
   :root {
     --color-paper: oklch(100% 0 0);
-    --color-paper-2: oklch(98% 0.006 155);
-    --color-paper-3: oklch(95% 0.012 155);
-    --color-ink: oklch(25% 0.026 157);
-    --color-ink-2: oklch(36% 0.035 157);
-    --color-muted: oklch(46% 0.025 157);
-    --color-rule: oklch(88% 0.015 155);
-    --color-rule-strong: oklch(75% 0.025 155);
-    --color-accent: oklch(40% 0.085 156);
+    --color-paper-2: oklch(97.541% 0.01150 264.51);
+    --color-paper-3: oklch(95.894% 0.01946 260.17);
+    --color-ink: oklch(28.778% 0.07661 258.09);
+    --color-ink-2: oklch(38.971% 0.07949 258.29);
+    --color-muted: oklch(51.975% 0.06075 258.01);
+    --color-rule: oklch(88.760% 0.03687 259.81);
+    --color-rule-strong: oklch(65.205% 0.08532 258.91);
+    --color-accent: oklch(50.374% 0.20382 263.11);
     --color-accent-ink: oklch(100% 0 0);
-    --color-accent-hover: oklch(34% 0.075 156);
-    --color-accent-soft: oklch(93% 0.028 155);
-    --color-accent-soft-hover: oklch(89% 0.038 155);
+    --color-accent-hover: oklch(39.738% 0.16560 263.45);
+    --color-accent-soft: oklch(94.739% 0.02490 263.33);
+    --color-accent-soft-hover: oklch(92.484% 0.03602 261.30);
     --color-info: oklch(42% 0.083 245);
     --color-info-soft: oklch(94% 0.026 245);
     --color-error: oklch(45% 0.16 27);
     --color-error-soft: oklch(97% 0.015 27);
     --color-success: oklch(40% 0.10 149);
     --color-success-soft: oklch(94% 0.027 149);
-    --color-inactive: oklch(60% 0.021 157);
-    --color-focus: oklch(63% 0.185 296);
-    --color-shadow: oklch(22% 0.026 157 / 0.08);
-    --color-shadow-float: oklch(22% 0.026 157 / 0.17);
-    --color-backdrop: oklch(18% 0.025 157 / 0.46);
-    --color-shadow-deep: oklch(22% 0.026 157 / 0.12);
+    --color-inactive: oklch(60% 0.025 260);
+    --color-focus: oklch(44.633% 0.18435 263.29);
+    --color-shadow: oklch(30% 0.065 259 / 0.10);
+    --color-shadow-float: oklch(30% 0.065 259 / 0.18);
+    --color-backdrop: oklch(25% 0.055 259 / 0.46);
+    --color-shadow-deep: oklch(30% 0.065 259 / 0.14);
+    --color-glass: oklch(100% 0 0 / 0.92);
+    --color-glass-strong: oklch(100% 0 0 / 0.98);
+    --color-glass-rule: oklch(100% 0 0 / 0.80);
+    --color-bubble-light: oklch(93.192% 0.03159 255.59);
+    --color-bubble-blue: oklch(76.210% 0.12309 256.39);
+    --color-bubble-deep: oklch(53.682% 0.19576 263.13);
+    --color-accent-deep: oklch(44.633% 0.18435 263.29);
     --color-transparent: oklch(100% 0 0 / 0);
     --font-body: "Segoe UI", Arial, sans-serif;
     --font-display: var(--font-body);
@@ -47,14 +54,23 @@
     --space-2xl: 32px;
     --space-3xl: 40px;
     --space-4xl: 48px;
-    --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 18px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-button: 16px;
+    --radius-pill: 999px;
     --rule-thin: 1px;
     --control-height: 44px;
-    --shadow-control: 0 1px 2px var(--color-shadow);
+    --shadow-control: 0 2px 4px var(--color-shadow);
     --shadow-panel: 0 24px 64px var(--color-shadow-deep);
+    --shadow-primary: 0 4px 12px var(--color-shadow-float);
+    --shadow-glass: 0 8px 24px var(--color-shadow), inset 0 1px 0 var(--color-glass-rule);
+    --shadow-inset: inset 0 1px 0 var(--color-glass-rule);
+    --gradient-primary: linear-gradient(135deg, var(--color-accent-deep), var(--color-accent));
+    --gradient-primary-hover: linear-gradient(135deg, var(--color-accent-hover), var(--color-accent-deep));
+    --gradient-surface: linear-gradient(120deg, var(--color-glass-strong), var(--color-paper-2));
+    --gradient-bubble: linear-gradient(145deg, var(--color-glass), var(--color-bubble-light) 45%, var(--color-bubble-blue));
     --ease-out: cubic-bezier(0.2, 0.65, 0.3, 1);
     --ease-in: cubic-bezier(0.4, 0, 1, 1);
     --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);

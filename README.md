@@ -18,6 +18,12 @@ La guia de herramientas esta organizada en cuatro secciones desplegables. El ini
 
 Las pruebas de congregaciones se ejecutan con `node --test tests/congregaciones.test.cjs`.
 
+## Estilo visual
+
+Inicio, formularios y controles del editor comparten una tematica azul marino y cobalto, superficies claras y botones redondeados. Las burbujas decorativas son estaticas y no interceptan clics. El estilo se basa en las recomendaciones de [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), adaptadas al generador y a sus controles nativos.
+
+Los estilos visuales se aplican solo en pantalla. El color elegido para pintar, los dibujos guardados, el punto de ubicacion y el contenido de los PDF conservan sus colores.
+
 ## Calles con nombre y referencias
 
 Se traen de OpenStreetMap con Overpass, **una sola vez por territorio**, y quedan guardadas en el navegador. Moverse o acercarse ya no vuelve a pedirlas, y al reabrir la pagina se usan las guardadas sin tocar la red.
