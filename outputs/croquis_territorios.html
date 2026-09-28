@@ -111,6 +111,9 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 #btn-ubicacion.is-on{background:#e8f1fa;border-color:#9ec4e6;color:#14548a}
 #btn-ubicacion.is-on .ubic-punto{background:#1769aa;box-shadow:0 0 0 3px rgba(23,105,170,.18)}
 #btn-ubicacion.is-on svg{animation:ubic-gira 2.6s linear infinite}
+.grupo-ubic{flex-wrap:wrap;max-width:330px}
+.ubicacion-estado{flex:1 0 100%;margin:0;font-size:12px;line-height:1.35;color:#14548a;overflow-wrap:anywhere}
+.ubicacion-estado.error{color:#962626}
 @keyframes ubic-gira{to{transform:rotate(360deg)}}
 /* El punto de "estoy aqui". Azul a proposito: ningun territorio se pinta de
    este azul, asi que no se confunde con una zona. */
@@ -441,6 +444,7 @@ body.print-preview{overflow:hidden}
   .icon-picker-option{padding:8px 7px}
   .bar-group+.bar-group{padding-left:0;border-left:0}
   .bar-group{flex:1 1 100%;gap:8px}
+  .grupo-ubic{max-width:none}
   .bar-spacer{display:none}
   .map-wrap{min-height:65vh}
   /* El cartel del total se queda: solo se hace compacto */
@@ -692,6 +696,7 @@ body.print-preview{overflow:hidden}
     <span id="btn-ubicacion-texto">Mi ubicación</span>
   </button>
   <button class="btn ghost" id="btn-ubicacion-stop" type="button" hidden title="Dejar de seguir mi ubicación" aria-label="Detener ubicación">Detener</button>
+  <p class="ubicacion-estado" id="ubicacion-estado" role="status" aria-live="polite" hidden></p>
   </div>
   <div class="bar-group grupo-doc">
   <button class="btn secondary" id="btn-agrupar" type="button" disabled title="Descargar un territorio o varios juntos" aria-label="Agrupar y descargar PDF">
@@ -7465,13 +7470,28 @@ async function imprimir(opciones = {}){
    queda en el telefono de quien la pide y se borra al apagar el boton. */
 
 const UBICACION_OPCIONES = { enableHighAccuracy:true, timeout:20000, maximumAge:0 };
-// Por encima de esto la lectura viene de la antena o del wifi y no sirve para
-// decir en que calle estas.
-const UBICACION_PRECISION_MALA = 120;
+// Pedir alta precision no obliga al dispositivo a obtenerla. Una lectura
+// gruesa no debe mandar a la persona a otra ciudad ni asignarle una zona.
+const UBICACION_PRECISION_MAXIMA = 50;
+const UBICACION_ANTIGUEDAD_MAXIMA_MS = 15000;
+const UBICACION_ESPERA_MAXIMA_MS = 45000;
 let ubicacionVigia = null;      // el id que devuelve watchPosition
 let ubicacionCapa = null;       // el punto y el cerco de precision
 let ubicacionSigue = true;      // false en cuanto el usuario mueve el mapa
 let ubicacionSolicitud = 0;    // ignora lecturas de una peticion cancelada o anterior
+let ubicacionTemporizador = null;
+
+function avisarUbicacion(mensaje, tipo = 'warn'){
+  setStatus(mensaje, tipo);
+  const estado = $('ubicacion-estado');
+  if(!estado) return;
+  estado.textContent = mensaje;
+  estado.hidden = !mensaje;
+  estado.classList.toggle('error', tipo === 'error');
+  // El aviso cambia la altura de la barra. Actualizar Leaflet conserva el
+  // centro y evita que el punto quede desplazado por un tamaño antiguo.
+  if(map) map.invalidateSize({ animate:false });
+}
 
 // Rayo horizontal: se cuenta cuantos lados cruza. Impar, esta dentro.
 // Parece el mismo calculo que isInsidePrintZones, pero no lo es: aquel trabaja
@@ -7546,20 +7566,17 @@ function fraseDeUbicacion(lat, lng, precision){
   const partes = [];
   const zona = zonaDeLaUbicacion(lat, lng);
   if(zona){
-    partes.push('Estás en ' + displayTerritoryName(zona.loc)
+    partes.push('Ubicación estimada en ' + displayTerritoryName(zona.loc)
       + (zona.numero ? ', zona ' + zona.numero : ', en una zona pintada') + '.');
   }else{
     const cerca = territorioMasCerca(lat, lng);
     partes.push(cerca
-      ? 'No estás dentro de ninguna zona pintada. Lo más cerca es '
+      ? 'La ubicación estimada está fuera de las zonas pintadas. Lo más cerca es '
         + displayTerritoryName(cerca.loc) + ', a ' + enDistancia(cerca.metros) + '.'
-      : 'No estás dentro de ninguna zona pintada.');
+      : 'La ubicación estimada está fuera de las zonas pintadas.');
   }
   if(Number.isFinite(precision)){
-    partes.push(precision > UBICACION_PRECISION_MALA
-      ? 'La señal es floja: el punto puede moverse hasta ' + enDistancia(precision)
-        + '. Sal a cielo abierto y espera un poco.'
-      : 'Precisión de más o menos ' + enDistancia(precision) + '.');
+    partes.push('Margen de precisión del dispositivo: ' + enDistancia(precision) + '.');
   }
   return partes.join(' ');
 }
@@ -7597,10 +7614,15 @@ function marcarBotonUbicacion(encendido, texto){
   if(etiqueta) etiqueta.textContent = texto || 'Mi ubicación';
   const detener = $('btn-ubicacion-stop');
   if(detener) detener.hidden = !encendido;
+  if(map) map.invalidateSize({ animate:false });
 }
 
 function apagarUbicacion(aviso){
   ubicacionSolicitud++;
+  if(ubicacionTemporizador !== null){
+    clearTimeout(ubicacionTemporizador);
+    ubicacionTemporizador = null;
+  }
   if(ubicacionVigia !== null && navigator.geolocation){
     navigator.geolocation.clearWatch(ubicacionVigia);
   }
@@ -7611,7 +7633,7 @@ function apagarUbicacion(aviso){
     ubicacionCapa = null;
   }
   marcarBotonUbicacion(false);
-  if(aviso) setStatus(aviso, 'warn');
+  if(aviso) avisarUbicacion(aviso);
 }
 
 function fallaDeUbicacion(error){
@@ -7635,11 +7657,11 @@ function ofrecerCambioDeTerritorio(lat, lng){
   if(!zona || zona.indice === currentIndex) return;
   if(colorDrawMode || roadPencilMode || riverPencilMode || contourEditMode
     || textAddMode || iconAddMode || territoryAddMode){
-    setStatus('Estás en ' + displayTerritoryName(zona.loc)
+    avisarUbicacion('La ubicación estimada cae en ' + displayTerritoryName(zona.loc)
       + ', pero tienes algo a medio dibujar aquí. Guarda o cancela y vuelve a tocar Mi ubicación.', 'warn');
     return;
   }
-  const ir = window.confirm('Estás dentro de ' + displayTerritoryName(zona.loc)
+  const ir = window.confirm('La ubicación estimada cae dentro de ' + displayTerritoryName(zona.loc)
     + (zona.numero ? ', zona ' + zona.numero : '')
     + '.\n\n¿Abrir ese territorio?');
   // Cargar sus dibujos no debe alejar el mapa del punto del dispositivo.
@@ -7649,73 +7671,105 @@ function ofrecerCambioDeTerritorio(lat, lng){
 function pedirUbicacion(){
   if(!map) return;
   if(!navigator.geolocation){
-    setStatus('Este navegador no sabe dar la ubicación.', 'error');
+    avisarUbicacion('Este navegador no sabe dar la ubicación.', 'error');
     return;
   }
   // Sin https el navegador ni pregunta. Pasa al abrir el archivo a mano.
   const enCasa = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   if(!window.isSecureContext && !enCasa){
-    setStatus('El navegador solo da la ubicación en páginas seguras. Abre la página '
+    avisarUbicacion('El navegador solo da la ubicación en páginas seguras. Abre la página '
       + 'por su dirección de internet (https) y no como archivo suelto.', 'error');
     return;
   }
   // Cada toque pide una lectura nueva. Antes el segundo toque apagaba el
   // GPS, aunque la persona esperara volver a su ubicacion actual.
-  if(ubicacionVigia !== null){
-    navigator.geolocation.clearWatch(ubicacionVigia);
-    ubicacionVigia = null;
-  }
+  apagarUbicacion();
   const solicitud = ++ubicacionSolicitud;
   marcarBotonUbicacion(true, 'Buscando...');
-  setStatus('Buscando tu ubicación. La primera lectura puede tardar unos segundos.', 'warn');
+  avisarUbicacion('Buscando una ubicación precisa del dispositivo. Espera unos segundos.');
   ubicacionSigue = true;
-  const recibir = (posicion, primera = false) => {
+  let primeraValida = true;
+  let ultimaFecha = 0;
+  let motivoEspera = 'El dispositivo todavía no entrega una lectura precisa.';
+  const esperar = motivo => {
+    motivoEspera = motivo;
+    avisarUbicacion(motivo + (primeraValida
+      ? ' Seguimos buscando una lectura más precisa; el mapa no se ha movido.'
+      : ' Se conserva la última ubicación válida mientras mejora la señal.'), 'warn');
+    marcarBotonUbicacion(true, primeraValida ? 'Afinando ubicación...' : (ubicacionSigue ? 'Mi ubicación' : 'Volver a mí'));
+  };
+  const recibir = posicion => {
     if(solicitud !== ubicacionSolicitud) return false;
-    const lat = posicion.coords?.latitude;
-    const lng = posicion.coords?.longitude;
-    const precision = posicion.coords?.accuracy;
+    const lat = posicion?.coords?.latitude;
+    const lng = posicion?.coords?.longitude;
+    const precision = posicion?.coords?.accuracy;
+    const fecha = posicion?.timestamp;
+    const ahora = Date.now();
     if(!Number.isFinite(lat) || !Number.isFinite(lng)
       || Math.abs(lat) > 90 || Math.abs(lng) > 180){
-      apagarUbicacion('El dispositivo no devolvió una ubicación válida. Vuelve a intentar.');
+      esperar('El dispositivo devolvió coordenadas inválidas.');
       return false;
     }
+    if(!Number.isFinite(fecha) || fecha <= 0
+      || ahora - fecha > UBICACION_ANTIGUEDAD_MAXIMA_MS || fecha - ahora > 5000){
+      esperar('La lectura recibida no es reciente.');
+      return false;
+    }
+    if(fecha <= ultimaFecha) return false;
+    if(!Number.isFinite(precision) || precision < 0){
+      esperar('El dispositivo no indicó la precisión de esta lectura.');
+      return false;
+    }
+    if(precision > UBICACION_PRECISION_MAXIMA){
+      esperar('La lectura es demasiado aproximada: margen de ' + enDistancia(precision) + '.');
+      return false;
+    }
+    const primera = primeraValida;
+    primeraValida = false;
+    ultimaFecha = fecha;
+    if(ubicacionTemporizador !== null){
+      clearTimeout(ubicacionTemporizador);
+      ubicacionTemporizador = null;
+    }
     pintarUbicacion(lat, lng, precision);
-    setStatus(fraseDeUbicacion(lat, lng, precision), 'warn');
-    if(primera) ofrecerCambioDeTerritorio(lat, lng);
+    avisarUbicacion(fraseDeUbicacion(lat, lng, precision));
     if(ubicacionSigue){
       // Cancela tambien un desplazamiento del territorio que siga animado.
       map.stop();
       map.setView([lat, lng], Math.max(map.getZoom(), 17), { animate:false });
     }
     marcarBotonUbicacion(true, ubicacionSigue ? 'Mi ubicación' : 'Volver a mí');
+    // Centrar antes del dialogo: una respuesta tardia no debe provocar un
+    // desplazamiento con una lectura que ya dejo de ser reciente.
+    if(primera) ofrecerCambioDeTerritorio(lat, lng);
     return true;
   };
   const fallar = error => {
     if(solicitud !== ubicacionSolicitud) return;
-    apagarUbicacion();
-    setStatus(fallaDeUbicacion(error), 'error');
+    if(error?.code === 1){
+      apagarUbicacion();
+      avisarUbicacion(fallaDeUbicacion(error), 'error');
+    }else{
+      esperar(fallaDeUbicacion(error));
+    }
   };
+  ubicacionTemporizador = setTimeout(() => {
+    if(solicitud !== ubicacionSolicitud || !primeraValida) return;
+    const motivo = motivoEspera;
+    apagarUbicacion();
+    avisarUbicacion('No se obtuvo una ubicación con precisión suficiente. ' + motivo
+      + ' Activa la ubicación precisa del dispositivo y vuelve a intentar.', 'error');
+  }, UBICACION_ESPERA_MAXIMA_MS);
   try{
-    navigator.geolocation.getCurrentPosition(posicion => {
-      if(!recibir(posicion, true)) return;
-      // El seguimiento empieza despues de centrar la primera lectura.
-      try{
-        const vigia = navigator.geolocation.watchPosition(pos => recibir(pos), error => {
-          if(solicitud !== ubicacionSolicitud) return;
-          if(error?.code === 1){
-            fallar(error);
-          }else{
-            // Un timeout aislado no debe cortar el GPS: puede recuperarse.
-            setStatus(fallaDeUbicacion(error)
-              + ' La última ubicación sigue marcada mientras se recupera la señal.', 'warn');
-          }
-        }, UBICACION_OPCIONES);
-        if(solicitud === ubicacionSolicitud) ubicacionVigia = vigia;
-        else navigator.geolocation.clearWatch(vigia);
-      }catch(error){
-        fallar(error);
-      }
-    }, fallar, UBICACION_OPCIONES);
+    // Escuchar desde el comienzo permite mejorar una primera lectura gruesa
+    // o recuperarse de un timeout sin saltar al punto aproximado.
+    const vigia = navigator.geolocation.watchPosition(recibir, fallar, UBICACION_OPCIONES);
+    if(solicitud !== ubicacionSolicitud){
+      navigator.geolocation.clearWatch(vigia);
+      return;
+    }
+    ubicacionVigia = vigia;
+    navigator.geolocation.getCurrentPosition(recibir, fallar, UBICACION_OPCIONES);
   }catch(error){
     fallar(error);
   }
