@@ -67,7 +67,7 @@ function entorno({ confirmar = false, alConfirmar = () => {}, seguro = true, geo
     drawTerritoryFrame(loc, fit){ encuadres.push(fit); if(fit) map.setView([loc.lat, loc.lon], 12); },
     setStatus(texto, tipo){ avisosMapa.push({ texto, tipo }); },
     localStorage:new Proxy({}, { get(){ throw new Error('La ubicación no debe persistirse'); } }),
-    updateInfo:noOp, updateFrameControls:noOp, renderColorAreas:noOp, renderManualWhiteRoads:noOp,
+    clearSelectedLine:noOp, updateInfo:noOp, updateFrameControls:noOp, renderColorAreas:noOp, renderManualWhiteRoads:noOp,
     renderManualRivers:noOp, renderTextLabels:noOp, renderManualIcons:noOp,
     updateColorControls:noOp, updateButtons:noOp
   });

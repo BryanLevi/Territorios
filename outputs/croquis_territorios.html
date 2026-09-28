@@ -508,7 +508,7 @@ body.print-preview{overflow:hidden}
 <link rel="stylesheet" href="../tokens.css?v=blue-bubbles-1">
 <link rel="stylesheet" href="./toolbar-premium.css?v=blue-bubbles-1">
 <link rel="stylesheet" href="./welcome-premium.css?v=welcome-motion-1">
-<link rel="stylesheet" href="./editor-premium.css?v=blue-bubbles-1">
+<link rel="stylesheet" href="./editor-premium.css?v=precise-selection-1">
 </head>
 <body>
 <section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
@@ -718,7 +718,7 @@ body.print-preview{overflow:hidden}
       </span>
       <span class="tool-group tools-edit" role="group" aria-label="Editar elementos">
       <span class="tool-section-label">Edición</span>
-      <button class="icon-btn con-rotulo" id="btn-color-edit" type="button" disabled title="Editar pintada, texto o icono" aria-label="Editar pintada, texto o icono">
+      <button class="icon-btn con-rotulo" id="btn-color-edit" type="button" disabled title="Editar zona, calle, río, texto o icono" aria-label="Editar zona, calle, río, texto o icono">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
         <span class="icon-btn-rotulo">Editar</span>
       </button>
@@ -1521,6 +1521,8 @@ let selectedAreaIndex = null;
 let selectedTextIndex = null;
 let selectedIconIndex = null;
 let selectedReference = null;
+let selectedLine = null;
+let lineEditLayer = null;
 let suppressUndoSnapshot = false;
 
 function setStatus(message, type){
@@ -1551,6 +1553,51 @@ function displayTerritoryName(loc){
   const nombre = String(loc?.name || '').trim();
   const otro = String(loc?.alias || '').trim();
   return otro && otro !== nombre ? nombre + ' / ' + otro : nombre;
+}
+
+function automaticTerritorySelectorNote(loc){
+  const total = subterritoriosDeLoc(loc).length;
+  return total > 1 ? total + ' subterritorios' : '';
+}
+
+function territorySelectorNote(loc){
+  const cambio = nombresSettings[String(loc.num)];
+  return cambio && typeof cambio.selectorNote === 'string'
+    ? cambio.selectorNote.trim() : automaticTerritorySelectorNote(loc);
+}
+
+function territorySelectorLabel(loc){
+  const nota = territorySelectorNote(loc);
+  return '#' + displayTerritoryNumber(loc) + ' - ' + loc.name
+    + (loc.alias ? ' / ' + loc.alias : '') + (nota ? '  (' + nota + ')' : '');
+}
+
+function normalizeTerritorySelectorNote(texto){
+  let limpio = String(texto || '').trim();
+  while(limpio.startsWith('(') && limpio.endsWith(')')){
+    let profundidad = 0;
+    for(let i = 0; i < limpio.length; i++){
+      if(limpio[i] === '(') profundidad++;
+      if(limpio[i] === ')') profundidad--;
+      if(profundidad < 0 || (profundidad === 0 && i < limpio.length - 1)) return limpio;
+    }
+    if(profundidad !== 0) return limpio;
+    limpio = limpio.slice(1, -1).trim();
+  }
+  return limpio;
+}
+
+function normalizeNombresSettings(settings){
+  if(!settings || typeof settings !== 'object' || Array.isArray(settings)) return {};
+  return Object.fromEntries(Object.entries(settings).map(([clave, valor]) => {
+    if(!valor || typeof valor !== 'object' || Array.isArray(valor)) return [clave, valor];
+    const cambio = { ...valor };
+    if(Object.prototype.hasOwnProperty.call(cambio, 'selectorNote')){
+      if(typeof cambio.selectorNote === 'string') cambio.selectorNote = normalizeTerritorySelectorNote(cambio.selectorNote);
+      else delete cambio.selectorNote;
+    }
+    return [clave, cambio];
+  }));
 }
 
 function populateManualIconSelect(){
@@ -1872,7 +1919,7 @@ function loadNombresSettings(){
   try{
     const raw = almacen.getItem(NOMBRES_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    return normalizeNombresSettings(parsed);
   }catch(e){
     return {};
   }
@@ -1880,7 +1927,9 @@ function loadNombresSettings(){
 
 function saveNombresSettings(){
   try{
-    almacen.setItem(NOMBRES_STORAGE_KEY, JSON.stringify(nombresSettings));
+    const normalizados = normalizeNombresSettings(nombresSettings);
+    almacen.setItem(NOMBRES_STORAGE_KEY, JSON.stringify(normalizados));
+    nombresSettings = normalizados;
     return true;
   }catch(e){
     console.error('No se pudieron guardar los nombres.', e);
@@ -1891,7 +1940,7 @@ function saveNombresSettings(){
 function renombrarTerritorio(){
   const loc = LOCS[currentIndex];
   if(!loc) return;
-  const nombre = window.prompt('Nombre del territorio:', loc.name || '');
+  const nombre = window.prompt('Nombre del territorio (puedes editar también lo que esté entre paréntesis):', loc.name || '');
   if(nombre == null) return;
   const limpio = nombre.trim();
   if(!limpio){
@@ -1901,16 +1950,31 @@ function renombrarTerritorio(){
   const otro = window.prompt('Segundo nombre, si tiene. Dejalo vacio si no:', loc.alias || '');
   if(otro == null) return;
   const alias = otro.trim();
+  const notaActual = territorySelectorNote(loc);
+  const nota = window.prompt('Texto entre paréntesis en Localidad. Déjalo vacío para ocultarlo o escribe «auto» para usar el conteo automático. Los subterritorios reales se conservan:', notaActual);
+  if(nota == null) return;
 
   const clave = String(loc.num);
-  const original = BASE_LOCS.find(b => String(b.num) === clave);
+  const previo = nombresSettings[clave];
+  const cambio = previo && typeof previo === 'object' && !Array.isArray(previo) ? { ...previo } : {};
+  const notaLimpia = normalizeTerritorySelectorNote(nota);
+  const eraAutomatica = !previo || typeof previo.selectorNote !== 'string';
+  if(nota.trim().toLocaleLowerCase('es') === 'auto' || (eraAutomatica && notaLimpia === notaActual)) delete cambio.selectorNote;
+  else cambio.selectorNote = notaLimpia;
+  const original = esCongregacionBase() ? BASE_LOCS.find(b => String(b.num) === clave) : null;
   if(original && limpio === original.name && alias === String(original.alias || '')){
-    // vuelve a ser el de fabrica: se quita el cambio en vez de guardarlo
-    delete nombresSettings[clave];
+    delete cambio.name;
+    delete cambio.alias;
   }else{
-    nombresSettings[clave] = alias ? { name:limpio, alias } : { name:limpio };
+    cambio.name = limpio;
+    cambio.alias = alias;
   }
+  const antes = nombresSettings;
+  nombresSettings = { ...nombresSettings };
+  if(Object.keys(cambio).length) nombresSettings[clave] = cambio;
+  else delete nombresSettings[clave];
   if(!saveNombresSettings()){
+    nombresSettings = antes;
     setStatus('No se pudo guardar el nombre.', 'error');
     return;
   }
@@ -1918,7 +1982,7 @@ function renombrarTerritorio(){
   populateSelect();
   goTo(currentIndex, true);
   publicarLista();
-  setStatus('Territorio renombrado: ' + displayTerritoryTitle(LOCS[currentIndex]) + '.', 'warn');
+  setStatus('Nombre y texto de Localidad guardados: ' + territorySelectorLabel(LOCS[currentIndex]) + '.', 'warn');
 }
 
 function applyCustomTerritories(){
@@ -1948,6 +2012,7 @@ function applyCustomTerritories(){
 }
 
 function recargarAjustesGuardados(){
+  clearSelectedLine();
   frameScaleSettings = loadFrameScaleSettings();
   colorAreaSettings = loadColorAreaSettings();
   textLabelSettings = loadTextLabelSettings();
@@ -1960,6 +2025,7 @@ function recargarAjustesGuardados(){
 }
 
 function limpiarMapaSinTerritorios(){
+  clearSelectedLine();
   if(ringLayer && map){ map.removeLayer(ringLayer); ringLayer = null; }
   [colorLayer, draftLayer, textLayer, manualIconLayer, editHandleLayer, colorRestoreLayer,
    labelOverlayLayer, roadOverlayLayer, vectorRoadLayer, runtimeReferenceLayer,
@@ -2255,6 +2321,7 @@ function renderTerritoryAddPreview(currentLatLng = null){
 }
 
 function setTerritoryAddMode(active, showMessage = true){
+  if(active) clearSelectedLine();
   territoryAddMode = !!active;
   territoryAddStart = null;
   clearTerritoryAddPreview();
@@ -2558,6 +2625,7 @@ function restoreLastUndoSnapshot(){
     suppressUndoSnapshot = false;
   }
   resetDraftArea();
+  clearSelectedLine();
   selectedAreaIndex = null;
   selectedTextIndex = null;
   selectedIconIndex = null;
@@ -2849,10 +2917,116 @@ function findColorAreaAtLatLng(loc, latlng){
   return null;
 }
 
+function distanceToScreenSegment(point, a, b){
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const t = lengthSquared ? Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared)) : 0;
+  return Math.hypot(point.x - a.x - t * dx, point.y - a.y - t * dy);
+}
+
+function findManualLineAtLatLng(loc, latlng, event){
+  if(!loc || !latlng || !map) return null;
+  const point = map.latLngToContainerPoint(latlng);
+  const touch = event?.originalEvent?.pointerType === 'touch' || event?.originalEvent?.touches;
+  let nearest = null, nearestGap = Infinity;
+  // El río está sobre las calles; dentro de cada capa el último trazo queda encima.
+  for(const [kind, lines] of [['river', getManualRiversForLoc(loc)], ['road', getWhiteRoadsForLoc(loc)]]){
+    for(let index = lines.length - 1; index >= 0; index--){
+      const line = lines[index];
+      const tolerance = line.width / 2 + (touch ? 7 : 4);
+      const paintedRadius = line.width / 2 + (kind === 'river' ? 1.5 : line.color ? 1.7 : 1.4);
+      let distance = Infinity;
+      for(let vertex = 1; vertex < line.points.length; vertex++){
+        const a = map.latLngToContainerPoint(line.points[vertex - 1]);
+        const b = map.latLngToContainerPoint(line.points[vertex]);
+        distance = Math.min(distance, distanceToScreenSegment(point, a, b));
+      }
+      // Primero la tinta realmente pulsada; la ayuda táctil nunca tapa otro trazo.
+      if(distance <= paintedRadius) return {kind, index};
+      const gap = distance - paintedRadius;
+      if(distance <= tolerance && gap < nearestGap){
+        nearest = {kind, index};
+        nearestGap = gap;
+      }
+    }
+  }
+  return nearest;
+}
+
+function clearSelectedLine(){
+  selectedLine = null;
+  lineEditLayer?.clearLayers();
+}
+
+function getSelectedLine(loc = LOCS[currentIndex], selection = selectedLine){
+  if(!selection || !loc || selection.num !== String(loc.num) || selection.congregacionId !== congregacionActivaId) return null;
+  const lines = selection.kind === 'river' ? getManualRiversForLoc(loc) : getWhiteRoadsForLoc(loc);
+  const line = lines[selection.index];
+  return line && stateFingerprint(line) === selection.fingerprint ? line : null;
+}
+
+function selectLinearElement(kind, index){
+  const loc = LOCS[currentIndex];
+  const line = (kind === 'river' ? getManualRiversForLoc(loc) : getWhiteRoadsForLoc(loc))[index];
+  if(!line) return false;
+  setContourEditMode(false, false);
+  selectedAreaIndex = selectedTextIndex = selectedIconIndex = null;
+  selectedReference = null;
+  colorEditMode = true;
+  selectedLine = {kind, index, num:String(loc.num), congregacionId:congregacionActivaId, fingerprint:stateFingerprint(line)};
+  renderColorAreas(loc);
+  renderTextLabels(loc);
+  renderManualIcons(loc);
+  renderLinearEditHandles(loc);
+  setStatus((kind === 'river' ? 'Río seleccionado.' : 'Calle seleccionada.') + ' Arrastra los puntos para editar; toca un punto pequeño para agregar un vértice. Usa Borrar o Supr para eliminar solo este trazo.', 'warn');
+  updateColorControls(loc);
+  return true;
+}
+
+function updateSelectedLinePoints(points, expectedSelection = selectedLine){
+  if(expectedSelection !== selectedLine) return false;
+  const loc = LOCS[currentIndex];
+  const line = getSelectedLine(loc, expectedSelection);
+  if(!line){
+    clearSelectedLine();
+    setStatus('El trazo cambió. Selecciónalo de nuevo para editarlo.', 'warn');
+    return false;
+  }
+  const lines = expectedSelection.kind === 'river' ? getManualRiversForLoc(loc) : getWhiteRoadsForLoc(loc);
+  const normalize = expectedSelection.kind === 'river' ? normalizeManualRiver : normalizeWhiteRoad;
+  const next = normalize({...line, points});
+  if(!next) return false;
+  lines[expectedSelection.index] = next;
+  const saved = expectedSelection.kind === 'river' ? setManualRiversForLoc(loc, lines) : setWhiteRoadsForLoc(loc, lines);
+  selectedLine = {...expectedSelection, fingerprint:stateFingerprint(next)};
+  renderManualWhiteRoads(loc);
+  renderManualRivers(loc);
+  updateColorControls(loc);
+  return saved;
+}
+
+function deleteSelectedLine(){
+  const loc = LOCS[currentIndex];
+  const selection = selectedLine;
+  if(!getSelectedLine(loc)){
+    clearSelectedLine();
+    setStatus('Selecciona de nuevo el trazo que quieres borrar.', 'warn');
+    return false;
+  }
+  const lines = selection.kind === 'river' ? getManualRiversForLoc(loc) : getWhiteRoadsForLoc(loc);
+  lines.splice(selection.index, 1);
+  const saved = selection.kind === 'river' ? setManualRiversForLoc(loc, lines) : setWhiteRoadsForLoc(loc, lines);
+  clearSelectedLine();
+  renderManualWhiteRoads(loc);
+  renderManualRivers(loc);
+  if(saved) setStatus((selection.kind === 'river' ? 'Río eliminado.' : 'Calle eliminada.') + ' Puedes recuperarlo con Deshacer.', 'warn');
+  return saved;
+}
+
 function updateColorControls(loc = LOCS[currentIndex]){
   if(!colorInput || !colorOpacityInput) return;
   const enabled = !!map;
-  const hasSelection = selectedAreaIndex != null || selectedTextIndex != null || selectedIconIndex != null;
+  const hasSelection = selectedAreaIndex != null || selectedTextIndex != null || selectedIconIndex != null || selectedLine != null;
   colorInput.disabled = !enabled;
   colorOpacityInput.disabled = !enabled;
   textInput.disabled = !enabled;
@@ -2860,7 +3034,7 @@ function updateColorControls(loc = LOCS[currentIndex]){
 
   syncIconPicker();
   if(textSizeInput) textSizeInput.disabled = !enabled;
-  colorEditButton.disabled = !enabled || !loc || (getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0);
+  colorEditButton.disabled = !enabled || !loc || (getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0 && getManualRiversForLoc(loc).length === 0);
   colorEditButton.classList.toggle('active', colorEditMode || hasSelection);
   contourEditButton.disabled = !enabled || !loc || selectedAreaIndex == null;
   contourEditButton.classList.toggle('active', contourEditMode);
@@ -2910,11 +3084,13 @@ function renderColorAreas(loc){
     }).addTo(colorLayer);
     polygon.on('click', event => {
       if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
-      if(textAddMode || iconAddMode || colorDrawMode || contourEditMode || roadPencilMode || riverPencilMode){
+      if(territoryAddMode || textAddMode || iconAddMode || colorDrawMode || contourEditMode || roadPencilMode || riverPencilMode){
         handleColorMapClick(event);
         return;
       }
-      selectColorArea(index);
+      const line = findManualLineAtLatLng(loc, event.latlng, event);
+      if(line) selectLinearElement(line.kind, line.index);
+      else selectColorArea(index);
     });
   });
   renderContourEditHandles(loc);
@@ -2954,6 +3130,7 @@ function renderManualWhiteRoads(loc){
     const latLngs = pointsToLatLngs(road.points);
     drawWhiteRoadPolyline(manualWhiteRoadLayer, latLngs, road.width, 'territoryRoadPane', 1, road.color || '');
   });
+  renderLinearEditHandles(loc);
 }
 
 function drawManualRiverPolyline(target, latLngs, width, pane = 'territoryRoadPane', scale = 1){
@@ -2984,7 +3161,80 @@ function renderManualRivers(loc){
   manualRiverLayer.clearLayers();
   getManualRiversForLoc(loc).forEach(river => {
     const latLngs = pointsToLatLngs(river.points);
-    drawManualRiverPolyline(manualRiverLayer, latLngs, river.width, 'territoryRoadPane', 1);
+    drawManualRiverPolyline(manualRiverLayer, latLngs, river.width, 'territoryRiverPane', 1);
+  });
+  renderLinearEditHandles(loc);
+}
+
+function renderLinearEditHandles(loc){
+  if(!lineEditLayer || !window.L || !map) return;
+  lineEditLayer.clearLayers();
+  if(!selectedLine) return;
+  const line = getSelectedLine(loc);
+  if(!line){ clearSelectedLine(); return; }
+  const selection = selectedLine;
+  const outline = L.polyline(pointsToLatLngs(line.points), {
+    pane:'territoryLineEditPane', color:'#1f57d6', weight:line.width + 4,
+    opacity:.5, dashArray:'5,5', lineCap:'round', interactive:false
+  }).addTo(lineEditLayer);
+  const stop = event => { if(event.originalEvent) L.DomEvent.stop(event.originalEvent); };
+  const handleIcon = small => L.divIcon({
+    className:'linear-edit-handle' + (small ? ' is-midpoint' : ''),
+    iconSize:[24,24], iconAnchor:[12,12],
+    html:'<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="' + (small ? 4 : 7) + '" fill="' + (small ? '#1f57d6' : '#ffffff') + '" stroke="' + (small ? '#ffffff' : '#1f57d6') + '" stroke-width="2.5"/></svg>'
+  });
+  line.points.forEach((point, index) => {
+    const marker = L.marker(point, {
+      pane:'territoryLineEditPane', icon:handleIcon(false), draggable:true,
+      bubblingMouseEvents:false, title:'Mover punto ' + (index + 1) + '. Doble clic o Supr para quitarlo.'
+    }).addTo(lineEditLayer);
+    marker.on('click', stop);
+    marker.on('drag', () => {
+      if(selection !== selectedLine || !getSelectedLine(loc, selection)) return;
+      const preview = line.points.map(p => p.slice());
+      const latlng = marker.getLatLng();
+      preview[index] = [latlng.lat, latlng.lng];
+      outline.setLatLngs(preview);
+    });
+    marker.on('dragend', () => {
+      const points = line.points.map(p => p.slice());
+      const latlng = marker.getLatLng();
+      points[index] = [Number(latlng.lat.toFixed(6)), Number(latlng.lng.toFixed(6))];
+      updateSelectedLinePoints(points, selection);
+    });
+    const remove = () => {
+      if(selection !== selectedLine) return;
+      if(line.points.length <= 2){ setStatus('El trazo necesita al menos dos puntos.', 'warn'); return; }
+      const points = line.points.map(p => p.slice());
+      points.splice(index, 1);
+      updateSelectedLinePoints(points, selection);
+    };
+    marker.on('dblclick', event => { stop(event); remove(); });
+    const element = marker.getElement();
+    if(element){
+      element.setAttribute('aria-label', 'Punto ' + (index + 1) + ' del trazo seleccionado');
+      L.DomEvent.on(element, 'keydown', event => {
+        if(event.key !== 'Delete' && event.key !== 'Backspace') return;
+        L.DomEvent.stop(event);
+        remove();
+      });
+    }
+  });
+  line.points.slice(1).forEach((point, offset) => {
+    const previous = line.points[offset];
+    const a = map.latLngToContainerPoint(previous), b = map.latLngToContainerPoint(point);
+    if(a.distanceTo(b) < 48) return;
+    const mid = midpoint(previous, point);
+    const marker = L.marker(mid, {
+      pane:'territoryLineEditPane', icon:handleIcon(true), bubblingMouseEvents:false,
+      title:'Agregar un punto al trazo'
+    }).addTo(lineEditLayer);
+    marker.on('click', event => {
+      stop(event);
+      const points = line.points.map(p => p.slice());
+      points.splice(offset + 1, 0, [Number(mid[0].toFixed(6)), Number(mid[1].toFixed(6))]);
+      updateSelectedLinePoints(points, selection);
+    });
   });
 }
 
@@ -3937,6 +4187,7 @@ function ajustarDobleClic(){
 }
 
 function setRoadPencilMode(active, showMessage = true, carretera = false){
+  if(active) clearSelectedLine();
   roadPencilMode = !!active;
   modoCarretera = roadPencilMode && !!carretera;
   if(roadPencilMode){
@@ -4015,6 +4266,7 @@ function finishRiverDraft(){
 }
 
 function setRiverPencilMode(active, showMessage = true){
+  if(active) clearSelectedLine();
   riverPencilMode = !!active;
   if(riverPencilMode){
     setTerritoryAddMode(false, false);
@@ -4044,6 +4296,7 @@ function setRiverPencilMode(active, showMessage = true){
 }
 
 function setColorDrawMode(active){
+  if(active) clearSelectedLine();
   colorDrawMode = !!active;
   if(colorDrawMode) setTerritoryAddMode(false, false);
   if(colorDrawMode) setRoadPencilMode(false, false);
@@ -4071,8 +4324,9 @@ function setColorEditMode(active){
     setRiverPencilMode(false, false);
     setTextAddMode(false, false);
     setIconAddMode(false, false);
-    setStatus('Modo edicion: toca una pintada para seleccionarla. Doble clic en un texto para editarlo.', 'warn');
+    setStatus('Modo edición: toca una zona, calle, río, texto o icono para seleccionarlo. Arrastra los puntos del trazo para editarlo.', 'warn');
   }else{
+    clearSelectedLine();
     setContourEditMode(false, false);
     selectedAreaIndex = null;
     selectedTextIndex = null;
@@ -4085,6 +4339,7 @@ function setColorEditMode(active){
 }
 
 function setContourEditMode(active, showMessage = true){
+  if(active) clearSelectedLine();
   contourEditMode = !!active && selectedAreaIndex != null;
   if(contourEditMode){
     setTerritoryAddMode(false, false);
@@ -4106,6 +4361,7 @@ function setContourEditMode(active, showMessage = true){
 }
 
 function setTextAddMode(active, showMessage = true){
+  if(active) clearSelectedLine();
   textAddMode = !!active;
   if(textAddMode){
     setTerritoryAddMode(false, false);
@@ -4133,6 +4389,7 @@ function setTextAddMode(active, showMessage = true){
 }
 
 function setIconAddMode(active, showMessage = true){
+  if(active) clearSelectedLine();
   iconAddMode = !!active;
   if(iconAddMode){
     setTerritoryAddMode(false, false);
@@ -4160,6 +4417,7 @@ function setIconAddMode(active, showMessage = true){
 }
 
 function selectColorArea(index){
+  clearSelectedLine();
   selectedReference = null;
   const loc = LOCS[currentIndex];
   const area = getColorAreasForLoc(loc)[index];
@@ -4180,6 +4438,7 @@ function selectColorArea(index){
 }
 
 function selectTextLabel(index){
+  clearSelectedLine();
   selectedReference = null;
   const loc = LOCS[currentIndex];
   const label = getTextLabelsForLoc(loc)[index];
@@ -4203,6 +4462,8 @@ function selectTextLabel(index){
 // Las referencias vienen de OpenStreetMap y no son tuyas: para poder moverlas o
 // cambiarles el tipo hay que convertirlas antes en un icono propio.
 function selectReference(ref){
+  clearSelectedLine();
+  setContourEditMode(false, false);
   selectedReference = ref;
   selectedIconIndex = null;
   selectedAreaIndex = null;
@@ -4286,6 +4547,7 @@ function refreshIconActions(loc = LOCS[currentIndex]){
 }
 
 function selectManualIcon(index){
+  clearSelectedLine();
   selectedReference = null;
   const loc = LOCS[currentIndex];
   const icon = getManualIconsForLoc(loc)[index];
@@ -4935,7 +5197,7 @@ function getBackupData(payload){
     customTerritories:safeArray(data.customTerritories || data[CUSTOM_TERRITORIES_STORAGE_KEY]).map(normalizeCustomTerritory).filter(Boolean),
     hiddenTerritories:safeArray(data.hiddenTerritories || data[HIDDEN_TERRITORIES_STORAGE_KEY]).map(String),
     leyenda:safeObject(data.leyenda || data[LEYENDA_STORAGE_KEY]),
-    nombres:safeObject(data.nombres || data[NOMBRES_STORAGE_KEY])
+    nombres:normalizeNombresSettings(data.nombres || data[NOMBRES_STORAGE_KEY])
   };
 }
 
@@ -4968,6 +5230,7 @@ function importBackupPayload(payload){
   recargarAjustesGuardados();
   refrescarCongregacionesEnInicio();
   escucharCongregacion();
+  clearSelectedLine();
   selectedAreaIndex = null;
   selectedTextIndex = null;
   selectedIconIndex = null;
@@ -5329,7 +5592,7 @@ async function publicarLista(){
       // dentro de listas y los territorios guardados llevan sus recuadros
       custom:JSON.stringify(loadCustomTerritorySettings()),
       ocultos:JSON.stringify(loadHiddenTerritorySettings()),
-      nombres:JSON.stringify(nombresSettings || {}),
+      nombres:JSON.stringify(normalizeNombresSettings(nombresSettings)),
       fondo:colorFondoImpresion(),
       de:nubeYo,
       porQuien:nubeQuien,
@@ -5350,7 +5613,7 @@ function aplicarListaRemota(d){
     const nombres = JSON.parse(d.nombres || '{}');
     if(Array.isArray(custom)) saveCustomTerritorySettings(custom);
     if(Array.isArray(ocultos)) saveHiddenTerritorySettings(ocultos);
-    nombresSettings = (nombres && typeof nombres === 'object') ? nombres : {};
+    nombresSettings = normalizeNombresSettings(nombres);
     saveNombresSettings();
     if(d.fondo){
       try{ almacen.setItem(FONDO_IMPRESION_STORAGE_KEY, d.fondo); }catch(e){}
@@ -5717,6 +5980,8 @@ function clearColorAreasForCurrent(){
     setStatus('Rios dibujados borrados.', 'warn');
   }else if(draftPoints.length){
     resetDraftArea();
+  }else if(selectedLine){
+    deleteSelectedLine();
   }else if(selectedAreaIndex != null){
     const areas = getColorAreasForLoc(loc).slice();
     areas.splice(selectedAreaIndex, 1);
@@ -5733,6 +5998,8 @@ function clearColorAreasForCurrent(){
     setStatus('Texto borrado.', 'warn');
   }else if(selectedIconIndex != null){
     deleteSelectedIcon();
+  }else if(colorEditMode){
+    setStatus('Selecciona el elemento que quieres borrar.', 'warn');
   }else{
     pushUndoSnapshot('clear-all', loc);
     setContourEditMode(false, false);
@@ -5787,6 +6054,11 @@ async function handleColorMapClick(event){
     return;
   }
   if(!colorDrawMode){
+    const touchedLine = findManualLineAtLatLng(LOCS[currentIndex], event.latlng, event);
+    if(touchedLine){
+      selectLinearElement(touchedLine.kind, touchedLine.index);
+      return;
+    }
     if(colorEditMode){
       const touchedAreaIndex = findColorAreaAtLatLng(LOCS[currentIndex], event.latlng);
       if(touchedAreaIndex != null){
@@ -5796,6 +6068,8 @@ async function handleColorMapClick(event){
       selectedAreaIndex = null;
       selectedTextIndex = null;
       selectedIconIndex = null;
+      selectedReference = null;
+      clearSelectedLine();
       setContourEditMode(false, false);
       renderColorAreas(LOCS[currentIndex]);
       renderTextLabels(LOCS[currentIndex]);
@@ -5935,9 +6209,7 @@ function populateSelect(){
   LOCS.forEach((loc, index) => {
     const option = document.createElement('option');
     option.value = String(index);
-    const subs = subterritoriosDeLoc(loc);
-    const sufijo = subs.length > 1 ? '  (' + subs.length + ' subterritorios)' : '';
-    option.textContent = '#' + displayTerritoryNumber(loc) + ' - ' + loc.name + (loc.alias ? ' / ' + loc.alias : '') + sufijo;
+    option.textContent = territorySelectorLabel(loc);
     locSel.appendChild(option);
   });
   locSel.value = String(currentIndex);
@@ -5999,6 +6271,12 @@ function initApp(){
   map.getPane('territoryRoadPane').style.zIndex = 510;
   map.getPane('territoryRoadPane').style.pointerEvents = 'none';
   map.getPane('territoryRoadPane').classList.add('territory-road-pane');
+  map.createPane('territoryRiverPane');
+  map.getPane('territoryRiverPane').style.zIndex = 511;
+  map.getPane('territoryRiverPane').style.pointerEvents = 'none';
+  map.getPane('territoryRiverPane').classList.add('territory-road-pane');
+  map.createPane('territoryLineEditPane');
+  map.getPane('territoryLineEditPane').style.zIndex = 640;
   map.createPane('territoryLabelPane');
   map.getPane('territoryLabelPane').style.zIndex = 520;
   map.getPane('territoryLabelPane').style.pointerEvents = 'none';
@@ -6021,6 +6299,7 @@ function initApp(){
   textLayer = L.layerGroup().addTo(map);
   manualIconLayer = L.layerGroup().addTo(map);
   editHandleLayer = L.layerGroup().addTo(map);
+  lineEditLayer = L.layerGroup().addTo(map);
   vectorRoadLayer = L.layerGroup().addTo(map);
   runtimeReferenceLayer = L.layerGroup().addTo(map);
   manualWhiteRoadLayer = L.layerGroup().addTo(map);
@@ -6046,7 +6325,10 @@ function initApp(){
   map.on('mousemove', handleMapMouseMove);
   map.on('moveend zoomend', () => updateLabelOverlayVisibility());
   // El filtro de tramos cortos depende del zoom, asi que hay que rehacer los puntos
-  map.on('zoomend', () => { if(contourEditMode) renderContourEditHandles(LOCS[currentIndex]); });
+  map.on('zoomend', () => {
+    if(contourEditMode) renderContourEditHandles(LOCS[currentIndex]);
+    if(selectedLine) renderLinearEditHandles(LOCS[currentIndex]);
+  });
 
   subirTransparenciasA50();
   recoverIxcatlaBlueIfMissing();
@@ -6180,9 +6462,7 @@ function refreshTerritoryCounts(){
     LOCS.forEach((loc, index) => {
       const option = locSel.options[index];
       if(!option) return;
-      const subs = subterritoriosDeLoc(loc);
-      const sufijo = subs.length > 1 ? '  (' + subs.length + ' subterritorios)' : '';
-      option.textContent = '#' + displayTerritoryNumber(loc) + ' - ' + loc.name + (loc.alias ? ' / ' + loc.alias : '') + sufijo;
+      option.textContent = territorySelectorLabel(loc);
     });
   }
 }
@@ -6231,6 +6511,7 @@ function drawTerritoryFrame(loc, fitMap = true, silent = false){
 function goTo(index, silent, fitMap = true){
   const idx = Number(index);
   if(!Number.isFinite(idx) || !LOCS[idx]) return;
+  clearSelectedLine();
   currentIndex = idx;
   locSel.value = String(idx);
   const loc = LOCS[idx];
@@ -7027,6 +7308,7 @@ function pintarPanelAgrupar(){
     const nombre = document.createElement('span');
     nombre.className = 'agrupar-nombre';
     nombre.textContent = '#' + displayTerritoryNumber(loc) + '  ' + displayTerritoryName(loc);
+    nombre.title = nombre.textContent;
 
     const mover = document.createElement('span');
     mover.className = 'agrupar-mover';
@@ -8392,12 +8674,12 @@ document.addEventListener('keydown', event => {
     setContourEditMode(false);
     return;
   }
-  if(event.key === 'Escape' && (colorEditMode || selectedAreaIndex != null || selectedTextIndex != null || selectedIconIndex != null)){
+  if(event.key === 'Escape' && (colorEditMode || selectedAreaIndex != null || selectedTextIndex != null || selectedIconIndex != null || selectedLine)){
     setColorEditMode(false);
     return;
   }
   if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(event.target.tagName)) return;
-  if((event.key === 'Delete' || event.key === 'Backspace') && (selectedTextIndex != null || selectedIconIndex != null)){
+  if((event.key === 'Delete' || event.key === 'Backspace') && (selectedTextIndex != null || selectedIconIndex != null || selectedAreaIndex != null || selectedLine)){
     event.preventDefault();
     clearColorAreasForCurrent();
     return;

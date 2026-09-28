@@ -18,6 +18,7 @@ const registroNube = seccion("const NUBE_REGISTRO = '_registro'", '// La lista d
 const escucha = seccion('function escucharCongregacion(', 'function aplicarTerritorioRemoto(');
 const inicio = seccion('function hideWelcomeScreen(', 'function clearHeavyUndoStorage(');
 const eventos = seccion("$('welcome-cong-nueva')?.addEventListener", "$('btn-nube')?.addEventListener");
+const normalizarNombres = seccion('function normalizeTerritorySelectorNote(', 'function populateManualIconSelect(');
 const claves = [...storage.matchAll(/\['\w+', ([A-Z_]+)\]/g)].map(m => m[1]);
 const llaveRegistro = 'croquis-congregaciones-v1';
 const llaveActiva = 'croquis-congregacion-activa-v1';
@@ -66,7 +67,7 @@ function entorno(guardadas = {}){
     colorDrawMode:false, roadPencilMode:false, riverPencilMode:false, territoryAddMode:false,
     textAddMode:false, iconAddMode:false, contourEditMode:false,
     recargarAjustesGuardados(){ vistas.push(vm.runInContext('congregacionActivaId', contexto)); },
-    applyCustomTerritories:noOp, populateSelect:noOp, limpiarMapaSinTerritorios:noOp, updateInfo:noOp, goTo:noOp, saveAllChanges:noOp,
+    applyCustomTerritories:noOp, populateSelect:noOp, limpiarMapaSinTerritorios:noOp, updateInfo:noOp, goTo:noOp, saveAllChanges:noOp, clearSelectedLine:noOp,
     safeObject:v => v && typeof v === 'object' && !Array.isArray(v) ? v : {}, safeArray:v => Array.isArray(v) ? v : [],
     normalizeCustomTerritory:v => v, loadCustomTerritorySettings:() => [], loadHiddenTerritorySettings:() => [],
     setColorDrawMode:noOp, setRoadPencilMode:noOp, setRiverPencilMode:noOp, setTextAddMode:noOp,
@@ -76,7 +77,7 @@ function entorno(guardadas = {}){
   });
   claves.forEach(clave => { contexto[clave] = clave.toLowerCase(); });
   vm.runInContext('let nube=null, nubeAplicando=false, nubeYo="yo", nubeQuien="equipo", nubeCorte=null, nubeCorteLista=null, nubeCorteRegistro=null;', contexto);
-  vm.runInContext(storage + crud + respaldos + importar + registroNube + escucha + inicio + eventos, contexto);
+  vm.runInContext(normalizarNombres + storage + crud + respaldos + importar + registroNube + escucha + inicio + eventos, contexto);
   const ejecutar = codigo => vm.runInContext(codigo, contexto);
   const plano = valor => JSON.parse(JSON.stringify(valor));
   return { contexto, ejecutar, plano, valores, escrituras, vistas, avisos, $, wrappers, escuchas,

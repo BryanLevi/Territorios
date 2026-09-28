@@ -26,6 +26,12 @@ Los estilos visuales se aplican solo en pantalla. El color elegido para pintar, 
 
 ## Calles con nombre y referencias
 
+Toca una calle blanca, carretera o río dibujado para seleccionarlo, incluso sobre una zona pintada. Arrastra sus puntos blancos para moverlos, toca un punto pequeño para agregar un vértice y usa doble clic en un vértice para quitarlo (el trazo conserva al menos dos puntos). `Borrar` o `Supr` eliminan únicamente el trazo seleccionado; `Deshacer` lo recupera. Texto e iconos siguen teniendo su propia selección.
+
+`Renombrar` permite editar el nombre completo, sus paréntesis y la descripción final del selector de localidad. En el campo de descripción, `auto` restaura el conteo de subterritorios y dejarlo vacío oculta el sufijo. Esta descripción no cambia las divisiones ni los dibujos guardados.
+
+La selección de territorios del PDF usa texto de 11 px y filas compactas; las casillas pequeñas conservan su área táctil. Las pruebas se ejecutan con `node --test tests/*.test.cjs`.
+
 Se traen de OpenStreetMap con Overpass, **una sola vez por territorio**, y quedan guardadas en el navegador. Moverse o acercarse ya no vuelve a pedirlas, y al reabrir la pagina se usan las guardadas sin tocar la red.
 
 Si el servidor esta saturado se reintenta hasta tres veces, alternando entre dos servidores y esperando cada vez mas. Un territorio ya cargado se sigue viendo aunque Overpass este caido.
