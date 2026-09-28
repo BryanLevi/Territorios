@@ -96,6 +96,46 @@
     white-space: nowrap;
   }
   .premium-toolbar .grow { flex: 1 1 280px; min-width: 190px; max-width: 355px; }
+  .premium-toolbar .territory-selection-group {
+    display: flex;
+    flex: 1 1 500px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    min-width: 260px;
+    padding: var(--space-sm);
+    border: var(--rule-thin) solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-paper-2);
+    box-shadow: var(--shadow-inset);
+  }
+  .premium-toolbar .territory-selection-group .field.grow { flex: 1 1 190px; min-width: 150px; max-width: none; }
+  .premium-toolbar .territory-selection-group .grow label { padding-left: var(--space-xs); }
+  .premium-toolbar .territory-actions.grupo-terr {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: var(--space-xs);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .premium-toolbar .territory-actions .btn {
+    flex: 0 0 auto;
+    flex-direction: row;
+    min-width: var(--control-height);
+    min-height: var(--control-height);
+    height: var(--control-height);
+    padding: 0 var(--space-sm);
+    gap: var(--space-xs);
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .premium-toolbar .territory-actions .btn-rotulo { font-size: 11px; }
+  .premium-toolbar .territory-actions .btn svg { width: 16px; height: 16px; flex: 0 0 16px; }
   .premium-toolbar .campo-mapa { flex: 0 1 230px; min-width: 165px; }
   .premium-toolbar select, .premium-toolbar .text-input {
     height: var(--control-height);
@@ -406,6 +446,13 @@
   .premium-toolbar.tools-collapsed .brand span { display: inline; }
   .premium-toolbar .brand .brand-mark, .premium-toolbar.tools-collapsed .brand .brand-mark { display: inline-flex; }
   .premium-toolbar.tools-collapsed .brand .brand-credit { display: none; }
+  .premium-toolbar .workspace-settings .territory-selection-group { flex: 1 1 100%; width: 100%; min-width: 0; max-width: none; }
+  .premium-toolbar .territory-selection-group .field.grow,
+  .premium-toolbar.tools-collapsed .territory-selection-group .field.grow { flex: 1 1 100%; width: 100%; min-width: 0; max-width: none; }
+  .premium-toolbar.tools-collapsed .territory-selection-group .grow label { display: block; }
+  .premium-toolbar .territory-selection-group .territory-actions.grupo-terr,
+  .premium-toolbar.tools-collapsed .territory-selection-group .territory-actions.grupo-terr { display: flex; flex: 1 1 100%; width: 100%; }
+  .premium-toolbar .territory-selection-group .territory-actions .btn { flex: 1 1 0; padding: 0 var(--space-xs); }
 }
 
 @media screen and (max-width: 420px) {

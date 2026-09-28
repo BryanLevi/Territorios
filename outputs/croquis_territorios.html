@@ -506,7 +506,7 @@ body.print-preview{overflow:hidden}
 }
 </style>
 <link rel="stylesheet" href="../tokens.css?v=blue-bubbles-1">
-<link rel="stylesheet" href="./toolbar-premium.css?v=blue-bubbles-1">
+<link rel="stylesheet" href="./toolbar-premium.css?v=territory-controls-1">
 <link rel="stylesheet" href="./welcome-premium.css?v=welcome-motion-1">
 <link rel="stylesheet" href="./editor-premium.css?v=precise-selection-1">
 </head>
@@ -653,11 +653,27 @@ body.print-preview{overflow:hidden}
     </div>
   </div>
   <div class="workspace-settings">
+  <div class="territory-selection-group" role="group" aria-label="Selección y administración de territorios">
   <div class="field grow">
     <label for="loc-sel">Localidad</label>
     <select id="loc-sel" disabled>
       <option value="">Cargando localidades...</option>
     </select>
+  </div>
+  <div class="territory-actions grupo-terr" role="group" aria-label="Administrar territorios">
+  <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+    <span class="btn-rotulo">Nuevo</span>
+  </button>
+  <button class="btn ghost" id="btn-rename-territory" type="button" disabled title="Cambiar el nombre del territorio" aria-label="Renombrar territorio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
+    <span class="btn-rotulo">Renombrar</span>
+  </button>
+  <button class="btn danger" id="btn-delete-territory" type="button" disabled title="Eliminar territorio actual" aria-label="Eliminar territorio actual">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg>
+    <span class="btn-rotulo">Eliminar</span>
+  </button>
+  </div>
   </div>
   <div class="field campo-mapa">
     <label for="view-sel">Mapa</label>
@@ -797,20 +813,6 @@ body.print-preview{overflow:hidden}
   <button class="btn secondary" id="btn-agrupar" type="button" disabled title="Descargar un territorio o varios juntos" aria-label="Agrupar y descargar PDF">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
     Descargar PDF
-  </button>
-  </div>
-  <div class="bar-group grupo-terr" role="group" aria-label="Administrar territorios">
-  <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-    <span class="btn-rotulo">Nuevo</span>
-  </button>
-  <button class="btn ghost" id="btn-rename-territory" type="button" disabled title="Cambiar el nombre del territorio" aria-label="Renombrar territorio">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
-    <span class="btn-rotulo">Renombrar</span>
-  </button>
-  <button class="btn danger" id="btn-delete-territory" type="button" disabled title="Eliminar territorio actual" aria-label="Eliminar territorio actual">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg>
-    <span class="btn-rotulo">Eliminar</span>
   </button>
   </div>
   <span class="bar-spacer"></span>
