@@ -34,7 +34,7 @@ function entorno({ confirmar = false, alConfirmar = () => {}, seguro = true, geo
     },
     divIcon(opciones){ return opciones; },
     marker(punto){ return { addTo(capa){ capa.elementos.push({ tipo:'punto', punto:Array.from(punto) }); } }; },
-    circle(punto){ return { addTo(capa){ capa.elementos.push({ tipo:'precision', punto:Array.from(punto) }); } }; }
+    circle(punto, opciones){ return { addTo(capa){ capa.elementos.push({ tipo:'precision', punto:Array.from(punto), radio:opciones.radius }); } }; }
   };
   const geo = {
     getCurrentPosition(exito, error, opciones){ peticiones.push({ exito, error, opciones }); },
@@ -198,8 +198,8 @@ test('una lectura de kilómetros de margen no mueve el mapa ni propone un territ
   assert.equal(e.temporizadores.size, 0);
 });
 
-test('se exige una precisión conocida de hasta 50 metros antes de centrar', () => {
-  for(const accuracy of [undefined, NaN, Infinity, -1, 51]){
+test('acepta lecturas aproximadas y descarta un margen superior a 1000 metros', () => {
+  for(const accuracy of [undefined, NaN, Infinity, -1, 1001]){
     const e = entorno(); e.clic();
     const lectura = posicion(); lectura.coords.accuracy = accuracy;
     e.peticiones[0].exito(lectura);
@@ -207,7 +207,7 @@ test('se exige una precisión conocida de hasta 50 metros antes de centrar', () 
     assert.equal(e.capas.length, 0);
     assert.equal(e.cancelados.length, 0);
   }
-  for(const accuracy of [0, 50]){
+  for(const accuracy of [0, 50, 99, 1000]){
     const e = entorno(); e.clic();
     const lectura = posicion(); lectura.coords.accuracy = accuracy;
     e.vigias[0].exito(lectura);
@@ -233,8 +233,31 @@ test('una lectura posterior imprecisa conserva el último punto válido', () => 
   e.vigias[0].exito(lectura);
   assert.deepEqual(e.map.centro, [20,-99]);
   assert.deepEqual(e.capas[0].elementos.find(x => x.tipo === 'punto').punto, [20,-99]);
-  assert.match(e.avisos.at(-1).texto, /última ubicación válida/);
+  assert.match(e.avisos.at(-1).texto, /última ubicación estimada/);
   assert.equal(e.cancelados.length, 0);
+});
+
+test('99 metros muestra el punto y su círculo sin desaparecer al cumplir 45 segundos', () => {
+  const e = entorno({ confirmar:true }); e.clic();
+  const plazoInicial = [...e.temporizadores.values()][0].funcion;
+  e.peticiones[0].exito(posicion(19.05,-96.95, { coords:{ accuracy:99 } }));
+  assert.deepEqual(e.map.centro, [19.05,-96.95]);
+  assert.deepEqual(e.capas[0].elementos.find(x => x.tipo === 'punto').punto, [19.05,-96.95]);
+  assert.equal(e.capas[0].elementos.find(x => x.tipo === 'precision').radio, 99);
+  assert.match(e.$('ubicacion-estado').textContent, /Ubicación aproximada/);
+  assert.match(e.$('ubicacion-estado').textContent, /99 m/);
+  assert.equal(e.temporizadores.size, 0);
+  assert.equal(e.preguntas.length, 0);
+  assert.equal(e.contexto.currentIndex, 0);
+  plazoInicial();
+  assert.equal(e.cancelados.length, 0);
+  assert.equal(e.capas[0].elementos.length, 2);
+  assert.equal(e.$('btn-ubicacion-stop').hidden, false);
+  e.vigias[0].exito(posicion(19.05,-96.95, { coords:{ accuracy:25 } }));
+  assert.equal(e.preguntas.length, 1);
+  assert.equal(e.contexto.currentIndex, 1);
+  e.vigias[0].exito(posicion(19.05,-96.95));
+  assert.equal(e.preguntas.length, 1);
 });
 
 test('una respuesta atrasada no reemplaza una lectura más reciente', () => {

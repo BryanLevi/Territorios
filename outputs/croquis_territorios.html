@@ -593,9 +593,13 @@ body.print-preview{overflow:hidden}
     </div>
   </div>
   <div class="field color-field" id="tools-panel">
-    <label for="fill-color">Color</label>
     <div class="color-control">
       <span class="tool-group">
+      <label for="fill-color">Color</label>
+      <button class="icon-btn con-rotulo" id="btn-color-draw" type="button" disabled title="Seleccionar area con color" aria-label="Seleccionar area con color">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg>
+        <span class="icon-btn-rotulo">Pintar</span>
+      </button>
       <input class="color-swatch" id="fill-color" type="color" value="#8b2cff" disabled title="Color de relleno" aria-label="Color de relleno">
       <input id="fill-opacity" type="range" min="10" max="85" step="5" value="50" disabled title="Transparencia" aria-label="Transparencia">
       <output class="opacity-value" id="fill-opacity-value" for="fill-opacity">35%</output>
@@ -631,10 +635,6 @@ body.print-preview{overflow:hidden}
       </button>
       </span>
       <span class="tool-group tools-draw">
-      <button class="icon-btn con-rotulo" id="btn-color-draw" type="button" disabled title="Seleccionar area con color" aria-label="Seleccionar area con color">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg>
-        <span class="icon-btn-rotulo">Pintar</span>
-      </button>
       <button class="icon-btn con-rotulo" id="btn-road-pencil" type="button" disabled title="Dibujar calle blanca" aria-label="Dibujar calle blanca">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg>
         <span class="icon-btn-rotulo">Calle</span>
@@ -7472,7 +7472,8 @@ async function imprimir(opciones = {}){
 const UBICACION_OPCIONES = { enableHighAccuracy:true, timeout:20000, maximumAge:0 };
 // Pedir alta precision no obliga al dispositivo a obtenerla. Una lectura
 // gruesa no debe mandar a la persona a otra ciudad ni asignarle una zona.
-const UBICACION_PRECISION_MAXIMA = 50;
+const UBICACION_PRECISION_PARA_TERRITORIO = 50;
+const UBICACION_PRECISION_MAXIMA = 1000;
 const UBICACION_ANTIGUEDAD_MAXIMA_MS = 15000;
 const UBICACION_ESPERA_MAXIMA_MS = 45000;
 let ubicacionVigia = null;      // el id que devuelve watchPosition
@@ -7564,6 +7565,11 @@ function enDistancia(metros){
 // parada, dicho con los nombres del territorio y no con coordenadas.
 function fraseDeUbicacion(lat, lng, precision){
   const partes = [];
+  if(precision > UBICACION_PRECISION_PARA_TERRITORIO){
+    return 'Ubicación aproximada del dispositivo. El punto azul muestra la posición estimada '
+      + 'y el círculo su margen de precisión: ' + enDistancia(precision)
+      + '. Seguimos actualizando la ubicación mientras mejora la señal.';
+  }
   const zona = zonaDeLaUbicacion(lat, lng);
   if(zona){
     partes.push('Ubicación estimada en ' + displayTerritoryName(zona.loc)
@@ -7689,13 +7695,14 @@ function pedirUbicacion(){
   avisarUbicacion('Buscando una ubicación precisa del dispositivo. Espera unos segundos.');
   ubicacionSigue = true;
   let primeraValida = true;
+  let territorioEvaluado = false;
   let ultimaFecha = 0;
   let motivoEspera = 'El dispositivo todavía no entrega una lectura precisa.';
   const esperar = motivo => {
     motivoEspera = motivo;
     avisarUbicacion(motivo + (primeraValida
       ? ' Seguimos buscando una lectura más precisa; el mapa no se ha movido.'
-      : ' Se conserva la última ubicación válida mientras mejora la señal.'), 'warn');
+      : ' Se conserva la última ubicación estimada mientras llega una lectura mejor.'), 'warn');
     marcarBotonUbicacion(true, primeraValida ? 'Afinando ubicación...' : (ubicacionSigue ? 'Mi ubicación' : 'Volver a mí'));
   };
   const recibir = posicion => {
@@ -7724,7 +7731,6 @@ function pedirUbicacion(){
       esperar('La lectura es demasiado aproximada: margen de ' + enDistancia(precision) + '.');
       return false;
     }
-    const primera = primeraValida;
     primeraValida = false;
     ultimaFecha = fecha;
     if(ubicacionTemporizador !== null){
@@ -7741,7 +7747,10 @@ function pedirUbicacion(){
     marcarBotonUbicacion(true, ubicacionSigue ? 'Mi ubicación' : 'Volver a mí');
     // Centrar antes del dialogo: una respuesta tardia no debe provocar un
     // desplazamiento con una lectura que ya dejo de ser reciente.
-    if(primera) ofrecerCambioDeTerritorio(lat, lng);
+    if(!territorioEvaluado && precision <= UBICACION_PRECISION_PARA_TERRITORIO){
+      territorioEvaluado = true;
+      ofrecerCambioDeTerritorio(lat, lng);
+    }
     return true;
   };
   const fallar = error => {

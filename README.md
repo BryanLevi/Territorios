@@ -32,11 +32,11 @@ Los colores, textos y territorios agregados se guardan en el navegador. Para mov
 
 ## Mi ubicacion
 
-`Mi ubicación` pide una lectura actual del dispositivo y centra el mapa en el punto azul cuando recibe una posicion reciente con un margen de precision de hasta 50 metros. Cada clic vuelve a buscar la posicion, incluso si el seguimiento ya esta activo. Si se abre el territorio detectado, el mapa permanece centrado en la posicion del dispositivo.
+`Mi ubicación` pide una lectura actual del dispositivo y muestra el punto azul con su circulo de precision. Una lectura reciente con margen de 99 metros se muestra como ubicacion aproximada mientras sigue actualizandose; no se exige llegar a 50 metros para verla. Cada clic vuelve a buscar la posicion, incluso si el seguimiento ya esta activo. La propuesta de abrir otro territorio requiere un margen de hasta 50 metros y conserva el centro en la posicion del dispositivo.
 
 Al arrastrar el mapa se pausa el centrado automatico; vuelve a tocar `Mi ubicación` para regresar. `Detener` apaga el seguimiento y quita el punto. La posicion no se guarda ni entra en los respaldos.
 
-El navegador necesita permiso de ubicacion y una pagina segura (HTTPS o localhost). El cerco azul muestra el margen de precision que devuelve el dispositivo. Las lecturas antiguas o demasiado aproximadas no mueven el mapa ni determinan el territorio. La pagina espera hasta 45 segundos para que mejore la lectura; si no llega una posicion con precision suficiente, muestra el motivo junto al boton. Durante el seguimiento conserva el ultimo punto valido si la señal empeora. La precision disponible depende del dispositivo y de sus permisos de ubicacion.
+El navegador necesita permiso de ubicacion y una pagina segura (HTTPS o localhost). El cerco azul muestra el margen de precision que devuelve el dispositivo. Las lecturas antiguas o con margen superior a 1000 metros no mueven el mapa. La pagina espera hasta 45 segundos si aun no pudo mostrar una posicion; una lectura aproximada ya visible no se borra al cumplir ese plazo. Durante el seguimiento conserva el ultimo punto estimado si la señal empeora. La precision disponible depende del dispositivo y de sus permisos de ubicacion.
 
 Las pruebas de ubicacion se ejecutan con `node --test tests/ubicacion.test.cjs`.
 
