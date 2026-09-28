@@ -1,4 +1,4 @@
-/* UI UX Pro Max · blue glass and static bubbles.
+/* UI UX Pro Max · blue glass and gentle, finite welcome motion.
  * Native controls, 44px targets, opaque reading surfaces and reduced motion.
  * Decorative layers never receive pointer events. Screen-only theme.
  */
@@ -310,7 +310,44 @@
   .congregacion-dialog footer button, .congregacion-dialog .congregacion-dialog-actions button, .congregacion-dialog .congregacion-dialog-footer button { flex: 1 1 auto; }
 }
 
+@media screen and (prefers-reduced-motion: no-preference) {
+  /* Keep text fully opaque and usable throughout the entrance. */
+  .premium-welcome:not(.is-hidden) .welcome-main { animation: welcome-arrive 420ms var(--ease-out) backwards; }
+  .premium-welcome:not(.is-hidden) .welcome-guide { animation: welcome-arrive 500ms var(--ease-out) 70ms backwards; }
+  .premium-welcome:not(.is-hidden) .welcome-bubbles { animation: welcome-bubble-drift 4800ms ease-in-out 80ms; }
+  .premium-welcome:not(.is-hidden) .welcome-map-bubble { animation: welcome-map-float 4600ms ease-in-out 120ms; }
+  .premium-welcome .guide-section[open] .tool-grid { animation: welcome-tools-arrive 240ms var(--ease-out); }
+  .premium-welcome .guide-section > summary .guide-chevron,
+  .premium-welcome .guide-category-icon,
+  .premium-welcome #welcome-start > svg { transition: transform 200ms var(--ease-out); }
+
+  @keyframes welcome-arrive {
+    from { transform: translateY(8px); }
+    to { transform: none; }
+  }
+  @keyframes welcome-bubble-drift {
+    0%, 100% { transform: none; }
+    50% { transform: translate(3px, -8px); }
+  }
+  @keyframes welcome-map-float {
+    0%, 100% { transform: none; }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes welcome-tools-arrive {
+    from { transform: translateY(4px); }
+    to { transform: none; }
+  }
+}
+
+@media screen and (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .premium-welcome #welcome-start:hover:not(:disabled):where(:not([data-state=error]):not([data-state=success])) > svg,
+  .premium-welcome #welcome-start:focus-visible:not(:disabled) > svg { transform: translateX(3px); }
+  .premium-welcome .guide-section > summary:hover .guide-category-icon,
+  .premium-welcome .guide-section > summary:focus-visible .guide-category-icon { transform: translateY(-1px); }
+}
+
 @media screen and (prefers-reduced-motion: reduce) {
+  .premium-welcome :is(.welcome-main, .welcome-guide, .welcome-bubbles, .welcome-map-bubble, .tool-grid) { animation: none; }
   :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary) { transition: opacity var(--dur-fast) var(--ease-out); }
   :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary):active:not(:disabled),
   :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary).is-active { transform: none; }

@@ -20,7 +20,7 @@ Las pruebas de congregaciones se ejecutan con `node --test tests/congregaciones.
 
 ## Estilo visual
 
-Inicio, formularios y controles del editor comparten una tematica azul marino y cobalto, superficies claras y botones redondeados. Las burbujas decorativas son estaticas y no interceptan clics. El estilo se basa en las recomendaciones de [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), adaptadas al generador y a sus controles nativos.
+Inicio, formularios y controles del editor comparten una tematica azul marino y cobalto, superficies claras y botones redondeados. Al entrar a Inicio, el contenido aparece con una transicion suave y las burbujas se desplazan lentamente durante menos de cinco segundos. Los botones y la guia responden con pequenos movimientos; el contenido siempre permanece legible e interactivo. La opcion de reducir movimiento del dispositivo desactiva estas animaciones. Las burbujas no interceptan clics. El estilo se basa en las recomendaciones de [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), adaptadas al generador y a sus controles nativos.
 
 Los estilos visuales se aplican solo en pantalla. El color elegido para pintar, los dibujos guardados, el punto de ubicacion y el contenido de los PDF conservan sus colores.
 
