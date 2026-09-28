@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-28",
+  "scope": "component: top toolbar of the territory sketch editor",
+  "framework": "vanilla HTML, CSS and JavaScript",
+  "map_library": "Leaflet 1.9.4",
+  "design_system_before_scan": null,
+  "font": "Segoe UI, Arial, sans-serif",
+  "brand": "forest green, light surfaces, Bryan Levi attribution",
+  "motion_library": null,
+  "preserve": [
+    "Existing editor controls, IDs and behavior",
+    "Mobile tools collapse",
+    "Sketch data, map rendering and PDF layout",
+    "Existing font family and green brand"
+  ],
+  "introduce": [
+    "Screen-only named toolbar tokens",
+    "Three toolbar bands and 44 px controls",
+    "Visible focus and reduced motion support",
+    "Compact location status with accessible detail"
+  ],
+  "page_macrostructure": "skipped: component scope"
+}

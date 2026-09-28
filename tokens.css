@@ -1,0 +1,54 @@
+/* Hallmark · component: workspace toolbar · genre: modern-minimal · theme: forest paper
+ * Pre-emit critique: P5 H5 E4 S5 R5 V4 · existing Segoe UI retained.
+ * Component scope: no page macrostructure; these tokens are screen-only.
+ */
+@media screen {
+  :root {
+    --color-paper: oklch(100% 0 0);
+    --color-paper-2: oklch(98% 0.006 155);
+    --color-paper-3: oklch(95% 0.012 155);
+    --color-ink: oklch(25% 0.026 157);
+    --color-ink-2: oklch(36% 0.035 157);
+    --color-muted: oklch(46% 0.025 157);
+    --color-rule: oklch(88% 0.015 155);
+    --color-rule-strong: oklch(75% 0.025 155);
+    --color-accent: oklch(40% 0.085 156);
+    --color-accent-ink: oklch(100% 0 0);
+    --color-accent-hover: oklch(34% 0.075 156);
+    --color-accent-soft: oklch(93% 0.028 155);
+    --color-accent-soft-hover: oklch(89% 0.038 155);
+    --color-info: oklch(42% 0.083 245);
+    --color-info-soft: oklch(94% 0.026 245);
+    --color-error: oklch(45% 0.16 27);
+    --color-error-soft: oklch(97% 0.015 27);
+    --color-success: oklch(40% 0.10 149);
+    --color-success-soft: oklch(94% 0.027 149);
+    --color-inactive: oklch(60% 0.021 157);
+    --color-focus: oklch(63% 0.185 296);
+    --color-shadow: oklch(22% 0.026 157 / 0.08);
+    --color-shadow-float: oklch(22% 0.026 157 / 0.17);
+    --color-transparent: oklch(100% 0 0 / 0);
+    --font-body: "Segoe UI", Arial, sans-serif;
+    --font-display: var(--font-body);
+    --text-label: 10px;
+    --text-caption: 11px;
+    --text-control: 12px;
+    --text-body: 13px;
+    --text-title: 16px;
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --rule-thin: 1px;
+    --control-height: 44px;
+    --ease-out: cubic-bezier(0.2, 0.65, 0.3, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --dur-fast: 120ms;
+    --dur-normal: 180ms;
+  }
+}

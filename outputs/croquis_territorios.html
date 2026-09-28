@@ -505,6 +505,8 @@ body.print-preview{overflow:hidden}
   body.agrupado .pagina-agrupada:last-child{page-break-after:auto;break-after:auto}
 }
 </style>
+<link rel="stylesheet" href="../tokens.css?v=premium-1">
+<link rel="stylesheet" href="./toolbar-premium.css?v=premium-1">
 </head>
 <body>
 <section class="welcome-screen" id="welcome-screen" aria-labelledby="welcome-title">
@@ -560,15 +562,17 @@ body.print-preview{overflow:hidden}
     </div>
   </div>
 </section>
-<div class="bar">
+<header class="bar premium-toolbar" aria-label="Panel de edición del croquis">
+  <div class="workspace-head">
   <div class="brand">
-    <strong>Croquis de territorio realizado por Bryan Levi</strong>
-    <span id="brand-congregacion">Predicación 2026 · Ixhuatlán del Café</span>
+    <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"></path><path d="M9 3v15M15 6v15"></path></svg></span>
+    <div class="brand-copy">
+      <strong>Croquis de territorios</strong>
+      <span id="brand-congregacion">Predicación 2026 · Ixhuatlán del Café</span>
+      <span class="brand-credit">Por Bryan Levi</span>
+    </div>
   </div>
-  <button class="btn ghost" id="btn-tools-toggle" type="button" aria-expanded="false" aria-controls="tools-panel">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg>
-    Herramientas
-  </button>
+  <div class="workspace-settings">
   <div class="field grow">
     <label for="loc-sel">Localidad</label>
     <select id="loc-sel" disabled>
@@ -592,9 +596,15 @@ body.print-preview{overflow:hidden}
       </button>
     </div>
   </div>
+  </div>
+  <button class="btn ghost" id="btn-tools-toggle" type="button" aria-label="Mostrar u ocultar herramientas" title="Mostrar u ocultar herramientas" aria-expanded="false" aria-controls="tools-panel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path></svg>
+    Herramientas
+  </button>
+  </div>
   <div class="field color-field" id="tools-panel">
     <div class="color-control">
-      <span class="tool-group">
+      <span class="tool-group tools-color" role="group" aria-label="Color y pintura">
       <label for="fill-color">Color</label>
       <button class="icon-btn con-rotulo" id="btn-color-draw" type="button" disabled title="Seleccionar area con color" aria-label="Seleccionar area con color">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg>
@@ -604,12 +614,14 @@ body.print-preview{overflow:hidden}
       <input id="fill-opacity" type="range" min="10" max="85" step="5" value="50" disabled title="Transparencia" aria-label="Transparencia">
       <output class="opacity-value" id="fill-opacity-value" for="fill-opacity">35%</output>
       </span>
-      <span class="tool-group">
+      <span class="tool-group tools-text" role="group" aria-label="Texto y tamaño">
+      <label for="text-value">Texto</label>
       <input class="text-input" id="text-value" type="text" value="" placeholder="Texto" disabled title="Texto. Usa / para separar renglones" aria-label="Texto">
       <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de texto" aria-label="Tamaño de texto">
       <output class="text-size-value" id="text-size-value" for="text-size">22</output>
       </span>
-      <span class="tool-group tools-icon">
+      <span class="tool-group tools-icon" role="group" aria-label="Iconos de referencia">
+      <span class="tool-section-label">Referencia</span>
       <div class="icon-picker" id="icon-picker">
         <button class="icon-picker-trigger" id="icon-picker-trigger" type="button" disabled aria-haspopup="listbox" aria-expanded="false" title="Icono de referencia">
           <span class="icon-picker-glyph" id="icon-picker-glyph"></span>
@@ -624,7 +636,8 @@ body.print-preview{overflow:hidden}
         <span class="icon-btn-rotulo">Icono</span>
       </button>
       </span>
-      <span class="tool-group tools-edit">
+      <span class="tool-group tools-edit" role="group" aria-label="Editar elementos">
+      <span class="tool-section-label">Edición</span>
       <button class="icon-btn con-rotulo" id="btn-color-edit" type="button" disabled title="Editar pintada, texto o icono" aria-label="Editar pintada, texto o icono">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
         <span class="icon-btn-rotulo">Editar</span>
@@ -634,7 +647,8 @@ body.print-preview{overflow:hidden}
         <span class="icon-btn-rotulo">Contorno</span>
       </button>
       </span>
-      <span class="tool-group tools-draw">
+      <span class="tool-group tools-draw" role="group" aria-label="Dibujar trazos y textos">
+      <span class="tool-section-label">Trazos</span>
       <button class="icon-btn con-rotulo" id="btn-road-pencil" type="button" disabled title="Dibujar calle blanca" aria-label="Dibujar calle blanca">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg>
         <span class="icon-btn-rotulo">Calle</span>
@@ -652,10 +666,11 @@ body.print-preview{overflow:hidden}
         <span class="icon-btn-rotulo">Texto</span>
       </button>
       </span>
-      <span class="tool-group tools-actions">
+      <span class="tool-group tools-actions" role="group" aria-label="Guardar y organizar el trabajo">
+      <span class="tool-section-label">Trabajo</span>
       <button class="icon-btn con-rotulo" id="btn-save-changes" type="button" disabled title="Guardar y cerrar lo que estes dibujando" aria-label="Guardar datos">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
-        <span class="icon-btn-rotulo">Guardar datos</span>
+        <span class="icon-btn-rotulo">Guardar</span>
       </button>
       <button class="icon-btn con-rotulo" id="btn-referencias" type="button" disabled title="Lista de referencias del PDF" aria-label="Lista de referencias del PDF">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M4.5 6h.01"></path><path d="M4.5 12h.01"></path><path d="M4.5 18h.01"></path></svg>
@@ -679,7 +694,7 @@ body.print-preview{overflow:hidden}
     Inicio
   </button>
   </div>
-  <div class="bar-group grupo-nav">
+  <div class="bar-group grupo-nav" role="group" aria-label="Navegar territorios">
   <button class="btn ghost" id="btn-prev" type="button" disabled title="Territorio anterior" aria-label="Territorio anterior">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
     Anterior
@@ -690,43 +705,43 @@ body.print-preview{overflow:hidden}
   </button>
   </div>
   <div class="bar-group grupo-ubic">
-  <button class="btn ghost" id="btn-ubicacion" type="button" disabled title="Ir a la ubicación actual de este dispositivo" aria-label="Mi ubicacion" aria-pressed="false">
+  <button class="btn ghost" id="btn-ubicacion" type="button" disabled title="Ir a la ubicación actual de este dispositivo" aria-label="Mi ubicacion" aria-describedby="ubicacion-estado" aria-pressed="false">
     <span class="ubic-punto" aria-hidden="true"></span>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"></circle><circle cx="12" cy="12" r="7.6"></circle><path d="M12 2v2.4"></path><path d="M12 19.6V22"></path><path d="M2 12h2.4"></path><path d="M19.6 12H22"></path></svg>
     <span id="btn-ubicacion-texto">Mi ubicación</span>
   </button>
   <button class="btn ghost" id="btn-ubicacion-stop" type="button" hidden title="Dejar de seguir mi ubicación" aria-label="Detener ubicación">Detener</button>
-  <p class="ubicacion-estado" id="ubicacion-estado" role="status" aria-live="polite" hidden></p>
+  <p class="ubicacion-estado sr-only" id="ubicacion-estado" role="status" aria-live="polite" hidden></p>
   </div>
   <div class="bar-group grupo-doc">
   <button class="btn secondary" id="btn-agrupar" type="button" disabled title="Descargar un territorio o varios juntos" aria-label="Agrupar y descargar PDF">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
-    Agrupar y descargar PDF
+    Descargar PDF
   </button>
   </div>
-  <div class="bar-group grupo-terr">
+  <div class="bar-group grupo-terr" role="group" aria-label="Administrar territorios">
   <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-    <span class="btn-rotulo">Agregar territorio</span>
+    <span class="btn-rotulo">Nuevo</span>
   </button>
   <button class="btn ghost" id="btn-rename-territory" type="button" disabled title="Cambiar el nombre del territorio" aria-label="Renombrar territorio">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg>
-    <span class="btn-rotulo">Renombrar territorio</span>
+    <span class="btn-rotulo">Renombrar</span>
   </button>
   <button class="btn danger" id="btn-delete-territory" type="button" disabled title="Eliminar territorio actual" aria-label="Eliminar territorio actual">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg>
-    <span class="btn-rotulo">Eliminar territorio actual</span>
+    <span class="btn-rotulo">Eliminar</span>
   </button>
   </div>
   <span class="bar-spacer"></span>
-  <div class="bar-group grupo-sync">
+  <div class="bar-group grupo-sync" role="group" aria-label="Respaldar el trabajo">
   <button class="btn primary" id="btn-cloud-save" type="button" title="Dejar una copia con historial en GitHub" aria-label="Guardar respaldo">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg>
     Guardar respaldo
   </button>
   <button class="btn ghost" id="btn-cloud-load" type="button" title="Traer la ultima copia guardada. Avisa antes de pisar nada" aria-label="Recuperar respaldo">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg>
-    Recuperar respaldo
+    Recuperar
   </button>
   </div>
   <div class="bar-group grupo-nube">
@@ -737,7 +752,7 @@ body.print-preview{overflow:hidden}
   </div>
   <input id="backup-file-input" type="file" accept="application/json,.json" hidden>
   </div>
-</div>
+</header>
 
 <div class="map-wrap">
   <div id="map"></div>
@@ -5636,6 +5651,7 @@ function initApp(){
   const centroInicial = LOCS[0] || congregacionBase();
   map = L.map('map', { zoomControl:true, attributionControl:true })
     .setView([centroInicial.lat ?? 19.048889, centroInicial.lon ?? -96.981944], 17);
+  registrarCentradoUbicacion();
   map.createPane('territoryColorPane');
   map.getPane('territoryColorPane').style.zIndex = 350;
   map.createPane('territoryRestorePane');
@@ -5679,6 +5695,7 @@ function initApp(){
   map.on('dragstart', () => {
     if(ubicacionVigia === null || !ubicacionSigue) return;
     ubicacionSigue = false;
+    ubicacionCentroPendiente = null;
     marcarBotonUbicacion(true, 'Volver a mí');
   });
   // Doble clic -o doble toque- cierra lo que se este dibujando. Antes eso solo
@@ -7481,16 +7498,54 @@ let ubicacionCapa = null;       // el punto y el cerco de precision
 let ubicacionSigue = true;      // false en cuanto el usuario mueve el mapa
 let ubicacionSolicitud = 0;    // ignora lecturas de una peticion cancelada o anterior
 let ubicacionTemporizador = null;
+let ubicacionZoomEnCurso = false;
+let ubicacionCentroPendiente = null;
+
+function registrarCentradoUbicacion(){
+  map.on('zoomstart', () => { ubicacionZoomEnCurso = true; });
+  map.on('zoomend', () => {
+    ubicacionZoomEnCurso = false;
+    const pendiente = ubicacionCentroPendiente;
+    ubicacionCentroPendiente = null;
+    if(pendiente) centrarUbicacionActual(pendiente);
+  });
+}
+
+function centrarUbicacionActual(lectura){
+  const { lat, lng, fecha, solicitud, alCentrar } = lectura;
+  if(solicitud !== ubicacionSolicitud || !ubicacionSigue
+    || Date.now() - fecha > UBICACION_ANTIGUEDAD_MAXIMA_MS) return;
+  // Leaflet termina el zoom en su destino original aunque se llame stop().
+  // Conservar solo la ultima lectura permite centrar al acabar la transicion.
+  if(ubicacionZoomEnCurso){
+    ubicacionCentroPendiente = lectura;
+    return;
+  }
+  map.stop();
+  map.setView([lat, lng], Math.max(map.getZoom(), 17), { animate:false });
+  if(alCentrar) alCentrar();
+}
 
 function avisarUbicacion(mensaje, tipo = 'warn'){
-  setStatus(mensaje, tipo);
+  // El detalle se consulta en el boton y se anuncia a lectores de pantalla;
+  // no debe ocupar la barra ni tapar el mapa con un mensaje persistente.
+  const boton = $('btn-ubicacion');
+  if(boton){
+    boton.setAttribute('title', mensaje || 'Ir a la ubicación actual de este dispositivo');
+    boton.classList.toggle('has-location-error', tipo === 'error');
+    if(tipo === 'error'){
+      boton.setAttribute('data-state', 'error');
+      const etiqueta = $('btn-ubicacion-texto');
+      if(etiqueta) etiqueta.textContent = 'Sin ubicación';
+    }
+  }
   const estado = $('ubicacion-estado');
   if(!estado) return;
   estado.textContent = mensaje;
   estado.hidden = !mensaje;
   estado.classList.toggle('error', tipo === 'error');
-  // El aviso cambia la altura de la barra. Actualizar Leaflet conserva el
-  // centro y evita que el punto quede desplazado por un tamaño antiguo.
+  // Actualizar Leaflet conserva el centro si el estado del boton o el
+  // plegado de herramientas cambiaron el espacio disponible para el mapa.
   if(map) map.invalidateSize({ animate:false });
 }
 
@@ -7616,6 +7671,8 @@ function marcarBotonUbicacion(encendido, texto){
   if(!boton) return;
   boton.classList.toggle('is-on', !!encendido);
   boton.setAttribute('aria-pressed', encendido ? 'true' : 'false');
+  boton.setAttribute('data-state', encendido
+    ? (/Buscando|Afinando/.test(texto || '') ? 'loading' : 'success') : 'default');
   const etiqueta = $('btn-ubicacion-texto');
   if(etiqueta) etiqueta.textContent = texto || 'Mi ubicación';
   const detener = $('btn-ubicacion-stop');
@@ -7625,6 +7682,7 @@ function marcarBotonUbicacion(encendido, texto){
 
 function apagarUbicacion(aviso){
   ubicacionSolicitud++;
+  ubicacionCentroPendiente = null;
   if(ubicacionTemporizador !== null){
     clearTimeout(ubicacionTemporizador);
     ubicacionTemporizador = null;
@@ -7739,18 +7797,18 @@ function pedirUbicacion(){
     }
     pintarUbicacion(lat, lng, precision);
     avisarUbicacion(fraseDeUbicacion(lat, lng, precision));
+    const evaluarTerritorio = () => {
+      if(!territorioEvaluado && precision <= UBICACION_PRECISION_PARA_TERRITORIO){
+        territorioEvaluado = true;
+        ofrecerCambioDeTerritorio(lat, lng);
+      }
+    };
     if(ubicacionSigue){
-      // Cancela tambien un desplazamiento del territorio que siga animado.
-      map.stop();
-      map.setView([lat, lng], Math.max(map.getZoom(), 17), { animate:false });
+      centrarUbicacionActual({ lat, lng, fecha, solicitud, alCentrar:evaluarTerritorio });
+    }else{
+      evaluarTerritorio();
     }
     marcarBotonUbicacion(true, ubicacionSigue ? 'Mi ubicación' : 'Volver a mí');
-    // Centrar antes del dialogo: una respuesta tardia no debe provocar un
-    // desplazamiento con una lectura que ya dejo de ser reciente.
-    if(!territorioEvaluado && precision <= UBICACION_PRECISION_PARA_TERRITORIO){
-      territorioEvaluado = true;
-      ofrecerCambioDeTerritorio(lat, lng);
-    }
     return true;
   };
   const fallar = error => {

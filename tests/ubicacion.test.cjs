@@ -9,20 +9,29 @@ const codigo = html.slice(html.indexOf('const UBICACION_OPCIONES'), html.indexOf
 const navegar = html.slice(html.indexOf('function goTo('), html.indexOf('function navigate('));
 
 function entorno({ confirmar = false, alConfirmar = () => {}, seguro = true, geolocalizacion = true } = {}){
-  const peticiones = [], vigias = [], cancelados = [], avisos = [], capas = [], encuadres = [], preguntas = [];
+  const peticiones = [], vigias = [], cancelados = [], avisos = [], avisosMapa = [], capas = [], encuadres = [], preguntas = [];
   const temporizadores = new Map();
   let siguienteTemporizador = 0;
   const nodos = new Map();
   const $ = id => {
     if(!nodos.has(id)) nodos.set(id, {
       hidden:true, textContent:'',
-      classList:{ toggle(){} }, setAttribute(){},
+      atributos:{},
+      classList:{ toggle(clase, activo){
+        if(id === 'ubicacion-estado' && clase === 'error'){
+          avisos.push({ texto:nodos.get(id).textContent, tipo:activo ? 'error' : 'warn' });
+        }
+      } },
+      setAttribute(nombre, valor){ this.atributos[nombre] = valor; },
       addEventListener(evento, funcion){ this[evento] = funcion; }
     });
     return nodos.get(id);
   };
   const map = {
     centro:null, zoom:14,
+    eventos:new Map(),
+    on(nombre, funcion){ this.eventos.set(nombre, funcion); return this; },
+    fire(nombre){ this.eventos.get(nombre)?.(); return this; },
     getZoom(){ return this.zoom; },
     setView(punto, zoom){ this.centro = Array.from(punto); this.zoom = zoom; return this; },
     stop(){ return this; }, invalidateSize(){ return this; }, distance(){ return 100; }, removeLayer(){}
@@ -56,14 +65,15 @@ function entorno({ confirmar = false, alConfirmar = () => {}, seguro = true, geo
     getTextLabelsForLoc:loc => loc.num === 2 ? [{ text:'3', lat:19.05, lng:-96.95 }] : [],
     displayTerritoryName:loc => loc.name,
     drawTerritoryFrame(loc, fit){ encuadres.push(fit); if(fit) map.setView([loc.lat, loc.lon], 12); },
-    setStatus(texto, tipo){ avisos.push({ texto, tipo }); },
+    setStatus(texto, tipo){ avisosMapa.push({ texto, tipo }); },
     localStorage:new Proxy({}, { get(){ throw new Error('La ubicación no debe persistirse'); } }),
     updateInfo:noOp, updateFrameControls:noOp, renderColorAreas:noOp, renderManualWhiteRoads:noOp,
     renderManualRivers:noOp, renderTextLabels:noOp, renderManualIcons:noOp,
     updateColorControls:noOp, updateButtons:noOp
   });
   vm.runInContext(navegar + codigo, contexto);
-  return { contexto, map, $, peticiones, vigias, cancelados, avisos, capas, encuadres, preguntas, temporizadores,
+  vm.runInContext('registrarCentradoUbicacion()', contexto);
+  return { contexto, map, $, peticiones, vigias, cancelados, avisos, avisosMapa, capas, encuadres, preguntas, temporizadores,
     agotarEspera:() => { const [id, temporizador] = temporizadores.entries().next().value; temporizadores.delete(id); temporizador.funcion(); },
     clic:() => $('btn-ubicacion').click(), detener:() => $('btn-ubicacion-stop').click() };
 }
@@ -258,6 +268,53 @@ test('99 metros muestra el punto y su círculo sin desaparecer al cumplir 45 seg
   assert.equal(e.contexto.currentIndex, 1);
   e.vigias[0].exito(posicion(19.05,-96.95));
   assert.equal(e.preguntas.length, 1);
+});
+
+test('un zoom pendiente centra la última lectura al terminar, sin interferir con el siguiente zoom manual', () => {
+  const e = entorno(); e.map.fire('zoomstart'); e.clic();
+  const primera = posicion(20,-99);
+  e.peticiones[0].exito(primera);
+  e.vigias[0].exito(posicion(21,-100, { timestamp:primera.timestamp + 1 }));
+  assert.equal(e.map.centro, null);
+  assert.equal(e.capas[0].elementos.at(-1).tipo, 'punto');
+  e.map.fire('zoomend');
+  assert.deepEqual(e.map.centro, [21,-100]);
+  e.map.fire('zoomstart'); e.map.setView([22,-101], 16); e.map.fire('zoomend');
+  assert.deepEqual(e.map.centro, [22,-101]);
+});
+
+test('durante un zoom no pregunta por otro territorio hasta centrar la ubicación', () => {
+  const e = entorno({ confirmar:true, alConfirmar:map => assert.deepEqual(map.centro, [19.05,-96.95]) });
+  e.map.fire('zoomstart'); e.clic();
+  e.peticiones[0].exito(posicion(19.05,-96.95));
+  assert.equal(e.preguntas.length, 0);
+  e.map.fire('zoomend');
+  assert.equal(e.preguntas.length, 1);
+  assert.deepEqual(e.map.centro, [19.05,-96.95]);
+});
+
+test('un centrado pendiente se descarta al detener, explorar o caducar la lectura', () => {
+  for(const cancelar of [e => e.detener(), e => vm.runInContext('ubicacionSigue = false', e.contexto),
+    e => vm.runInContext(`Date.now = () => ${Date.now() + 16000}`, e.contexto)]){
+    const e = entorno(); e.map.fire('zoomstart'); e.clic();
+    e.peticiones[0].exito(posicion()); cancelar(e); e.map.fire('zoomend');
+    assert.equal(e.map.centro, null);
+    assert.equal(e.preguntas.length, 0);
+  }
+});
+
+test('el detalle de ubicación queda en el botón y el anuncio accesible, sin texto sobre el mapa', () => {
+  const e = entorno(); e.clic();
+  e.peticiones[0].exito(posicion(20,-99, { coords:{ accuracy:118 } }));
+  assert.equal(e.avisosMapa.length, 0);
+  assert.match(e.$('btn-ubicacion').atributos.title, /118 m/);
+  assert.match(e.$('ubicacion-estado').textContent, /Ubicación aproximada/);
+  assert.match(html, /class="ubicacion-estado sr-only"/);
+  e.vigias[0].error({ code:1 });
+  assert.equal(e.avisosMapa.length, 0);
+  assert.equal(e.$('btn-ubicacion-texto').textContent, 'Sin ubicación');
+  assert.equal(e.$('btn-ubicacion').atributos['data-state'], 'error');
+  assert.match(e.$('btn-ubicacion').atributos.title, /bloqueado el permiso/);
 });
 
 test('una respuesta atrasada no reemplaza una lectura más reciente', () => {
