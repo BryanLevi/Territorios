@@ -8,6 +8,16 @@ Creada por Bryan Levi.
 
 Abre `index.html` o publica el repositorio con GitHub Pages. La pagina principal redirige al generador ubicado en `outputs/croquis_territorios.html`.
 
+## Congregaciones
+
+En Inicio, junto al selector de congregacion, usa `Agregar`, `Renombrar` o `Eliminar`. Las acciones se abren en un formulario dentro de la pagina. Una nueva congregacion empieza sin territorios y queda seleccionada para abrir el editor.
+
+Renombrar conserva la identidad de la congregacion y sus dibujos. Eliminar requiere escribir su nombre y deja seleccionada otra congregacion; no se permite eliminar la ultima. Los cambios de nombre y las eliminaciones se incluyen en el registro compartido y en los respaldos.
+
+La guia de herramientas esta organizada en cuatro secciones desplegables. El inicio, los formularios y los botones comparten el mismo estilo del editor.
+
+Las pruebas de congregaciones se ejecutan con `node --test tests/congregaciones.test.cjs`.
+
 ## Calles con nombre y referencias
 
 Se traen de OpenStreetMap con Overpass, **una sola vez por territorio**, y quedan guardadas en el navegador. Moverse o acercarse ya no vuelve a pedirlas, y al reabrir la pagina se usan las guardadas sin tocar la red.

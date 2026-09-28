@@ -489,7 +489,7 @@ body.print-preview{overflow:hidden}
   @page{size:A4 landscape;margin:0}
   html,body{width:297mm;height:210mm;overflow:hidden;background:#fff}
   body{display:block}
-  .bar,.map-wrap,.map-status,.legend,.welcome-screen{display:none!important}
+  .bar,.map-wrap,.map-status,.legend,.welcome-screen,.congregacion-dialog{display:none!important}
   .print-sheet,.print-sheet.is-open{display:block!important;position:static!important;inset:auto!important;width:297mm;height:210mm;padding:0;background:#fff;overflow:hidden}
   .print-paper{width:297mm;height:210mm;min-width:0;box-shadow:none}
   /* Chrome aplasta a 300 ppp cualquier capa con filter al imprimir, y la
@@ -505,63 +505,126 @@ body.print-preview{overflow:hidden}
   body.agrupado .pagina-agrupada:last-child{page-break-after:auto;break-after:auto}
 }
 </style>
-<link rel="stylesheet" href="../tokens.css?v=premium-1">
-<link rel="stylesheet" href="./toolbar-premium.css?v=premium-1">
+<link rel="stylesheet" href="../tokens.css?v=home-1">
+<link rel="stylesheet" href="./toolbar-premium.css?v=home-1">
+<link rel="stylesheet" href="./welcome-premium.css?v=home-1">
 </head>
 <body>
-<section class="welcome-screen" id="welcome-screen" aria-labelledby="welcome-title">
+<section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
   <div class="welcome-panel">
     <div class="welcome-main">
-      <span class="welcome-kicker">Acceso al generador</span>
-      <h2 id="welcome-title">Bienvenido al croquis de territorios</h2>
-      <div class="welcome-credit">Creada por Bryan Levi</div>
-      <p>Esta pagina ayuda a revisar cada localidad, colorear las zonas del territorio, agregar textos y generar el PDF final para imprimir o guardar.</p>
+      <div class="welcome-brand">
+        <span class="welcome-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"></path><path d="M9 3v15M15 6v15"></path></svg></span>
+        <span class="welcome-brand-copy"><strong>Croquis de territorios</strong><small>Predicación 2026</small></span>
+      </div>
+      <h2 id="welcome-title">Prepara tu próximo croquis.</h2>
+      <p class="welcome-intro">Selecciona una congregación para revisar sus territorios, dibujar referencias y preparar el PDF.</p>
+      <div class="welcome-selection">
+        <div class="welcome-cong">
+          <div class="welcome-selection-head">
+            <label for="welcome-cong-sel">Congregación</label>
+            <div class="welcome-cong-actions" role="group" aria-label="Administrar congregaciones">
+              <button class="welcome-action" id="welcome-cong-nueva" type="button" title="Agregar congregación" aria-label="Agregar congregación">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>Agregar</span>
+              </button>
+              <button class="welcome-action" id="welcome-cong-renombrar" type="button" title="Renombrar congregación seleccionada" aria-label="Renombrar congregación seleccionada">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5l4 4L8 20H4v-4z"></path></svg><span>Renombrar</span>
+              </button>
+              <button class="welcome-action" id="welcome-cong-eliminar" type="button" disabled title="Agrega otra congregación antes de eliminar la última" aria-label="Eliminar congregación seleccionada">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 10v7M14 10v7"></path></svg><span>Eliminar</span>
+              </button>
+            </div>
+          </div>
+          <select id="welcome-cong-sel" aria-describedby="welcome-cong-note"></select>
+          <p class="welcome-cong-nota" id="welcome-cong-note">Cada congregación conserva sus propios territorios y dibujos.</p>
+          <p class="welcome-status" id="welcome-status" role="status" aria-live="polite" hidden></p>
+          <button class="welcome-nube" id="welcome-nube" type="button">
+            <span class="nube-punto" aria-hidden="true"></span>
+            <span id="welcome-nube-texto">Conectar equipo</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.9"></path><circle cx="9" cy="7" r="4"></circle><path d="M16 3.1a4 4 0 0 1 0 7.8"></path></svg>
+          </button>
+        </div>
+        <button class="welcome-start" id="welcome-start" type="button"><span>Abrir editor</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"></path></svg></button>
+      </div>
       <div class="welcome-steps" aria-label="Pasos principales">
-        <div class="welcome-step"><b>1</b><span>Elige la localidad y revisa el mapa base con calles, avenidas y datos visuales.</span></div>
-        <div class="welcome-step"><b>2</b><span>Selecciona color, pinta las areas necesarias y guarda los cambios antes de pasar al siguiente territorio.</span></div>
-        <div class="welcome-step"><b>3</b><span>Cuando el croquis este listo, usa PDF para preparar la hoja de impresion.</span></div>
+        <div class="welcome-step"><b>1</b><span><strong>Elige el territorio</strong><span>Revisa la localidad y su mapa.</span></span></div>
+        <div class="welcome-step"><b>2</b><span><strong>Dale forma al croquis</strong><span>Pinta zonas y añade referencias.</span></span></div>
+        <div class="welcome-step"><b>3</b><span><strong>Prepara el PDF</strong><span>Guarda, imprime o comparte.</span></span></div>
       </div>
-      <button class="welcome-start" id="welcome-start" type="button">Continuar a generar croquis del territorio</button>
-      <div class="welcome-cong">
-        <label for="welcome-cong-sel">Congregacion</label>
-        <select id="welcome-cong-sel"></select>
-        <button class="welcome-cong-nueva" id="welcome-cong-nueva" type="button">Empezar nueva congregacion</button>
-        <button class="welcome-nube" id="welcome-nube" type="button">
-          <span class="nube-punto" aria-hidden="true"></span>
-          <span id="welcome-nube-texto">Conectar para trabajar entre varios</span>
-        </button>
-        <p class="welcome-cong-nota">Cada congregacion lleva su propia lista de territorios. La nueva empieza vacia y sus territorios se agregan con el boton <b>+</b> del mapa.</p>
-      </div>
+      <div class="welcome-credit">Creado por Bryan Levi</div>
     </div>
-    <div class="welcome-guide">
-      <h3>Guia rapida de herramientas</h3>
-      <div class="tool-guide">
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><span><b>Restablecer recuadro</b><span>Regresa el tamano del recuadro del territorio al valor inicial.</span></span></div>
-        <div class="tool-item"><span class="tool-icon color-dot"></span><span><b>Color y transparencia</b><span>Define el color de relleno y que tan visible queda sobre el mapa.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar pintada o texto</b><span>Selecciona una zona, un texto o un icono que ya habias marcado para modificarlo.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 7 5-2.7 8.4H7.7L5 9z"></path><circle cx="12" cy="4" r="1.7" fill="currentColor"></circle><circle cx="19" cy="9" r="1.7" fill="currentColor"></circle><circle cx="16.3" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="7.7" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="5" cy="9" r="1.7" fill="currentColor"></circle></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg></span><span><b>Pintar area</b><span>Toca varios puntos del mapa para formar la zona que quieres colorear.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg></span><span><b>Carretera con destino</b><span>Traza la carretera en amarillo y escribe hacia donde lleva, como "A OCOTITLAN".</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path></svg></span><span><b>Dibujar calle blanca</b><span>Traza a mano una calle que no se distingue en el mapa. Queda en blanco sobre el color.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg></span><span><b>Dibujar rio</b><span>Traza a mano los rios y arroyos que no salen solos. Quedan en azul, guardados por territorio.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separarlo en dos renglones.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><b>Agregar icono</b><span>Elige el tipo de referencia, toca el boton de icono y marca el punto en el mapa.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><path d="M3 3l18 18" opacity=".55"></path></svg></span><span><b>Editar o eliminar icono</b><span>Toca cualquier icono del mapa. Si lo pusiste tu, abajo salen Cambiar tipo y Eliminar, y puedes arrastrarlo. Si es una referencia de OpenStreetMap, salen Hacerlo editable y Eliminar.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores, textos e iconos del territorio actual.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg></span><span><b>Exportar respaldo</b><span>Descarga un archivo con colores, textos y territorios agregados.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg></span><span><b>Importar respaldo</b><span>Carga un archivo de respaldo para recuperar el trabajo en otra pagina o equipo.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg></span><span><b>Guardar GitHub</b><span>Sube colores, textos e iconos a un archivo real del repositorio.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg></span><span><b>Cargar GitHub</b><span>Trae en este dispositivo los cambios guardados en el repositorio.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg></span><span><b>Deshacer</b><span>Regresa el ultimo punto o cambio guardado si necesitas corregir.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></span><span><b>Borrar</b><span>Elimina lo que tengas seleccionado: una zona, un texto o un icono. Sin nada seleccionado, borra todo el territorio.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg></span><span><b>PDF</b><span>Prepara la hoja del croquis para imprimir o guardar.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></span><span><b>Inicio</b><span>Regresa a esta pantalla, donde eliges la congregacion y consultas la guia.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span><span><b>Agregar territorio</b><span>Marca dos esquinas para formar el recuadro y despues escribe el nombre.</span></span></div>
-        <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg></span><span><b>Eliminar territorio</b><span>Quita el territorio actual de la lista despues de confirmar.</span></span></div>
-      </div>
-    </div>
+    <aside class="welcome-guide" aria-labelledby="welcome-guide-title">
+      <span class="welcome-guide-kicker">Referencia rápida</span>
+      <h3 id="welcome-guide-title">Guía de herramientas</h3>
+      <p class="welcome-guide-intro">Abre una sección para consultar sus herramientas.</p>
+      <details class="guide-section">
+        <summary><span><b>Pintura y edición</b><small>Colores, contornos y trazos</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
+        <div class="tool-grid">
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><span><b>Restablecer recuadro</b><span>Devuelve el recuadro del territorio a su tamaño inicial.</span></span></div>
+          <div class="tool-item"><span class="tool-icon color-dot"></span><span><b>Color y transparencia</b><span>Elige el color de relleno y su transparencia sobre el mapa.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar elementos</b><span>Selecciona una zona, texto o icono para modificarlo.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 7 5-2.7 8.4H7.7L5 9z"></path><circle cx="12" cy="4" r="1.7" fill="currentColor"></circle><circle cx="19" cy="9" r="1.7" fill="currentColor"></circle><circle cx="16.3" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="7.7" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="5" cy="9" r="1.7" fill="currentColor"></circle></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg></span><span><b>Pintar áreas</b><span>Marca varios puntos para dibujar la zona que quieres colorear.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg></span><span><b>Carretera con destino</b><span>Traza la carretera en amarillo y escribe hacia dónde lleva.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path></svg></span><span><b>Dibujar calles</b><span>Añade una calle que no aparece en el mapa; queda en blanco sobre el color.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg></span><span><b>Dibujar ríos</b><span>Añade ríos y arroyos en azul. Se guardan por territorio.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-2"></path></svg></span><span><b>Deshacer</b><span>Recupera el último punto o cambio guardado.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></span><span><b>Borrar dibujos</b><span>Elimina la selección o los dibujos del territorio actual.</span></span></div>
+        </div>
+      </details>
+      <details class="guide-section">
+        <summary><span><b>Textos y referencias</b><small>Nombres, destinos e iconos</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
+        <div class="tool-grid">
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separar renglones.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><b>Agregar iconos</b><span>Elige la referencia, pulsa Icono y marca su posición en el mapa.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><path d="M3 3l18 18" opacity=".55"></path></svg></span><span><b>Editar iconos</b><span>Toca un icono para cambiarlo, moverlo o eliminarlo. Las referencias del mapa pueden hacerse editables.</span></span></div>
+        </div>
+      </details>
+      <details class="guide-section">
+        <summary><span><b>Guardar y compartir</b><small>PDF, respaldos y recuperación</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
+        <div class="tool-grid">
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg></span><span><b>Guardar cambios</b><span>Guarda colores, textos e iconos del territorio actual.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg></span><span><b>Exportar respaldo</b><span>Descarga una copia de tu trabajo para conservarla o llevarla a otro equipo.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg></span><span><b>Importar respaldo</b><span>Recupera el trabajo desde un archivo de respaldo.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M20 16.5A4.5 4.5 0 0 0 15.5 12H15"></path><path d="M4 16.5A4.5 4.5 0 0 1 8.5 12H9"></path><path d="M6 20h12"></path></svg></span><span><b>Guardar respaldo en línea</b><span>Guarda una copia con historial en la cuenta de GitHub del proyecto.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v12"></path><path d="m7 15 5 5 5-5"></path><path d="M20 13.5A4.5 4.5 0 0 0 15.5 9H15"></path><path d="M4 13.5A4.5 4.5 0 0 1 8.5 9H9"></path><path d="M6 4h12"></path></svg></span><span><b>Recuperar respaldo en línea</b><span>Trae a este dispositivo la última copia guardada.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg></span><span><b>Descargar PDF</b><span>Prepara el croquis para imprimirlo o guardarlo en PDF.</span></span></div>
+        </div>
+      </details>
+      <details class="guide-section">
+        <summary><span><b>Territorios y navegación</b><small>Inicio y administración del mapa</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
+        <div class="tool-grid">
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></span><span><b>Volver al inicio</b><span>Elige otra congregación o consulta esta guía.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span><span><b>Agregar territorios</b><span>Marca dos esquinas para crear el recuadro y escribe su nombre.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path></svg></span><span><b>Eliminar territorios</b><span>Quita el territorio actual después de confirmar.</span></span></div>
+        </div>
+      </details>
+    </aside>
   </div>
 </section>
+<dialog class="congregacion-dialog" id="congregacion-dialog" aria-labelledby="congregacion-dialog-title" aria-describedby="congregacion-dialog-description">
+  <form id="congregacion-form" novalidate>
+    <div class="congregacion-dialog-head">
+      <span class="congregacion-dialog-kicker">Congregaciones</span>
+      <h2 id="congregacion-dialog-title">Agregar congregación</h2>
+      <p id="congregacion-dialog-description">Organiza una nueva lista de territorios.</p>
+    </div>
+    <div id="congregacion-fields">
+      <div class="congregacion-field"><label for="congregacion-nombre">Nombre de la congregación</label><input id="congregacion-nombre" type="text" maxlength="100" autocomplete="organization" aria-describedby="congregacion-error" required></div>
+      <div class="congregacion-field"><label for="congregacion-municipio">Municipio</label><input id="congregacion-municipio" type="text" maxlength="100" autocomplete="address-level2"></div>
+      <div class="congregacion-field"><label for="congregacion-estado">Estado</label><input id="congregacion-estado" type="text" maxlength="100" autocomplete="address-level1"></div>
+    </div>
+    <div class="congregacion-delete" id="congregacion-delete-copy" hidden>
+      <p id="congregacion-delete-message"></p>
+      <div class="congregacion-field"><label for="congregacion-confirm-name">Escribe el nombre de la congregación para confirmar</label><input id="congregacion-confirm-name" type="text" maxlength="100" autocomplete="off" aria-describedby="congregacion-error"></div>
+    </div>
+    <p class="congregacion-error" id="congregacion-error" role="alert" hidden></p>
+    <div class="congregacion-dialog-footer">
+      <button class="welcome-action" id="congregacion-cancel" type="button">Cancelar</button>
+      <button class="welcome-action welcome-primary" id="congregacion-submit" type="submit">Agregar congregación</button>
+    </div>
+  </form>
+</dialog>
 <header class="bar premium-toolbar" aria-label="Panel de edición del croquis">
   <div class="workspace-head">
   <div class="brand">
@@ -1205,50 +1268,106 @@ function claveCongregacion(base){
 // Todo lo que es de una congregacion pasa por aqui en vez de ir directo al
 // navegador, que es lo que mantiene separado el trabajo de cada una.
 const almacen = {
-  getItem: clave => localStorage.getItem(claveCongregacion(clave)),
-  setItem: (clave, valor) => localStorage.setItem(claveCongregacion(clave), valor),
-  removeItem: clave => localStorage.removeItem(claveCongregacion(clave))
+  getItem: clave => congregacionActivaId ? localStorage.getItem(claveCongregacion(clave)) : null,
+  setItem: (clave, valor) => { if(congregacionActivaId) localStorage.setItem(claveCongregacion(clave), valor); },
+  removeItem: clave => { if(congregacionActivaId) localStorage.removeItem(claveCongregacion(clave)); }
 };
 
 function congregacionBase(){
   return { id:CONGREGACION_BASE_ID, nombre:'Ixhuatlán del Café', municipio:MUNICIPIO, estado:ESTADO };
 }
 
-function cargarCongregaciones(){
-  let guardadas = [];
-  try{
-    const raw = localStorage.getItem(CONGREGACIONES_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if(Array.isArray(parsed)){
-      guardadas = parsed
-        .filter(c => c && c.id && c.id !== CONGREGACION_BASE_ID && String(c.nombre || '').trim())
-        .map(c => ({
-          id:String(c.id),
-          nombre:String(c.nombre).trim(),
-          municipio:String(c.municipio || '').trim(),
-          estado:String(c.estado || ESTADO).trim()
-        }));
-    }
-  }catch(e){
-    console.error('No se pudo leer la lista de congregaciones.', e);
-  }
-  return [congregacionBase(), ...guardadas];
+function normalizarEntradaCongregacion(c){
+  if(!c || typeof c !== 'object') return null;
+  const id = String(c.id || '');
+  const nombre = String(c.nombre || '').trim();
+  if(!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,159}$/.test(id) || ['constructor', 'prototype'].includes(id) || !nombre) return null;
+  const numero = valor => Number.isSafeInteger(Number(valor)) && Number(valor) >= 0 ? Number(valor) : 0;
+  return {
+    id, nombre,
+    municipio:String(c.municipio || '').trim(),
+    estado:String(c.estado || ESTADO).trim() || ESTADO,
+    updatedAt:numero(c.updatedAt), revision:numero(c.revision), deletedAt:numero(c.deletedAt)
+  };
 }
 
-function guardarCongregaciones(lista){
+function entradasDeRegistroCongregaciones(registro, agregarBaseAntigua){
+  const esNuevo = registro && registro.version === 2 && Array.isArray(registro.entradas);
+  const entradas = (esNuevo ? registro.entradas : Array.isArray(registro) ? registro : [])
+    .map(normalizarEntradaCongregacion).filter(Boolean);
+  if(!esNuevo && agregarBaseAntigua && !entradas.some(c => c.id === CONGREGACION_BASE_ID)){
+    entradas.unshift(normalizarEntradaCongregacion(congregacionBase()));
+  }
+  return combinarEntradasCongregaciones([], entradas);
+}
+
+function combinarEntradasCongregaciones(locales, remotas){
+  const porId = new Map();
+  [...(locales || []), ...(remotas || [])].forEach(valor => {
+    const nueva = normalizarEntradaCongregacion(valor);
+    if(!nueva) return;
+    const anterior = porId.get(nueva.id);
+    // Una retirada no se deshace por conectar un equipo con una lista vieja,
+    // ni por una edición hecha sin haber recibido todavía esa retirada.
+    const prioridad = c => [c.deletedAt ? 1 : 0, c.updatedAt, c.revision, JSON.stringify(c)];
+    const mayor = (a, b) => {
+      for(let i = 0; i < a.length; i++){
+        if(a[i] !== b[i]) return a[i] > b[i];
+      }
+      return false;
+    };
+    if(!anterior || mayor(prioridad(nueva), prioridad(anterior))) porId.set(nueva.id, nueva);
+  });
+  return [...porId.values()].sort((a, b) => a.id === CONGREGACION_BASE_ID ? -1 : b.id === CONGREGACION_BASE_ID ? 1 : a.id.localeCompare(b.id));
+}
+
+function cargarRegistroCongregaciones(){
   try{
-    const otras = (lista || []).filter(c => c && c.id !== CONGREGACION_BASE_ID);
-    localStorage.setItem(CONGREGACIONES_STORAGE_KEY, JSON.stringify(otras));
-    if(typeof publicarRegistro === 'function') publicarRegistro();
-    return true;
+    const raw = localStorage.getItem(CONGREGACIONES_STORAGE_KEY);
+    return entradasDeRegistroCongregaciones(raw ? JSON.parse(raw) : [], true);
   }catch(e){
+    console.error('No se pudo leer la lista de congregaciones.', e);
+    return [normalizarEntradaCongregacion(congregacionBase())];
+  }
+}
+
+function cargarCongregaciones(){
+  return cargarRegistroCongregaciones().filter(c => !c.deletedAt);
+}
+
+function guardarCongregaciones(lista, activaPreferida, opciones){
+  const entradas = combinarEntradasCongregaciones([], lista || []);
+  const vivas = entradas.filter(c => !c.deletedAt);
+  const preferida = activaPreferida === undefined ? congregacionActivaId : activaPreferida;
+  const activa = vivas.some(c => c.id === preferida) ? preferida : (vivas[0]?.id || '');
+  let antesRegistro, antesActiva;
+  try{
+    antesRegistro = localStorage.getItem(CONGREGACIONES_STORAGE_KEY);
+    antesActiva = localStorage.getItem(CONGREGACION_ACTIVA_STORAGE_KEY);
+    localStorage.setItem(CONGREGACIONES_STORAGE_KEY, JSON.stringify({ version:2, entradas }));
+    localStorage.setItem(CONGREGACION_ACTIVA_STORAGE_KEY, activa);
+  }catch(e){
+    // El registro y la selección forman una sola operación. Una cuota llena
+    // no debe dejar una congregación retirada ni una selección a medias.
+    if(antesRegistro !== undefined && antesActiva !== undefined){
+      try{
+        if(antesRegistro === null) localStorage.removeItem(CONGREGACIONES_STORAGE_KEY);
+        else localStorage.setItem(CONGREGACIONES_STORAGE_KEY, antesRegistro);
+        if(antesActiva === null) localStorage.removeItem(CONGREGACION_ACTIVA_STORAGE_KEY);
+        else localStorage.setItem(CONGREGACION_ACTIVA_STORAGE_KEY, antesActiva);
+      }catch(rollbackError){ console.error('No se pudo recuperar la selección anterior.', rollbackError); }
+    }
     console.error('No se pudo guardar la lista de congregaciones.', e);
     return false;
   }
+  congregacionActivaId = activa;
+  if(opciones?.publicar !== false && typeof publicarRegistro === 'function') publicarRegistro();
+  return true;
 }
 
 function congregacionActual(){
-  return cargarCongregaciones().find(c => c.id === congregacionActivaId) || congregacionBase();
+  return cargarCongregaciones().find(c => c.id === congregacionActivaId)
+    || { id:'', nombre:'Sin congregaciones', municipio:'', estado:ESTADO };
 }
 
 function municipioActual(){
@@ -1263,12 +1382,12 @@ function esCongregacionBase(){
   return congregacionActivaId === CONGREGACION_BASE_ID;
 }
 
-let congregacionActivaId = CONGREGACION_BASE_ID;
+let congregacionActivaId = cargarCongregaciones()[0]?.id || '';
 try{
   const guardada = localStorage.getItem(CONGREGACION_ACTIVA_STORAGE_KEY);
   if(guardada && cargarCongregaciones().some(c => c.id === guardada)) congregacionActivaId = guardada;
 }catch(e){
-  congregacionActivaId = CONGREGACION_BASE_ID;
+  congregacionActivaId = cargarCongregaciones()[0]?.id || '';
 }
 const CLOUD_SYNC_TOKEN_SESSION_KEY = 'croquis-territory-github-token-v2';
 const LEGACY_CLOUD_SYNC_TOKEN_STORAGE_KEY = 'croquis-territory-github-token-v1';
@@ -1848,8 +1967,26 @@ function activarCongregacion(id, silencioso){
   const destino = cargarCongregaciones().find(c => c.id === id);
   if(!destino || destino.id === congregacionActivaId) return false;
   if(map) saveAllChanges();
+  try{ localStorage.setItem(CONGREGACION_ACTIVA_STORAGE_KEY, destino.id); }
+  catch(e){ mostrarEstadoCongregaciones('No se pudo guardar la selección. Inténtalo de nuevo.', true); return false; }
   congregacionActivaId = destino.id;
-  try{ localStorage.setItem(CONGREGACION_ACTIVA_STORAGE_KEY, congregacionActivaId); }catch(e){}
+  actualizarVistaCongregacion(true);
+  if(!silencioso){
+    mostrarEstadoCongregaciones('Congregación ' + destino.nombre + ' seleccionada.');
+    setStatus(LOCS.length
+      ? 'Congregación ' + destino.nombre + '. ' + LOCS.length + (LOCS.length === 1 ? ' territorio.' : ' territorios.')
+      : 'Congregación ' + destino.nombre + '. Todavía no tiene territorios: agrega el primero con el botón +.', 'warn');
+  }
+  return true;
+}
+
+function actualizarVistaCongregacion(cambioDeSeleccion){
+  if(!cambioDeSeleccion){
+    refrescarCongregacionesEnInicio();
+    if(LOCS[currentIndex]) updateInfo(LOCS[currentIndex]);
+    else limpiarMapaSinTerritorios();
+    return;
+  }
   recargarAjustesGuardados();
   currentIndex = 0;
   applyCustomTerritories();
@@ -1859,40 +1996,165 @@ function activarCongregacion(id, silencioso){
   if(LOCS.length){
     if(map) goTo(0, true); else updateInfo(LOCS[0]);
   }else{
+    if(territoryAddMode) setTerritoryAddMode(false, false);
+    if(colorDrawMode) setColorDrawMode(false);
+    if(roadPencilMode) setRoadPencilMode(false, false);
+    if(riverPencilMode) setRiverPencilMode(false, false);
+    if(textAddMode) setTextAddMode(false, false);
+    if(iconAddMode) setIconAddMode(false, false);
+    if(contourEditMode) setContourEditMode(false, false);
     limpiarMapaSinTerritorios();
   }
-  if(!silencioso){
-    setStatus(LOCS.length
-      ? 'Congregación ' + destino.nombre + '. ' + LOCS.length + (LOCS.length === 1 ? ' territorio.' : ' territorios.')
-      : 'Congregación ' + destino.nombre + '. Todavía no tiene territorios: agrega el primero con el botón +.', 'warn');
-  }
-  return true;
 }
 
-function crearCongregacion(){
-  const nombre = window.prompt('Nombre de la congregación nueva:', '');
-  if(nombre == null) return;
-  const limpio = nombre.trim();
-  if(!limpio){
-    setStatus('Escribe el nombre de la congregación.', 'warn');
+function firmaCongregacion(c){
+  return JSON.stringify(normalizarEntradaCongregacion(c));
+}
+
+function siguienteFechaCongregacion(registro){
+  return Math.max(Date.now(), ...registro.map(c => Math.max(c.updatedAt || 0, c.deletedAt || 0) + 1));
+}
+
+function validarDatosCongregacion(datos, id){
+  const nombre = String(datos?.nombre || '').trim();
+  const municipio = String(datos?.municipio || '').trim();
+  const estado = String(datos?.estado || ESTADO).trim() || ESTADO;
+  if(!nombre) return { error:'Escribe el nombre de la congregación.', campo:'congregacion-nombre' };
+  if([nombre, municipio, estado].some(valor => valor.length > 100)) return { error:'Usa un máximo de 100 caracteres en cada campo.', campo:'congregacion-nombre' };
+  if(cargarCongregaciones().some(c => c.id !== id && c.nombre.toLocaleLowerCase('es') === nombre.toLocaleLowerCase('es'))){
+    return { error:'Ya hay una congregación con ese nombre.', campo:'congregacion-nombre' };
+  }
+  return { nombre, municipio, estado };
+}
+
+function crearCongregacionDesdeDatos(datos){
+  const valores = validarDatosCongregacion(datos);
+  if(valores.error) return { ok:false, ...valores };
+  const registro = cargarRegistroCongregaciones();
+  let id;
+  do{ id = 'cong-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
+  while(registro.some(c => c.id === id));
+  const nueva = { id, ...valores, updatedAt:siguienteFechaCongregacion(registro), revision:1, deletedAt:0 };
+  if(!guardarCongregaciones([...registro, nueva], id)) return { ok:false, error:'No se pudo guardar la congregación. Revisa el espacio disponible e inténtalo de nuevo.' };
+  return { ok:true, congregacion:nueva };
+}
+
+function actualizarCongregacion(id, datos, firmaEsperada){
+  const registro = cargarRegistroCongregaciones();
+  const anterior = registro.find(c => c.id === id && !c.deletedAt);
+  if(!anterior) return { ok:false, error:'Esta congregación ya no está disponible. Cierra el formulario y selecciona otra.' };
+  if(firmaEsperada && firmaCongregacion(anterior) !== firmaEsperada) return { ok:false, error:'La congregación cambió en otro equipo. Cierra y vuelve a abrir el formulario para revisar sus datos.' };
+  const valores = validarDatosCongregacion(datos, id);
+  if(valores.error) return { ok:false, ...valores };
+  const nueva = { ...anterior, ...valores, updatedAt:siguienteFechaCongregacion(registro), revision:anterior.revision + 1 };
+  if(!guardarCongregaciones(registro.map(c => c.id === id ? nueva : c))) return { ok:false, error:'No se pudieron guardar los cambios. Inténtalo de nuevo.' };
+  return { ok:true, congregacion:nueva };
+}
+
+function eliminarCongregacion(id, confirmacion, firmaEsperada){
+  const registro = cargarRegistroCongregaciones();
+  const anterior = registro.find(c => c.id === id && !c.deletedAt);
+  if(!anterior) return { ok:false, error:'Esta congregación ya fue eliminada de la lista.' };
+  if(firmaEsperada && firmaCongregacion(anterior) !== firmaEsperada) return { ok:false, error:'La congregación cambió en otro equipo. Cierra y vuelve a abrir el formulario para revisar sus datos.' };
+  if(registro.filter(c => !c.deletedAt).length <= 1) return { ok:false, error:'Agrega otra congregación antes de eliminar la última.' };
+  if(String(confirmacion || '').trim() !== anterior.nombre) return { ok:false, error:'Escribe el nombre exactamente como aparece para confirmar.', campo:'congregacion-confirm-name' };
+  const fecha = siguienteFechaCongregacion(registro);
+  const retirada = { ...anterior, updatedAt:fecha, deletedAt:fecha, revision:anterior.revision + 1 };
+  // Solo se retira del registro visible. Sus claves y documentos permanecen
+  // separados, y el respaldo exportado también incluye este registro.
+  if(!guardarCongregaciones(registro.map(c => c.id === id ? retirada : c))) return { ok:false, error:'No se pudo eliminar de la lista. Inténtalo de nuevo.' };
+  return { ok:true, congregacion:retirada };
+}
+
+let formularioCongregacion = null;
+
+function mostrarEstadoCongregaciones(texto, error){
+  const estado = $('welcome-status');
+  if(!estado) return;
+  estado.textContent = texto || '';
+  estado.hidden = !texto;
+  estado.classList.toggle('is-error', !!error);
+}
+
+function mostrarErrorCongregacion(texto, campo){
+  const error = $('congregacion-error');
+  if(error){ error.textContent = texto || ''; error.hidden = !texto; }
+  ['congregacion-nombre', 'congregacion-confirm-name'].forEach(id => $(id)?.removeAttribute('aria-invalid'));
+  if(campo){ $(campo)?.setAttribute('aria-invalid', 'true'); $(campo)?.focus(); }
+}
+
+function abrirFormularioCongregacion(modo){
+  const dialogo = $('congregacion-dialog');
+  if(!dialogo || dialogo.open) return;
+  const actual = cargarCongregaciones().find(c => c.id === congregacionActivaId);
+  if(modo !== 'crear' && !actual) return;
+  if(modo === 'eliminar' && cargarCongregaciones().length <= 1){
+    mostrarEstadoCongregaciones('Agrega otra congregación antes de eliminar la última.', true);
     return;
   }
-  const lista = cargarCongregaciones();
-  if(lista.some(c => c.nombre.toLowerCase() === limpio.toLowerCase())){
-    setStatus('Ya hay una congregación con ese nombre.', 'warn');
-    return;
+  formularioCongregacion = { modo, id:actual?.id, firma:actual ? firmaCongregacion(actual) : null };
+  $('congregacion-form').reset();
+  mostrarErrorCongregacion('');
+  const eliminar = modo === 'eliminar';
+  $('congregacion-fields').hidden = eliminar;
+  $('congregacion-delete-copy').hidden = !eliminar;
+  ['congregacion-nombre', 'congregacion-municipio', 'congregacion-estado'].forEach(id => { $(id).disabled = eliminar; });
+  $('congregacion-confirm-name').disabled = !eliminar;
+  $('congregacion-confirm-name').required = eliminar;
+  $('congregacion-nombre').value = modo === 'crear' ? '' : actual.nombre;
+  $('congregacion-municipio').value = modo === 'crear' ? '' : actual.municipio;
+  $('congregacion-estado').value = modo === 'crear' ? ESTADO : actual.estado;
+  $('congregacion-dialog-title').textContent = eliminar ? 'Eliminar congregación' : modo === 'crear' ? 'Agregar congregación' : 'Renombrar congregación';
+  $('congregacion-dialog-description').textContent = eliminar
+    ? 'Confirma la congregación que quieres retirar de tu lista.'
+    : modo === 'crear' ? 'Organiza una nueva lista de territorios.' : 'Actualiza sus datos. Sus territorios y dibujos se conservan.';
+  $('congregacion-delete-message').textContent = eliminar
+    ? '«' + actual.nombre + '» se retirará de la lista. Esto no afecta a las demás congregaciones.' : '';
+  const enviar = $('congregacion-submit');
+  enviar.textContent = eliminar ? 'Eliminar congregación' : modo === 'crear' ? 'Agregar congregación' : 'Guardar cambios';
+  enviar.classList.toggle('is-danger', eliminar);
+  dialogo.showModal();
+  (eliminar ? $('congregacion-confirm-name') : $('congregacion-nombre')).focus();
+}
+
+function crearCongregacion(){ abrirFormularioCongregacion('crear'); }
+function renombrarCongregacion(){ abrirFormularioCongregacion('editar'); }
+function confirmarEliminarCongregacion(){ abrirFormularioCongregacion('eliminar'); }
+
+function cancelarFormularioCongregacion(){
+  formularioCongregacion = null;
+  mostrarErrorCongregacion('');
+  const dialogo = $('congregacion-dialog');
+  if(dialogo?.open) dialogo.close();
+}
+
+function enviarFormularioCongregacion(event){
+  event.preventDefault();
+  const formulario = formularioCongregacion;
+  if(!formulario) return;
+  const previa = congregacionActivaId;
+  if(formulario.modo !== 'editar' && map){
+    if(draftPoints.length || roadDraftPoints.length || riverDraftPoints.length){
+      mostrarErrorCongregacion('Termina o cancela el dibujo del editor antes de cambiar de congregación.');
+      return;
+    }
+    saveAllChanges();
   }
-  const municipio = (window.prompt('Municipio al que pertenece:', limpio) || '').trim();
-  const estado = (window.prompt('Estado:', ESTADO) || ESTADO).trim() || ESTADO;
-  const nueva = { id:'cong-' + Date.now(), nombre:limpio, municipio, estado };
-  if(!guardarCongregaciones([...lista, nueva])){
-    setStatus('No se pudo guardar la congregación nueva.', 'error');
-    return;
-  }
-  // se cambia a ella con el registro ya guardado, para que se encuentre
-  activarCongregacion(nueva.id, true);
-  hideWelcomeScreen();
-  setStatus('Congregación ' + limpio + ' creada. Agrega su primer territorio con el botón +.', 'warn');
+  const datos = {
+    nombre:$('congregacion-nombre').value,
+    municipio:$('congregacion-municipio').value,
+    estado:$('congregacion-estado').value
+  };
+  const resultado = formulario.modo === 'crear' ? crearCongregacionDesdeDatos(datos)
+    : formulario.modo === 'editar' ? actualizarCongregacion(formulario.id, datos, formulario.firma)
+    : eliminarCongregacion(formulario.id, $('congregacion-confirm-name').value, formulario.firma);
+  if(!resultado.ok){ mostrarErrorCongregacion(resultado.error, resultado.campo); return; }
+  cancelarFormularioCongregacion();
+  actualizarVistaCongregacion(previa !== congregacionActivaId);
+  mostrarEstadoCongregaciones(formulario.modo === 'crear'
+    ? '«' + resultado.congregacion.nombre + '» creada y seleccionada. Abre el editor para agregar su primer territorio.'
+    : formulario.modo === 'editar' ? 'Datos de «' + resultado.congregacion.nombre + '» actualizados.'
+    : '«' + resultado.congregacion.nombre + '» eliminada de la lista.');
 }
 
 function refrescarCongregacionesEnInicio(){
@@ -1901,14 +2163,29 @@ function refrescarCongregacionesEnInicio(){
   if(rotulo) rotulo.textContent = 'Predicación 2026 · ' + congregacionActual().nombre;
   const sel = $('welcome-cong-sel');
   if(!sel) return;
+  const lista = cargarCongregaciones();
   sel.innerHTML = '';
-  cargarCongregaciones().forEach(c => {
+  lista.forEach(c => {
     const option = document.createElement('option');
     option.value = c.id;
     option.textContent = c.nombre;
     sel.appendChild(option);
   });
   sel.value = congregacionActivaId;
+  sel.disabled = !lista.length;
+  const renombrar = $('welcome-cong-renombrar');
+  if(renombrar) renombrar.disabled = !lista.length;
+  const eliminar = $('welcome-cong-eliminar');
+  if(eliminar){
+    eliminar.disabled = lista.length <= 1;
+    eliminar.title = lista.length <= 1 ? 'Agrega otra congregación antes de eliminar la última' : 'Eliminar congregación seleccionada';
+  }
+  const abrir = $('welcome-start');
+  if(abrir) abrir.disabled = !lista.length;
+  const nota = $('welcome-cong-note');
+  if(nota) nota.textContent = !lista.length ? 'Agrega una congregación para comenzar.'
+    : lista.length === 1 ? 'Cada congregación conserva su trabajo. Agrega otra antes de eliminar la última.'
+    : 'Cada congregación conserva sus propios territorios y dibujos.';
 }
 
 function boundsPlainFromCorners(a, b){
@@ -2099,13 +2376,18 @@ function deleteCurrentTerritory(){
 }
 
 function hideWelcomeScreen(){
+  if(!cargarCongregaciones().some(c => c.id === congregacionActivaId)) return;
   $('welcome-screen')?.classList.add('is-hidden');
+  document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = false; });
   if(map) setTimeout(() => map.invalidateSize(), 60);
   locSel?.focus?.();
 }
 
 function showWelcomeScreen(){
   $('welcome-screen')?.classList.remove('is-hidden');
+  document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
+  refrescarCongregacionesEnInicio();
+  ($('welcome-cong-sel')?.disabled ? $('welcome-cong-nueva') : $('welcome-cong-sel'))?.focus();
 }
 
 function clearHeavyUndoStorage(){
@@ -4476,6 +4758,7 @@ function buildBackupPayload(){
     // el trabajo de la que esta abierta, que es lo que entienden los respaldos
     // viejos; estos campos son los que agregan el resto.
     congregaciones:cargarCongregaciones(),
+    registroCongregaciones:{ version:2, entradas:cargarRegistroCongregaciones() },
     congregacionActiva:congregacionActivaId,
     porCongregacion:datosDeTodasLasCongregaciones()
   };
@@ -4493,7 +4776,7 @@ function datosDeCongregacion(id){
 
 function datosDeTodasLasCongregaciones(){
   const salida = {};
-  cargarCongregaciones().forEach(c => { salida[c.id] = datosDeCongregacion(c.id); });
+  cargarRegistroCongregaciones().forEach(c => { salida[c.id] = datosDeCongregacion(c.id); });
   return salida;
 }
 
@@ -4505,19 +4788,49 @@ function guardarDatosDeCongregacion(id, datos){
   });
 }
 
-function restaurarCongregacionesDelRespaldo(payload){
-  if(!Array.isArray(payload?.congregaciones)) return;
-  guardarCongregaciones(payload.congregaciones);
-  const porCong = payload.porCongregacion;
+function restaurarCongregacionesDelRespaldo(payload, data){
+  const actual = cargarRegistroCongregaciones();
+  const registroRespaldo = payload?.registroCongregaciones || payload?.congregaciones;
+  const importadas = registroRespaldo ? entradasDeRegistroCongregaciones(registroRespaldo, true) : [];
+  const entradas = combinarEntradasCongregaciones(actual, importadas);
+  const vivas = entradas.filter(c => !c.deletedAt);
+  const fuente = String(payload?.congregacionActiva || congregacionActivaId || '');
+  const fuenteViva = vivas.some(c => c.id === fuente);
+  const activa = fuenteViva ? fuente : vivas.some(c => c.id === congregacionActivaId) ? congregacionActivaId : (vivas[0]?.id || '');
+  const cambios = new Map();
+  cambios.set(CONGREGACIONES_STORAGE_KEY, JSON.stringify({ version:2, entradas }));
+  cambios.set(CONGREGACION_ACTIVA_STORAGE_KEY, activa);
+  const porCong = payload?.porCongregacion;
   if(porCong && typeof porCong === 'object'){
-    Object.keys(porCong).forEach(id => guardarDatosDeCongregacion(id, porCong[id]));
+    entradas.forEach(c => {
+      CLAVES_POR_CONGREGACION.forEach(([campo, clave]) => {
+        if(typeof porCong[c.id]?.[campo] === 'string') cambios.set(claveDe(clave, c.id), porCong[c.id][campo]);
+      });
+    });
   }
-  const activa = payload.congregacionActiva;
-  if(activa && cargarCongregaciones().some(c => c.id === activa)){
-    congregacionActivaId = activa;
-    try{ localStorage.setItem(CONGREGACION_ACTIVA_STORAGE_KEY, activa); }catch(e){}
+  // El bloque activo de un respaldo antiguo pertenece a su ID original.
+  // Si ese ID fue retirado, no se aplica a la selección que lo sustituye.
+  if(data && fuenteViva){
+    CLAVES_POR_CONGREGACION.forEach(([campo, clave]) => {
+      if(Object.prototype.hasOwnProperty.call(data, campo)) cambios.set(claveDe(clave, fuente), JSON.stringify(data[campo]));
+    });
+    cambios.set(claveDe(UNDO_HISTORY_STORAGE_KEY, fuente), '[]');
   }
-  refrescarCongregacionesEnInicio();
+  const anteriores = new Map();
+  try{
+    cambios.forEach((valor, clave) => { anteriores.set(clave, localStorage.getItem(clave)); });
+    cambios.forEach((valor, clave) => { localStorage.setItem(clave, valor); });
+  }catch(e){
+    anteriores.forEach((valor, clave) => {
+      try{ if(valor === null) localStorage.removeItem(clave); else localStorage.setItem(clave, valor); }
+      catch(error){ console.error('No se pudo recuperar una clave del respaldo.', error); }
+    });
+    console.error('No se pudo importar el respaldo.', e);
+    return { ok:false };
+  }
+  const anteriorId = congregacionActivaId;
+  congregacionActivaId = activa;
+  return { ok:true, anteriorId, datosActivosOmitidos:!!data && !fuenteViva };
 }
 
 function exportBackup(){
@@ -4612,7 +4925,7 @@ function getBackupData(payload){
 function refreshAfterBackupImport(previousNum){
   applyCustomTerritories();
   populateSelect();
-  if(!LOCS.length) return;
+  if(!LOCS.length){ limpiarMapaSinTerritorios(); return; }
   const nextIndex = LOCS.findIndex(loc => String(loc.num) === String(previousNum));
   if(map){
     goTo(nextIndex >= 0 ? nextIndex : 0, true);
@@ -4629,34 +4942,15 @@ function importBackupPayload(payload){
     setStatus('El archivo no parece ser un respaldo valido.', 'error');
     return false;
   }
-  // Primero las congregaciones, porque de eso depende en cual se guarda todo
-  // lo que viene despues.
-  restaurarCongregacionesDelRespaldo(payload);
   const previousNum = LOCS[currentIndex]?.num;
-  colorAreaSettings = data.colorAreas;
-  textLabelSettings = data.textLabels;
-  manualIconSettings = data.manualIcons;
-  whiteRoadSettings = data.whiteRoads;
-  manualRiverSettings = data.manualRivers;
-  frameScaleSettings = data.frameScales;
-  leyendaSettings = data.leyenda;
-  nombresSettings = data.nombres;
-  undoHistory = [];
-  const colorsSaved = saveColorAreaSettings();
-  const textsSaved = saveTextLabelSettings();
-  const iconsSaved = saveManualIconSettings();
-  const roadsSaved = saveWhiteRoadSettings();
-  const riversSaved = saveManualRiverSettings();
-  const framesSaved = saveFrameScaleSettings();
-  saveLeyendaSettings();
-  saveNombresSettings();
-  const customSaved = saveCustomTerritorySettings(data.customTerritories);
-  const hiddenSaved = saveHiddenTerritorySettings(data.hiddenTerritories);
-  saveUndoHistory();
-  if(!(colorsSaved && textsSaved && iconsSaved && roadsSaved && riversSaved && framesSaved && customSaved && hiddenSaved)){
-    setStatus('No se pudo importar todo el respaldo. Revisa espacio o permisos del navegador.', 'error');
+  const restaurado = restaurarCongregacionesDelRespaldo(payload, data);
+  if(!restaurado.ok){
+    setStatus('No se pudo importar el respaldo. El trabajo anterior se conserva. Revisa el espacio disponible.', 'error');
     return false;
   }
+  recargarAjustesGuardados();
+  refrescarCongregacionesEnInicio();
+  escucharCongregacion();
   selectedAreaIndex = null;
   selectedTextIndex = null;
   selectedIconIndex = null;
@@ -4668,8 +4962,10 @@ function importBackupPayload(payload){
   setIconAddMode(false, false);
   setContourEditMode(false, false);
   setTerritoryAddMode(false, false);
-  refreshAfterBackupImport(previousNum);
-  setStatus('Respaldo importado. Tus colores, textos y territorios quedaron cargados.', 'warn');
+  refreshAfterBackupImport(restaurado.anteriorId === congregacionActivaId ? previousNum : null);
+  setStatus(restaurado.datosActivosOmitidos
+    ? 'Respaldo importado. La congregación retirada no se reabrió y el trabajo de la seleccionada se conserva.'
+    : 'Respaldo importado. Tus colores, textos y territorios quedaron cargados.', 'warn');
   return true;
 }
 
@@ -4750,7 +5046,7 @@ function pintarEstadoNube(texto, encendido){
     const rotulo = $('btn-nube-texto');
     if(rotulo) rotulo.textContent = encendido ? 'En linea' : 'Conectar';
   }
-  // el del inicio dice lo mismo, con mas palabras porque ahi hay sitio
+  // En Inicio el estado cabe también en pantallas pequeñas.
   const enInicio = $('welcome-nube');
   if(enInicio){
     enInicio.classList.toggle('is-on', !!encendido);
@@ -4758,8 +5054,8 @@ function pintarEstadoNube(texto, encendido){
     const rotulo = $('welcome-nube-texto');
     if(rotulo){
       rotulo.textContent = encendido
-        ? 'En linea: los cambios se ven al momento'
-        : 'Conectar para trabajar entre varios';
+        ? 'Trabajo en línea'
+        : 'Conectar equipo';
     }
   }
 }
@@ -4839,18 +5135,23 @@ function escucharCongregacion(){
   if(!nube) return;
   if(nubeCorte){ nubeCorte(); nubeCorte = null; }
   if(nubeCorteLista){ nubeCorteLista(); nubeCorteLista = null; }
+  const idEscuchado = congregacionActivaId;
+  const sigueActiva = () => idEscuchado === congregacionActivaId && cargarCongregaciones().some(c => c.id === idEscuchado);
+  if(!sigueActiva()) return;
   const { fs, db } = nube;
   nubeCorteLista = fs.onSnapshot(
-    fs.doc(db, 'congregaciones', congregacionActivaId, 'ajustes', 'lista'),
+    fs.doc(db, 'congregaciones', idEscuchado, 'ajustes', 'lista'),
     instantanea => {
+      if(!sigueActiva()) return;
       const d = instantanea.data();
       if(!d || d.de === nubeYo) return;   // el eco de lo que yo mismo mande
       aplicarListaRemota(d);
     },
     err => console.error('Se corto la escucha de la lista.', err));
   nubeCorte = fs.onSnapshot(
-    fs.collection(db, 'congregaciones', congregacionActivaId, 'territorios'),
+    fs.collection(db, 'congregaciones', idEscuchado, 'territorios'),
     instantanea => {
+      if(!sigueActiva()) return;
       instantanea.docChanges().forEach(cambio => {
         if(cambio.type === 'removed') return;
         const d = cambio.doc.data() || {};
@@ -4859,6 +5160,7 @@ function escucharCongregacion(){
       });
     },
     err => {
+      if(!sigueActiva()) return;
       console.error('Se corto la escucha.', err);
       setStatus('Se corto la conexion del trabajo compartido.', 'error');
       pintarEstadoNube('Se corto la conexion', false);
@@ -4923,14 +5225,27 @@ async function publicarRegistro(){
   if(!nube || nubeAplicando) return;
   try{
     const { fs, db } = nube;
-    await fs.setDoc(fs.doc(db, 'congregaciones', NUBE_REGISTRO), {
-      lista:JSON.stringify(cargarCongregaciones().filter(c => c.id !== CONGREGACION_BASE_ID)),
-      de:nubeYo,
-      porQuien:nubeQuien,
-      cuando:Date.now()
+    const referencia = fs.doc(db, 'congregaciones', NUBE_REGISTRO);
+    const compartidas = await fs.runTransaction(db, async transaccion => {
+      const instantanea = await transaccion.get(referencia);
+      const documento = instantanea.data();
+      let registro = [];
+      if(documento?.lista){
+        try{ registro = JSON.parse(documento.lista); }
+        catch(e){ throw new Error('La lista compartida no se pudo leer.'); }
+        if(!Array.isArray(registro) && !(registro?.version === 2 && Array.isArray(registro.entradas))) throw new Error('La lista compartida no tiene un formato válido.');
+      }
+      const entradas = fusionarRegistro(registro);
+      transaccion.set(referencia, {
+        lista:JSON.stringify({ version:2, entradas }),
+        de:nubeYo, porQuien:nubeQuien, cuando:Date.now()
+      });
+      return entradas;
     });
+    aplicarRegistroCompartido(compartidas);
   }catch(err){
     console.error('No se pudo compartir la lista de congregaciones.', err);
+    mostrarEstadoCongregaciones('Guardado en este equipo. No se pudo compartir la lista; revisa la conexión.', true);
     setStatus('No se pudo compartir la lista de congregaciones: ' + err.message, 'error');
   }
 }
@@ -4939,12 +5254,26 @@ async function publicarRegistro(){
 // ultimo que conecta borraria las congregaciones que el otro tenia y que
 // nunca llegaron a subirse.
 function fusionarRegistro(remotas){
-  const porId = new Map();
-  (remotas || []).forEach(c => { if(c && c.id && c.id !== CONGREGACION_BASE_ID) porId.set(String(c.id), c); });
-  cargarCongregaciones().forEach(c => {
-    if(c.id !== CONGREGACION_BASE_ID && !porId.has(String(c.id))) porId.set(String(c.id), c);
-  });
-  return [...porId.values()];
+  return combinarEntradasCongregaciones(cargarRegistroCongregaciones(), entradasDeRegistroCongregaciones(remotas, false));
+}
+
+function aplicarRegistroCompartido(entradas, quien){
+  const fusion = combinarEntradasCongregaciones(cargarRegistroCongregaciones(), entradas);
+  if(JSON.stringify(fusion) === JSON.stringify(cargarRegistroCongregaciones())) return true;
+  const anteriorId = congregacionActivaId;
+  const aplicandoAntes = nubeAplicando;
+  let guardado;
+  nubeAplicando = true;
+  try{ guardado = guardarCongregaciones(fusion, undefined, { publicar:false }); }
+  finally{ nubeAplicando = aplicandoAntes; }
+  if(!guardado){
+    mostrarEstadoCongregaciones('No se pudo guardar la lista recibida. Revisa el espacio disponible.', true);
+    return false;
+  }
+  actualizarVistaCongregacion(anteriorId !== congregacionActivaId);
+  mostrarEstadoCongregaciones(!congregacionActivaId ? 'Agrega una congregación para comenzar.'
+    : (quien || 'El equipo') + ' actualizó la lista de congregaciones.');
+  return true;
 }
 
 function escucharRegistro(){
@@ -4959,22 +5288,13 @@ function escucharRegistro(){
       // se suben tambien las congregaciones creadas antes de que esto
       // existiera, que es lo que dejaba a un equipo viendo una y al otro no.
       if(!d){ publicarRegistro(); return; }
-      if(d.de === nubeYo) return;
       let lista;
       try{ lista = JSON.parse(d.lista || '[]'); }catch(e){ return; }
-      if(!Array.isArray(lista)) return;
-      const antes = cargarCongregaciones().length;
+      if(!Array.isArray(lista) && !(lista?.version === 2 && Array.isArray(lista.entradas))) return;
       const fusion = fusionarRegistro(lista);
-      nubeAplicando = true;
-      guardarCongregaciones(fusion);
-      nubeAplicando = false;
-      refrescarCongregacionesEnInicio();
-      const ahora = cargarCongregaciones().length;
-      if(ahora !== antes){
-        setStatus((d.porQuien || 'alguien') + ' cambio la lista de congregaciones.', 'warn');
-      }
+      if(!aplicarRegistroCompartido(fusion, d.porQuien)) return;
       // si este equipo tenia alguna que alla no estaba, se sube
-      if(fusion.length !== lista.length) publicarRegistro();
+      if(JSON.stringify(fusion) !== JSON.stringify(entradasDeRegistroCongregaciones(lista, false))) publicarRegistro();
     },
     err => console.error('Se corto la escucha del registro.', err));
 }
@@ -4984,7 +5304,7 @@ function escucharRegistro(){
 // asi que agregar o renombrar un territorio no le llegaba a nadie hasta que
 // alguien cargaba el respaldo.
 async function publicarLista(){
-  if(!nube || nubeAplicando) return;
+  if(!nube || nubeAplicando || !cargarCongregaciones().some(c => c.id === congregacionActivaId)) return;
   try{
     const { fs, db } = nube;
     await fs.setDoc(fs.doc(db, 'congregaciones', congregacionActivaId, 'ajustes', 'lista'), {
@@ -5056,7 +5376,7 @@ function publicarTerritorioPronto(loc){
 }
 
 async function publicarTerritorio(loc){
-  if(!nube || !loc || nubeAplicando) return;
+  if(!nube || !loc || nubeAplicando || !cargarCongregaciones().some(c => c.id === congregacionActivaId)) return;
   const clave = String(loc.num);
   const datos = {
     areas:colorAreaSettings[clave] || [],
@@ -7987,6 +8307,18 @@ $('btn-add-territory')?.addEventListener('click', addCustomTerritory);
 $('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
 $('welcome-start')?.addEventListener('click', hideWelcomeScreen);
 $('welcome-cong-nueva')?.addEventListener('click', crearCongregacion);
+$('welcome-cong-renombrar')?.addEventListener('click', renombrarCongregacion);
+$('welcome-cong-eliminar')?.addEventListener('click', confirmarEliminarCongregacion);
+$('congregacion-form')?.addEventListener('submit', enviarFormularioCongregacion);
+$('congregacion-cancel')?.addEventListener('click', cancelarFormularioCongregacion);
+$('congregacion-dialog')?.addEventListener('cancel', event => {
+  event.preventDefault();
+  cancelarFormularioCongregacion();
+});
+$('congregacion-dialog')?.addEventListener('close', () => {
+  formularioCongregacion = null;
+  mostrarErrorCongregacion('');
+});
 $('btn-nube')?.addEventListener('click', () => conectarNube(false));
 $('welcome-nube')?.addEventListener('click', () => conectarNube(false));
 // si ya se entro antes en este dispositivo, se reengancha solo
@@ -7995,7 +8327,9 @@ $('welcome-cong-sel')?.addEventListener('change', event => {
   if(!activarCongregacion(event.target.value)) refrescarCongregacionesEnInicio();
 });
 refrescarCongregacionesEnInicio();
+document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
 document.addEventListener('keydown', event => {
+  if($('congregacion-dialog')?.open) return;
   if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's'){
     event.preventDefault();
     saveAllChanges();

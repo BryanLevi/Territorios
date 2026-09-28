@@ -1,0 +1,268 @@
+/* Hallmark · component: welcome and congregation management · genre: modern-minimal
+ * theme: existing forest paper · pre-emit critique: P5 H5 E4 S5 R5 V4
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * Component scope: no app rebuild, no hero enrichment; print remains unchanged.
+ */
+@media screen {
+  .premium-welcome {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2xl);
+    background: var(--color-paper-3);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    overflow-x: clip;
+    overflow-y: auto;
+  }
+  .premium-welcome.is-hidden { display: none; }
+  .premium-welcome .welcome-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    width: min(1100px, 100%);
+    max-height: calc(100dvh - 64px);
+    overflow: auto;
+    border: var(--rule-thin) solid var(--color-rule);
+    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    box-shadow: var(--shadow-panel);
+  }
+  .premium-welcome .welcome-main { min-width: 0; padding: var(--space-2xl); border-right: var(--rule-thin) solid var(--color-rule); }
+  .premium-welcome .welcome-brand { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-xl); min-width: 0; }
+  .premium-welcome .welcome-brand-mark { width: var(--control-height); height: var(--control-height); flex: 0 0 var(--control-height); display: inline-flex; align-items: center; justify-content: center; border: var(--rule-thin) solid var(--color-rule); border-radius: var(--radius-lg); background: var(--color-accent-soft); color: var(--color-accent); }
+  .premium-welcome .welcome-brand-mark svg, .premium-welcome .welcome-brand > svg { width: 24px; height: 24px; flex: 0 0 24px; }
+  .premium-welcome .welcome-brand-copy { display: flex; flex-direction: column; gap: var(--space-xs); min-width: 0; }
+  .premium-welcome .welcome-brand strong { font-size: var(--text-body); font-weight: 650; letter-spacing: -0.01em; line-height: 1.1; overflow-wrap: anywhere; min-width: 0; }
+  .premium-welcome .welcome-brand-copy > span, .premium-welcome .welcome-brand-copy > small { color: var(--color-muted); font-size: var(--text-caption); line-height: 1.2; }
+  .premium-welcome .welcome-brand-year { margin-left: auto; color: var(--color-muted); font-size: var(--text-caption); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .premium-welcome .welcome-main h2 { margin: 0 0 var(--space-md); max-width: none; color: var(--color-ink); font-family: var(--font-display); font-size: var(--text-heading); line-height: 1.08; letter-spacing: -0.035em; font-weight: 700; font-style: normal; overflow-wrap: anywhere; min-width: 0; }
+  .premium-welcome .welcome-main p { margin: 0; color: var(--color-muted); font-size: var(--text-body); line-height: 1.5; }
+  .premium-welcome .welcome-main .welcome-intro { max-width: 45ch; margin-bottom: var(--space-xl); font-size: var(--text-lead); line-height: 1.5; }
+  .premium-welcome .welcome-credit { margin: var(--space-lg) 0 0; color: var(--color-muted); font-size: var(--text-caption); font-weight: 500; }
+  .premium-welcome .welcome-selection { margin-top: var(--space-xl); }
+  .premium-welcome .welcome-cong { display: flex; flex-direction: column; align-items: stretch; gap: var(--space-md); margin: 0; padding: 0; border: 0; }
+  .premium-welcome .welcome-selection-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-sm); min-width: 0; }
+  .premium-welcome .welcome-selection-head label,
+  .premium-welcome .welcome-cong > label { color: var(--color-ink-2); font-size: var(--text-control); font-weight: 650; line-height: 1.3; text-transform: none; letter-spacing: 0; }
+  .premium-welcome .welcome-cong-actions { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--space-xs); min-width: 0; }
+  .premium-welcome .welcome-cong select,
+  .congregacion-dialog input {
+    display: block;
+    width: 100%;
+    height: 48px;
+    min-height: var(--control-height);
+    min-width: 0;
+    max-width: none;
+    padding: 0 var(--space-md);
+    border: var(--rule-thin) solid var(--color-rule-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    font-weight: 600;
+    outline: 2px solid var(--color-transparent);
+    outline-offset: 2px;
+    box-shadow: var(--shadow-control);
+  }
+  .premium-welcome .welcome-cong select { padding-right: var(--space-2xl); }
+  .premium-welcome button,
+  .congregacion-dialog button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    gap: var(--space-sm);
+    height: var(--control-height);
+    min-width: var(--control-height);
+    min-height: var(--control-height);
+    margin: 0;
+    padding: 0 var(--space-lg);
+    border: var(--rule-thin) solid var(--color-rule);
+    border-radius: var(--radius-md);
+    background: var(--color-paper);
+    color: var(--color-ink-2);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: var(--shadow-control);
+    filter: none;
+    transform: none;
+    transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+  }
+  .premium-welcome button svg, .congregacion-dialog button svg { width: 18px; height: 18px; flex: 0 0 18px; }
+  .premium-welcome .welcome-cong-actions button { gap: var(--space-xs); padding: 0 var(--space-sm); font-size: var(--text-control); box-shadow: none; }
+  .premium-welcome #welcome-cong-nueva { background: var(--color-accent-soft); color: var(--color-accent); border-color: var(--color-rule); }
+  .premium-welcome #welcome-cong-eliminar { color: var(--color-error); background: var(--color-paper); }
+  .premium-welcome #welcome-start {
+    width: 100%;
+    height: 48px;
+    margin-top: var(--space-xs);
+    justify-content: space-between;
+    padding: 0 var(--space-lg);
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 2px 4px var(--color-shadow);
+  }
+  .premium-welcome .welcome-nube { width: 100%; justify-content: flex-start; background: var(--color-paper-2); color: var(--color-ink-2); border-color: var(--color-rule); font-size: var(--text-control); box-shadow: none; }
+  .premium-welcome .welcome-nube.is-on { background: var(--color-success-soft); color: var(--color-success); border-color: var(--color-rule); }
+  .premium-welcome .welcome-nube .nube-punto { width: 7px; height: 7px; flex: 0 0 7px; background: var(--color-inactive); box-shadow: none; }
+  .premium-welcome .welcome-nube.is-on .nube-punto { background: var(--color-success); box-shadow: none; }
+  .premium-welcome .welcome-main .welcome-cong-nota { font-size: var(--text-caption); line-height: 1.45; color: var(--color-muted); }
+  .premium-welcome #welcome-status { margin: 0; min-height: 0; color: var(--color-muted); font-size: var(--text-caption); line-height: 1.45; }
+  .premium-welcome #welcome-status:empty { display: none; }
+  .premium-welcome #welcome-status.error,
+  .premium-welcome #welcome-status.is-error { color: var(--color-error); }
+  .premium-welcome #welcome-status.success { color: var(--color-success); }
+  .premium-welcome .welcome-steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-md); margin: var(--space-xl) 0 0; padding-top: var(--space-lg); border-top: var(--rule-thin) solid var(--color-rule); }
+  .premium-welcome .welcome-step { display: flex; align-items: center; gap: var(--space-md); color: var(--color-muted); font-size: var(--text-control); line-height: 1.4; }
+  .premium-welcome .welcome-step b { width: 24px; height: 24px; flex: 0 0 24px; border: var(--rule-thin) solid var(--color-rule); border-radius: var(--radius-sm); background: var(--color-paper-2); color: var(--color-ink-2); font-size: var(--text-caption); font-weight: 600; }
+  .premium-welcome .welcome-step > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .premium-welcome .welcome-step strong { color: var(--color-ink-2); font-size: var(--text-control); font-weight: 600; }
+  .premium-welcome .welcome-step > span > span { font-size: var(--text-caption); }
+
+  .premium-welcome .welcome-guide { min-width: 0; padding: var(--space-2xl); background: var(--color-paper-2); color: var(--color-ink); }
+  .premium-welcome .welcome-guide-kicker, .congregacion-dialog .congregacion-dialog-kicker { display: block; margin-bottom: var(--space-sm); color: var(--color-muted); font-size: var(--text-caption); font-weight: 600; line-height: 1.2; }
+  .premium-welcome .welcome-guide h3 { margin: 0 0 var(--space-sm); color: var(--color-ink); font-family: var(--font-display); font-size: 18px; line-height: 1.25; font-weight: 650; font-style: normal; overflow-wrap: anywhere; min-width: 0; }
+  .premium-welcome .welcome-guide > p { margin: 0 0 var(--space-xl); color: var(--color-muted); font-size: var(--text-control); line-height: 1.45; }
+  .premium-welcome .guide-section { margin: 0; border-top: var(--rule-thin) solid var(--color-rule); }
+  .premium-welcome .guide-section:last-child { border-bottom: var(--rule-thin) solid var(--color-rule); }
+  .premium-welcome .guide-section > summary { display: flex; align-items: center; gap: var(--space-sm); min-height: 64px; padding: var(--space-md) 0; color: var(--color-ink-2); line-height: 1.2; list-style: none; cursor: pointer; }
+  .premium-welcome .guide-section > summary::-webkit-details-marker { display: none; }
+  .premium-welcome .guide-section > summary > span { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--space-xs); min-width: 0; font-size: var(--text-body); font-weight: 600; }
+  .premium-welcome .guide-section > summary b { font-size: var(--text-body); font-weight: 600; }
+  .premium-welcome .guide-section > summary small { color: var(--color-muted); font-size: var(--text-caption); font-weight: 400; line-height: 1.3; }
+  .premium-welcome .guide-section > summary svg { width: 16px; height: 16px; flex: 0 0 16px; color: var(--color-muted); }
+  .premium-welcome .guide-section[open] > summary { color: var(--color-accent); }
+  .premium-welcome .guide-section[open] > summary > svg { transform: rotate(180deg); }
+  .premium-welcome .tool-grid, .premium-welcome .tool-guide { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 0 var(--space-md); }
+  .premium-welcome .tool-item { display: flex; align-items: flex-start; gap: var(--space-md); min-width: 0; padding: var(--space-md) 0; border: 0; border-radius: 0; background: var(--color-transparent); color: var(--color-ink-2); box-shadow: none; }
+  .premium-welcome .tool-item + .tool-item { border-top: var(--rule-thin) solid var(--color-rule); }
+  .premium-welcome .tool-icon { width: 28px; height: 28px; flex: 0 0 28px; margin-top: 1px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--radius-sm); background: var(--color-transparent); color: var(--color-accent); }
+  .premium-welcome .tool-icon svg { width: 20px; height: 20px; }
+  .premium-welcome .tool-item > span:last-child { display: flex; flex-direction: column; gap: var(--space-xs); min-width: 0; }
+  .premium-welcome .tool-item b { color: var(--color-ink-2); font-size: var(--text-control); font-weight: 650; line-height: 1.3; }
+  .premium-welcome .tool-item > span:last-child > span { color: var(--color-muted); font-size: var(--text-caption); line-height: 1.45; }
+  .premium-welcome .tool-icon.color-dot { background: var(--color-accent-soft); border: var(--rule-thin) solid var(--color-rule); }
+
+  .congregacion-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(520px, calc(100vw - 32px));
+    height: fit-content;
+    max-height: calc(100dvh - 32px);
+    padding: 0;
+    border: var(--rule-thin) solid var(--color-rule);
+    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    box-shadow: var(--shadow-panel);
+    overflow: auto;
+  }
+  .congregacion-dialog::backdrop { background: var(--color-backdrop); }
+  .congregacion-dialog form { margin: 0; padding: var(--space-2xl); }
+  .congregacion-dialog .congregacion-dialog-head { margin-bottom: var(--space-xl); }
+  .congregacion-dialog h2, .congregacion-dialog h3 { margin: 0 0 var(--space-sm); color: var(--color-ink); font-family: var(--font-display); font-size: 22px; font-weight: 650; font-style: normal; line-height: 1.2; letter-spacing: -0.025em; overflow-wrap: anywhere; min-width: 0; }
+  .congregacion-dialog p { margin: 0; color: var(--color-muted); font-size: var(--text-body); line-height: 1.5; }
+  .congregacion-dialog #congregacion-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+  .congregacion-dialog .congregacion-field { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
+  .congregacion-dialog label { color: var(--color-ink-2); font-size: var(--text-control); font-weight: 600; line-height: 1.3; }
+  .congregacion-dialog input { height: var(--control-height); font-weight: 400; }
+  .congregacion-dialog input::placeholder { color: var(--color-muted); }
+  .congregacion-dialog #congregacion-delete-copy { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+  .congregacion-dialog #congregacion-delete-copy b, .congregacion-dialog #congregacion-delete-copy strong { color: var(--color-ink); font-weight: 650; }
+  .congregacion-dialog #congregacion-error { min-height: 1lh; margin: var(--space-md) 0 0; color: var(--color-error); font-size: var(--text-control); line-height: 1.4; }
+  .congregacion-dialog #congregacion-error[hidden] { display: block !important; visibility: hidden; }
+  .congregacion-dialog footer, .congregacion-dialog .congregacion-dialog-actions, .congregacion-dialog .congregacion-dialog-footer { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-xl); padding-top: var(--space-xl); border-top: var(--rule-thin) solid var(--color-rule); }
+  .congregacion-dialog #congregacion-submit { background: var(--color-accent); color: var(--color-accent-ink); border-color: var(--color-accent); }
+  .congregacion-dialog #congregacion-submit.danger, .congregacion-dialog #congregacion-submit.is-danger, .congregacion-dialog[data-mode=delete] #congregacion-submit { background: var(--color-error); color: var(--color-accent-ink); border-color: var(--color-error); }
+
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary):focus-visible,
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary).is-focus { position: relative; z-index: 1; outline: 3px solid var(--color-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--color-paper); }
+  .premium-welcome #welcome-start:focus-visible, .premium-welcome #welcome-start.is-focus { box-shadow: 0 0 0 2px var(--color-paper); }
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary):active:not(:disabled),
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary).is-active { transform: translateY(1px); }
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select):disabled,
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[aria-disabled=true] { opacity: 0.48; cursor: not-allowed; transform: none; filter: none; }
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[data-state=loading],
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[aria-busy=true] { cursor: progress; }
+  :is(.premium-welcome, .congregacion-dialog) button[data-state=loading]::after,
+  :is(.premium-welcome, .congregacion-dialog) button[aria-busy=true]::after { content: ""; width: 12px; height: 12px; flex: 0 0 12px; border: 2px solid currentColor; border-right-color: var(--color-transparent); border-radius: 50%; animation: welcome-spin 850ms linear infinite; }
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[data-state=error],
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[aria-invalid=true] { border-color: var(--color-error); }
+  :is(.premium-welcome, .congregacion-dialog) button[data-state=error],
+  .premium-welcome #welcome-start[data-state=error],
+  .congregacion-dialog #congregacion-submit[data-state=error] { background: var(--color-error-soft); color: var(--color-error); border-color: var(--color-error); }
+  :is(.premium-welcome, .congregacion-dialog) button[data-state=error]::after { content: "!"; font-size: var(--text-control); font-weight: 800; }
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[data-state=success] { border-color: var(--color-success); }
+  :is(.premium-welcome, .congregacion-dialog) button[data-state=success],
+  .premium-welcome #welcome-start[data-state=success],
+  .congregacion-dialog #congregacion-submit[data-state=success] { background: var(--color-success-soft); color: var(--color-success); border-color: var(--color-success); }
+  :is(.premium-welcome, .congregacion-dialog) button[data-state=success]::after { content: "✓"; font-size: var(--text-control); font-weight: 800; }
+  @keyframes welcome-spin { to { transform: rotate(360deg); } }
+}
+
+@media screen and (min-width: 901px) {
+  .premium-welcome .welcome-step > span { flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: var(--space-xs) var(--space-sm); }
+}
+
+@media screen and (hover: hover) {
+  :is(.premium-welcome, .congregacion-dialog) :where(button, select, input, summary):hover:where(:not(:disabled):not([aria-disabled=true]):not([data-state=error]):not([data-state=success])) { background: var(--color-paper-3); color: var(--color-ink); filter: none; transform: none; }
+  .premium-welcome #welcome-start:hover:not(:disabled):where(:not([data-state=error]):not([data-state=success])),
+  .congregacion-dialog #congregacion-submit:hover:not(:disabled):where(:not([data-state=error]):not([data-state=success])) { background: var(--color-accent-hover); color: var(--color-accent-ink); }
+  .premium-welcome #welcome-cong-nueva:hover:not(:disabled) { background: var(--color-accent-soft-hover); color: var(--color-accent); }
+  .premium-welcome #welcome-cong-eliminar:hover:not(:disabled),
+  .congregacion-dialog #congregacion-submit.danger:hover:not(:disabled),
+  .congregacion-dialog #congregacion-submit.is-danger:hover:not(:disabled),
+  .congregacion-dialog[data-mode=delete] #congregacion-submit:hover:not(:disabled) { background: var(--color-error-soft); color: var(--color-error); border-color: var(--color-error); }
+  .premium-welcome .guide-section > summary:hover { background: var(--color-transparent); color: var(--color-accent); }
+}
+
+@media screen and (max-width: 900px) {
+  .premium-welcome { padding: var(--space-xl); }
+  .premium-welcome .welcome-main { padding: var(--space-2xl); }
+  .premium-welcome .welcome-guide { padding: var(--space-2xl) var(--space-xl); }
+  .premium-welcome .welcome-panel { max-height: calc(100dvh - 48px); }
+}
+
+@media screen and (max-width: 760px) {
+  .premium-welcome { align-items: flex-start; padding: var(--space-lg); }
+  .premium-welcome .welcome-panel { grid-template-columns: minmax(0, 1fr); max-height: none; overflow: visible; border-radius: var(--radius-lg); }
+  .premium-welcome .welcome-main { padding: var(--space-xl); border-right: 0; border-bottom: var(--rule-thin) solid var(--color-rule); }
+  .premium-welcome .welcome-guide { padding: var(--space-xl); }
+  .premium-welcome .welcome-brand { margin-bottom: var(--space-xl); }
+  .premium-welcome .welcome-main h2 { max-width: 20ch; font-size: 28px; }
+  .premium-welcome .welcome-main .welcome-intro { font-size: var(--text-body); }
+  .premium-welcome .welcome-selection-head { align-items: flex-start; }
+  .premium-welcome .welcome-cong-actions { width: 100%; }
+  .premium-welcome .welcome-cong-actions button { flex: 1 0 auto; }
+}
+
+@media screen and (max-width: 420px) {
+  .premium-welcome { padding: var(--space-md); }
+  .premium-welcome .welcome-main, .premium-welcome .welcome-guide { padding: var(--space-lg); }
+  .premium-welcome .welcome-brand { gap: var(--space-sm); }
+  .premium-welcome .welcome-brand strong { font-size: var(--text-control); }
+  .premium-welcome .welcome-brand-year { display: none; }
+  .premium-welcome .welcome-cong-actions button { padding: 0 var(--space-sm); font-size: var(--text-caption); }
+  .congregacion-dialog form { padding: var(--space-xl); }
+  .congregacion-dialog footer button, .congregacion-dialog .congregacion-dialog-actions button, .congregacion-dialog .congregacion-dialog-footer button { flex: 1 1 auto; }
+}
+
+@media screen and (prefers-reduced-motion: reduce) {
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary) { transition: opacity var(--dur-fast) var(--ease-out); }
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary):active:not(:disabled),
+  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary).is-active { transform: none; }
+  :is(.premium-welcome, .congregacion-dialog) button[data-state=loading]::after,
+  :is(.premium-welcome, .congregacion-dialog) button[aria-busy=true]::after { animation: none; }
+}
