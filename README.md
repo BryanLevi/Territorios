@@ -30,6 +30,16 @@ Los colores, textos y territorios agregados se guardan en el navegador. Para mov
 - `Exportar respaldo`: descarga un archivo `.json` con el trabajo guardado.
 - `Importar respaldo`: carga ese archivo `.json` para recuperar colores, textos, recuadros y territorios agregados.
 
+## Mi ubicacion
+
+`Mi ubicación` pide una lectura actual del dispositivo y centra el mapa en el punto azul. Cada clic vuelve a buscar la posicion, incluso si el seguimiento ya esta activo. Si se abre el territorio detectado, el mapa permanece centrado en la posicion del dispositivo.
+
+Al arrastrar el mapa se pausa el centrado automatico; vuelve a tocar `Mi ubicación` para regresar. `Detener` apaga el seguimiento y quita el punto. La posicion no se guarda ni entra en los respaldos.
+
+El navegador necesita permiso de ubicacion y una pagina segura (HTTPS o localhost). El cerco azul muestra el margen de precision que devuelve el dispositivo. Si no puede obtener la posicion, la pagina muestra el motivo sin sustituirla por el centro del territorio.
+
+Las pruebas de ubicacion se ejecutan con `node --test tests/ubicacion.test.cjs`.
+
 ## Token de GitHub
 
 `Guardar GitHub` y `Cargar GitHub` piden un token para escribir en `data/croquis-sync.json`.
