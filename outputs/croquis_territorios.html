@@ -751,6 +751,10 @@ body.print-preview{overflow:hidden}
       </span>
       <span class="tool-group tools-text" role="group" aria-label="Texto y tamaño">
       <label for="text-value">Texto</label>
+      <button class="icon-btn con-rotulo" id="btn-text-add" type="button" disabled title="Agregar texto" aria-label="Agregar texto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg>
+        <span class="icon-btn-rotulo">Texto</span>
+      </button>
       <input class="text-input" id="text-value" type="text" value="" placeholder="Texto" disabled title="Texto. Usa / para separar renglones" aria-label="Texto">
       <input class="text-size-slider" id="text-size" type="range" min="10" max="34" step="1" value="22" disabled title="Tamaño de texto" aria-label="Tamaño de texto">
       <output class="text-size-value" id="text-size-value" for="text-size">22</output>
@@ -782,7 +786,7 @@ body.print-preview{overflow:hidden}
         <span class="icon-btn-rotulo">Contorno</span>
       </button>
       </span>
-      <span class="tool-group tools-draw" role="group" aria-label="Dibujar trazos y textos">
+      <span class="tool-group tools-draw" role="group" aria-label="Dibujar trazos">
       <span class="tool-section-label">Trazos</span>
       <button class="icon-btn con-rotulo" id="btn-road-pencil" type="button" disabled title="Dibujar calle blanca" aria-label="Dibujar calle blanca">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 3 5.5 21"></path><path d="M15.6 3l2.9 18"></path><path d="M12 4.2v3.2"></path><path d="M12 10.4v3.2"></path><path d="M12 16.6v3.2"></path></svg>
@@ -799,10 +803,6 @@ body.print-preview{overflow:hidden}
       <button class="icon-btn con-rotulo" id="btn-river-pencil" type="button" disabled title="Dibujar rio o arroyo" aria-label="Dibujar rio o arroyo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg>
         <span class="icon-btn-rotulo">Rio</span>
-      </button>
-      <button class="icon-btn con-rotulo" id="btn-text-add" type="button" disabled title="Agregar texto" aria-label="Agregar texto">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg>
-        <span class="icon-btn-rotulo">Texto</span>
       </button>
       </span>
       <span class="tool-group tools-actions" role="group" aria-label="Guardar y organizar el trabajo">
