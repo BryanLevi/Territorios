@@ -2,9 +2,37 @@
  * Preview pages, reference glyphs, color values and geolocation stay unchanged.
  */
 @media screen {
+  .map-wrap.is-frame-moving > #info-card { display: none !important; }
   .linear-edit-handle { cursor: grab; background: transparent; border: 0; border-radius: 50%; }
   .linear-edit-handle:active { cursor: grabbing; }
   .linear-edit-handle:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+  .frame-move-handle {
+    display: grid;
+    place-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 50%;
+    cursor: grab;
+    touch-action: none;
+  }
+  .frame-move-grip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--color-paper);
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    color: var(--color-accent-ink);
+    box-shadow: 0 0 0 1px var(--color-accent), 0 6px 18px var(--color-shadow-float);
+    cursor: inherit;
+  }
+  .frame-move-grip svg { width: 24px; height: 24px; pointer-events: none; }
+  .frame-move-handle:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 4px; }
+  .frame-move-handle:active,
+  .frame-move-handle.leaflet-drag-target { cursor: grabbing; }
   .map-wrap > :is(#info-card, #icon-actions, #ref-panel, #agrupar-panel) {
     border: var(--rule-thin) solid var(--color-rule);
     border-radius: var(--radius-xl);

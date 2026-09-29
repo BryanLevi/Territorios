@@ -60,14 +60,14 @@ function entorno({ confirmar = false, alConfirmar = () => {}, seguro = true, geo
     map, L, $, currentIndex:0, locSel:{ value:'0' },
     LOCS:[{ num:1, name:'Abierto', lat:10, lon:10 }, { num:2, name:'Destino', lat:19.06, lon:-96.97 }],
     colorDrawMode:false, roadPencilMode:false, riverPencilMode:false, contourEditMode:false,
-    textAddMode:false, iconAddMode:false, territoryAddMode:false,
+    textAddMode:false, iconAddMode:false, territoryAddMode:false, frameMoveMode:false,
     getExportColorAreasForLoc:loc => loc.num === 2 ? [{ points:[[19,-97],[19.1,-97],[19.1,-96.9],[19,-96.9]] }] : [],
     getTextLabelsForLoc:loc => loc.num === 2 ? [{ text:'3', lat:19.05, lng:-96.95 }] : [],
     displayTerritoryName:loc => loc.name,
     drawTerritoryFrame(loc, fit){ encuadres.push(fit); if(fit) map.setView([loc.lat, loc.lon], 12); },
     setStatus(texto, tipo){ avisosMapa.push({ texto, tipo }); },
     localStorage:new Proxy({}, { get(){ throw new Error('La ubicación no debe persistirse'); } }),
-    clearSelectedLine:noOp, updateInfo:noOp, updateFrameControls:noOp, renderColorAreas:noOp, renderManualWhiteRoads:noOp,
+    clearSelectedLine:noOp, setFrameMoveMode:noOp, updateInfo:noOp, updateFrameControls:noOp, renderColorAreas:noOp, renderManualWhiteRoads:noOp,
     renderManualRivers:noOp, renderTextLabels:noOp, renderManualIcons:noOp,
     updateColorControls:noOp, updateButtons:noOp
   });
@@ -140,6 +140,16 @@ test('arrastrar permite explorar y el siguiente clic busca una posición nueva',
   assert.equal(e.$('btn-ubicacion-texto').textContent, 'Volver a mí');
   e.clic(); e.peticiones[1].exito(posicion(22,-101));
   assert.deepEqual(e.map.centro, [22,-101]);
+});
+
+test('localizar mientras se mueve el recuadro conserva la edición y no propone cambiar de territorio', () => {
+  const e = entorno({confirmar:true}); e.contexto.frameMoveMode = true;
+  e.clic(); e.peticiones[0].exito(posicion(19.05,-96.95));
+  assert.equal(e.contexto.currentIndex,0);
+  assert.equal(e.contexto.frameMoveMode,true);
+  assert.equal(e.preguntas.length,0);
+  assert.deepEqual(e.map.centro,[19.05,-96.95]);
+  assert.match(e.avisos.at(-1).texto,/medio dibujar/);
 });
 
 test('Detener cancela tanto la petición pendiente como el seguimiento', () => {

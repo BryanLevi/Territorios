@@ -506,9 +506,9 @@ body.print-preview{overflow:hidden}
 }
 </style>
 <link rel="stylesheet" href="../tokens.css?v=blue-bubbles-1">
-<link rel="stylesheet" href="./toolbar-premium.css?v=creator-credit-1">
+<link rel="stylesheet" href="./toolbar-premium.css?v=frame-move-1">
 <link rel="stylesheet" href="./welcome-premium.css?v=welcome-auto-fast-1">
-<link rel="stylesheet" href="./editor-premium.css?v=notice-glass-1">
+<link rel="stylesheet" href="./editor-premium.css?v=frame-move-1">
 </head>
 <body>
 <section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
@@ -578,7 +578,7 @@ body.print-preview{overflow:hidden}
       <details class="guide-section">
         <summary><i class="guide-category-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14 4 6 6-8 8H6v-6zM11 7l6 6M4 20h16"></path></svg></i><span><b>Pintura y edición</b><small>Colores, contornos y trazos</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
         <div class="tool-grid">
-          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><span><b>Restablecer recuadro</b><span>Devuelve el recuadro del territorio a su tamaño inicial.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><span><b>Mover y restablecer recuadro</b><span>Usa Mover y arrastra el control azul. Restablecer recupera la posición y el tamaño originales.</span></span></div>
           <div class="tool-item"><span class="tool-icon color-dot"></span><span><b>Color y transparencia</b><span>Elige el color de relleno y su transparencia sobre el mapa.</span></span></div>
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="m16.5 3.5 4 4L8 20H4v-4z"></path></svg></span><span><b>Editar elementos</b><span>Selecciona una zona, texto o icono para modificarlo.</span></span></div>
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 7 5-2.7 8.4H7.7L5 9z"></path><circle cx="12" cy="4" r="1.7" fill="currentColor"></circle><circle cx="19" cy="9" r="1.7" fill="currentColor"></circle><circle cx="16.3" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="7.7" cy="17.4" r="1.7" fill="currentColor"></circle><circle cx="5" cy="9" r="1.7" fill="currentColor"></circle></svg></span><span><b>Editar contorno</b><span>Ajusta los puntos del borde de una zona coloreada.</span></span></div>
@@ -688,6 +688,10 @@ body.print-preview{overflow:hidden}
     <div class="frame-control">
       <input id="frame-scale" type="range" min="55" max="180" step="5" value="100" disabled>
       <output class="frame-value" id="frame-value" for="frame-scale">100%</output>
+      <button class="icon-btn frame-move-btn" id="btn-frame-move" type="button" disabled aria-pressed="false" title="Mover recuadro" aria-label="Mover recuadro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"></path></svg>
+        <span id="frame-move-label">Mover</span>
+      </button>
       <button class="icon-btn" id="btn-frame-reset" type="button" disabled title="Restablecer recuadro" aria-label="Restablecer recuadro">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg>
       </button>
@@ -1181,6 +1185,7 @@ const statusBox = $('map-status');
 const frameScaleInput = $('frame-scale');
 const frameValue = $('frame-value');
 const frameResetButton = $('btn-frame-reset');
+const frameMoveButton = $('btn-frame-move');
 const colorInput = $('fill-color');
 const colorOpacityInput = $('fill-opacity');
 const colorOpacityValue = $('fill-opacity-value');
@@ -1215,6 +1220,7 @@ const backupFileInput = $('backup-file-input');
 const colorUndoButton = $('btn-color-undo');
 const colorClearButton = $('btn-color-clear');
 const FRAME_SCALE_STORAGE_KEY = 'croquis-territory-frame-scale-v1';
+const FRAME_POSITION_STORAGE_KEY = 'croquis-territory-frame-position-v1';
 const COLOR_AREAS_STORAGE_KEY = 'croquis-territory-color-areas-v1';
 const TEXT_LABELS_STORAGE_KEY = 'croquis-territory-text-labels-v1';
 const MANUAL_ICONS_STORAGE_KEY = 'croquis-territory-manual-icons-v1';
@@ -1267,6 +1273,7 @@ const CLAVES_POR_CONGREGACION = [
   ['whiteRoads', WHITE_ROADS_STORAGE_KEY],
   ['manualRivers', MANUAL_RIVERS_STORAGE_KEY],
   ['frameScales', FRAME_SCALE_STORAGE_KEY],
+  ['framePositions', FRAME_POSITION_STORAGE_KEY],
   ['customTerritories', CUSTOM_TERRITORIES_STORAGE_KEY],
   ['hiddenTerritories', HIDDEN_TERRITORIES_STORAGE_KEY],
   ['overpass', OVERPASS_CACHE_STORAGE_KEY],
@@ -1472,6 +1479,7 @@ const MANUAL_ICON_OPTIONS = [
   ['Puente','Puente sobre rio']
 ];
 let frameScaleSettings = loadFrameScaleSettings();
+let framePositionSettings = loadFramePositionSettings();
 let colorAreaSettings = loadColorAreaSettings();
 let textLabelSettings = loadTextLabelSettings();
 let manualIconSettings = loadManualIconSettings();
@@ -1520,6 +1528,9 @@ let draftPoints = [];
 let territoryAddMode = false;
 let territoryAddStart = null;
 let territoryAddPreviewLayer = null;
+let frameMoveMode = false;
+let frameMoveHandle = null;
+let frameMoveSession = null;
 let selectedAreaIndex = null;
 let selectedTextIndex = null;
 let selectedIconIndex = null;
@@ -1696,19 +1707,48 @@ function loadFrameScaleSettings(){
   }
 }
 
-function saveFrameScaleSettings(){
+function saveFrameScaleSettings(settings = frameScaleSettings){
   try{
-    almacen.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(frameScaleSettings));
+    almacen.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(settings));
     return true;
   }catch(e){
     clearHeavyUndoStorage();
     try{
-      almacen.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(frameScaleSettings));
+      almacen.setItem(FRAME_SCALE_STORAGE_KEY, JSON.stringify(settings));
       return true;
     }catch(err){
       console.error('No se pudo guardar el ajuste de recuadro.', err);
       return false;
     }
+  }
+}
+
+function normalizeFramePosition(position){
+  if(!position || typeof position !== 'object' || Array.isArray(position)) return null;
+  if(position.lat == null || position.lng == null || String(position.lat).trim() === '' || String(position.lng).trim() === '') return null;
+  if(typeof position.lat === 'boolean' || typeof position.lng === 'boolean') return null;
+  const lat = Number(position.lat), lng = Number(position.lng);
+  if(!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 85.05112878 || Math.abs(lng) > 180) return null;
+  return {lat:Number(lat.toFixed(8)), lng:Number(lng.toFixed(8))};
+}
+
+function normalizeFramePositionSettings(settings){
+  if(!settings || typeof settings !== 'object' || Array.isArray(settings)) return {};
+  return Object.fromEntries(Object.entries(settings).map(([key, value]) => [key, normalizeFramePosition(value)]).filter(([,value]) => value));
+}
+
+function loadFramePositionSettings(){
+  try{ return normalizeFramePositionSettings(JSON.parse(almacen.getItem(FRAME_POSITION_STORAGE_KEY) || '{}')); }
+  catch(error){ return {}; }
+}
+
+function saveFramePositionSettings(settings = framePositionSettings){
+  const value = JSON.stringify(normalizeFramePositionSettings(settings));
+  try{ almacen.setItem(FRAME_POSITION_STORAGE_KEY, value); return true; }
+  catch(error){
+    clearHeavyUndoStorage();
+    try{ almacen.setItem(FRAME_POSITION_STORAGE_KEY, value); return true; }
+    catch(error){ console.error('No se pudo guardar la posición del recuadro.', error); return false; }
   }
 }
 
@@ -2015,8 +2055,10 @@ function applyCustomTerritories(){
 }
 
 function recargarAjustesGuardados(){
+  if(frameMoveMode) setFrameMoveMode(false, false);
   clearSelectedLine();
   frameScaleSettings = loadFrameScaleSettings();
+  framePositionSettings = loadFramePositionSettings();
   colorAreaSettings = loadColorAreaSettings();
   textLabelSettings = loadTextLabelSettings();
   manualIconSettings = loadManualIconSettings();
@@ -2028,6 +2070,7 @@ function recargarAjustesGuardados(){
 }
 
 function limpiarMapaSinTerritorios(){
+  if(frameMoveMode) setFrameMoveMode(false, false);
   clearSelectedLine();
   if(ringLayer && map){ map.removeLayer(ringLayer); ringLayer = null; }
   [colorLayer, draftLayer, textLayer, manualIconLayer, editHandleLayer, colorRestoreLayer,
@@ -2046,6 +2089,7 @@ function limpiarMapaSinTerritorios(){
   $('meta-coords').textContent = '—';
   $('info-card').style.display = 'block';
   refreshTerritoryCounts();
+  updateFrameControls(null);
   updateButtons();
 }
 
@@ -2324,6 +2368,7 @@ function renderTerritoryAddPreview(currentLatLng = null){
 }
 
 function setTerritoryAddMode(active, showMessage = true){
+  if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   territoryAddMode = !!active;
   territoryAddStart = null;
@@ -2415,6 +2460,7 @@ function clearTerritoryStoredWork(loc){
   delete whiteRoadSettings[key];
   delete manualRiverSettings[key];
   delete frameScaleSettings[key];
+  delete framePositionSettings[key];
   delete leyendaSettings[key];
   delete nombresSettings[key];
   saveColorAreaSettings();
@@ -2423,6 +2469,7 @@ function clearTerritoryStoredWork(loc){
   saveWhiteRoadSettings();
   saveManualRiverSettings();
   saveFrameScaleSettings();
+  saveFramePositionSettings();
   saveLeyendaSettings();
   saveNombresSettings();
 }
@@ -2471,6 +2518,7 @@ function hideWelcomeScreen(){
 }
 
 function showWelcomeScreen(){
+  if(frameMoveMode) setFrameMoveMode(false, false);
   $('welcome-screen')?.classList.remove('is-hidden');
   document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
   refrescarCongregacionesEnInicio();
@@ -2540,6 +2588,8 @@ function getCurrentSnapshot(reason = 'change', loc = LOCS[currentIndex]){
     icons:cloneData(getManualIconsForLoc(loc)) || [],
     roads:cloneData(getWhiteRoadsForLoc(loc)) || [],
     rivers:cloneData(getManualRiversForLoc(loc)) || [],
+    framePosition:normalizeFramePosition(framePositionSettings[String(loc?.num)]),
+    ...(reason === 'frame-reset' ? { frameScale:getFrameScaleForLoc(loc) } : {}),
     createdAt:Date.now()
   };
 }
@@ -2554,7 +2604,9 @@ function pushUndoSnapshot(reason = 'change', loc = LOCS[currentIndex]){
     labels:snapshot.labels,
     icons:snapshot.icons,
     roads:snapshot.roads,
-    rivers:snapshot.rivers
+    rivers:snapshot.rivers,
+    framePosition:snapshot.framePosition,
+    frameScale:snapshot.frameScale
   });
   const lastKey = last ? stateFingerprint({
     locNum:last.locNum,
@@ -2562,7 +2614,9 @@ function pushUndoSnapshot(reason = 'change', loc = LOCS[currentIndex]){
     labels:last.labels,
     icons:last.icons,
     roads:last.roads,
-    rivers:last.rivers
+    rivers:last.rivers,
+    framePosition:last.framePosition,
+    frameScale:last.frameScale
   }) : '';
   if(nextKey && nextKey === lastKey) return;
   undoHistory.push(snapshot);
@@ -2619,6 +2673,20 @@ function restoreLastUndoSnapshot(){
         delete manualRiverSettings[key];
       }
     }
+    if(Object.prototype.hasOwnProperty.call(snapshot, 'framePosition')){
+      const key = String(snapshot.locNum);
+      const position = normalizeFramePosition(snapshot.framePosition);
+      if(position) framePositionSettings[key] = position;
+      else delete framePositionSettings[key];
+      saveFramePositionSettings();
+    }
+    if(Object.prototype.hasOwnProperty.call(snapshot, 'frameScale')){
+      const key = String(snapshot.locNum);
+      const scale = clampFrameScale(snapshot.frameScale);
+      if(scale === 100) delete frameScaleSettings[key];
+      else frameScaleSettings[key] = scale;
+      saveFrameScaleSettings();
+    }
     saveColorAreaSettings();
     saveTextLabelSettings();
     saveManualIconSettings();
@@ -2647,6 +2715,7 @@ function restoreLastUndoSnapshot(){
     updateColorControls();
   }
   refreshTerritoryCounts();
+  publicarTerritorioPronto(LOCS[currentIndex]);
   setStatus('Cambio restaurado.', 'warn');
 }
 
@@ -2969,6 +3038,7 @@ function getSelectedLine(loc = LOCS[currentIndex], selection = selectedLine){
 }
 
 function selectLinearElement(kind, index){
+  if(frameMoveMode) return;
   const loc = LOCS[currentIndex];
   const line = (kind === 'river' ? getManualRiversForLoc(loc) : getWhiteRoadsForLoc(loc))[index];
   if(!line) return false;
@@ -3285,7 +3355,9 @@ function getRuntimeRoadBounds(loc = LOCS[currentIndex]){
 }
 
 function getRuntimeRoadCacheKey(loc = LOCS[currentIndex]){
-  return loc ? String(loc.num) : '';
+  if(!loc) return '';
+  const position = normalizeFramePosition(framePositionSettings[String(loc.num)]);
+  return String(loc.num) + (position ? '@' + position.lat + ',' + position.lng : '');
 }
 
 function loadOverpassCache(){
@@ -4006,7 +4078,7 @@ function renderTextLabels(loc){
     const lng = Number(label.lng);
     if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     const marker = L.marker([lat, lng], {
-      draggable:true,
+      draggable:!frameMoveMode,
       icon:createTextIcon(label, selectedTextIndex === index),
       interactive:true,
       riseOnHover:true,
@@ -4017,11 +4089,13 @@ function renderTextLabels(loc){
       selectTextLabel(index);
     });
     marker.on('dblclick', event => {
+      if(frameMoveMode) return;
       if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
       selectTextLabel(index);
       editSelectedTextLabel();
     });
     marker.on('dragend', () => {
+      if(frameMoveMode) return;
       const labels = getTextLabelsForLoc(loc).slice();
       const next = marker.getLatLng();
       if(labels[index]){
@@ -4052,7 +4126,7 @@ function renderManualIcons(loc){
     const lng = Number(icon.lng);
     if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     const marker = L.marker([lat, lng], {
-      draggable:true,
+      draggable:!frameMoveMode,
       icon:createManualIcon(icon, selectedIconIndex === index),
       interactive:true,
       riseOnHover:true,
@@ -4067,6 +4141,7 @@ function renderManualIcons(loc){
       selectManualIcon(index);
     });
     marker.on('dragend', () => {
+      if(frameMoveMode) return;
       const icons = getManualIconsForLoc(loc).slice();
       const next = marker.getLatLng();
       if(icons[index]){
@@ -4190,6 +4265,7 @@ function ajustarDobleClic(){
 }
 
 function setRoadPencilMode(active, showMessage = true, carretera = false){
+  if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   roadPencilMode = !!active;
   modoCarretera = roadPencilMode && !!carretera;
@@ -4269,6 +4345,7 @@ function finishRiverDraft(){
 }
 
 function setRiverPencilMode(active, showMessage = true){
+  if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   riverPencilMode = !!active;
   if(riverPencilMode){
@@ -4299,6 +4376,7 @@ function setRiverPencilMode(active, showMessage = true){
 }
 
 function setColorDrawMode(active){
+  if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   colorDrawMode = !!active;
   if(colorDrawMode) setTerritoryAddMode(false, false);
@@ -4319,6 +4397,7 @@ function setColorDrawMode(active){
 }
 
 function setColorEditMode(active){
+  if(active && frameMoveMode) setFrameMoveMode(false, false);
   colorEditMode = !!active;
   if(colorEditMode){
     setTerritoryAddMode(false, false);
@@ -4342,6 +4421,7 @@ function setColorEditMode(active){
 }
 
 function setContourEditMode(active, showMessage = true){
+  if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   contourEditMode = !!active && selectedAreaIndex != null;
   if(contourEditMode){
@@ -4364,6 +4444,7 @@ function setContourEditMode(active, showMessage = true){
 }
 
 function setTextAddMode(active, showMessage = true){
+  if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   textAddMode = !!active;
   if(textAddMode){
@@ -4392,6 +4473,7 @@ function setTextAddMode(active, showMessage = true){
 }
 
 function setIconAddMode(active, showMessage = true){
+  if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   iconAddMode = !!active;
   if(iconAddMode){
@@ -4420,6 +4502,7 @@ function setIconAddMode(active, showMessage = true){
 }
 
 function selectColorArea(index){
+  if(frameMoveMode) return;
   clearSelectedLine();
   selectedReference = null;
   const loc = LOCS[currentIndex];
@@ -4441,6 +4524,7 @@ function selectColorArea(index){
 }
 
 function selectTextLabel(index){
+  if(frameMoveMode) return;
   clearSelectedLine();
   selectedReference = null;
   const loc = LOCS[currentIndex];
@@ -4465,6 +4549,7 @@ function selectTextLabel(index){
 // Las referencias vienen de OpenStreetMap y no son tuyas: para poder moverlas o
 // cambiarles el tipo hay que convertirlas antes en un icono propio.
 function selectReference(ref){
+  if(frameMoveMode) return;
   clearSelectedLine();
   setContourEditMode(false, false);
   selectedReference = ref;
@@ -4550,6 +4635,7 @@ function refreshIconActions(loc = LOCS[currentIndex]){
 }
 
 function selectManualIcon(index){
+  if(frameMoveMode) return;
   clearSelectedLine();
   selectedReference = null;
   const loc = LOCS[currentIndex];
@@ -4986,8 +5072,9 @@ function saveAllChanges(){
   const roadsSaved = saveWhiteRoadSettings();
   const riversSaved = saveManualRiverSettings();
   const frameSaved = saveFrameScaleSettings();
+  const framePositionSaved = saveFramePositionSettings();
   saveUndoHistory();
-  if(colorsSaved && textsSaved && iconsSaved && roadsSaved && riversSaved && frameSaved){
+  if(colorsSaved && textsSaved && iconsSaved && roadsSaved && riversSaved && frameSaved && framePositionSaved){
     publicarTerritorio(loc);
     let mensaje = 'Cambios guardados.';
     if(closedArea) mensaje = 'Area y cambios guardados.';
@@ -5031,6 +5118,7 @@ function buildBackupPayload(){
       whiteRoads:safeObject(whiteRoadSettings),
       manualRivers:safeObject(manualRiverSettings),
       frameScales:safeObject(frameScaleSettings),
+      framePositions:normalizeFramePositionSettings(framePositionSettings),
       customTerritories:loadCustomTerritorySettings(),
       hiddenTerritories:loadHiddenTerritorySettings(),
       leyenda:safeObject(leyendaSettings),
@@ -5197,6 +5285,7 @@ function getBackupData(payload){
     whiteRoads:safeObject(data.whiteRoads || data[WHITE_ROADS_STORAGE_KEY]),
     manualRivers:safeObject(data.manualRivers || data[MANUAL_RIVERS_STORAGE_KEY]),
     frameScales:safeObject(data.frameScales || data[FRAME_SCALE_STORAGE_KEY]),
+    framePositions:normalizeFramePositionSettings(data.framePositions || data[FRAME_POSITION_STORAGE_KEY]),
     customTerritories:safeArray(data.customTerritories || data[CUSTOM_TERRITORIES_STORAGE_KEY]).map(normalizeCustomTerritory).filter(Boolean),
     hiddenTerritories:safeArray(data.hiddenTerritories || data[HIDDEN_TERRITORIES_STORAGE_KEY]).map(String),
     leyenda:safeObject(data.leyenda || data[LEYENDA_STORAGE_KEY]),
@@ -5318,7 +5407,7 @@ function nubeConfigurada(){
 
 function nubeEditando(){
   return colorDrawMode || roadPencilMode || riverPencilMode || textAddMode
-    || iconAddMode || contourEditMode || territoryAddMode || draftPoints.length > 0;
+    || iconAddMode || contourEditMode || territoryAddMode || frameMoveMode || draftPoints.length > 0;
 }
 
 function pintarEstadoNube(texto, encendido){
@@ -5463,8 +5552,13 @@ function aplicarTerritorioRemoto(num, d){
   mete(manualIconSettings, datos.iconos);
   mete(whiteRoadSettings, datos.calles);
   mete(manualRiverSettings, datos.rios);
-  if(Number.isFinite(Number(datos.recuadro))) frameScaleSettings[clave] = Number(datos.recuadro);
+  if(datos.recuadro != null && Number.isFinite(Number(datos.recuadro))) frameScaleSettings[clave] = clampFrameScale(datos.recuadro);
   else delete frameScaleSettings[clave];
+  if(Object.prototype.hasOwnProperty.call(datos, 'centroRecuadro')){
+    const position = normalizeFramePosition(datos.centroRecuadro);
+    if(position) framePositionSettings[clave] = position;
+    else delete framePositionSettings[clave];
+  }
   if(datos.referencias && typeof datos.referencias === 'object') leyendaSettings[clave] = datos.referencias;
   else delete leyendaSettings[clave];
   saveColorAreaSettings();
@@ -5473,6 +5567,7 @@ function aplicarTerritorioRemoto(num, d){
   saveWhiteRoadSettings();
   saveManualRiverSettings();
   saveFrameScaleSettings();
+  saveFramePositionSettings();
   saveLeyendaSettings();
   nubeAplicando = false;
 
@@ -5489,6 +5584,8 @@ function aplicarTerritorioRemoto(num, d){
     setStatus(quien + ' cambio este territorio. Termina o cancela lo que estas marcando y se actualiza.', 'warn');
     return;
   }
+  updateFrameControls(loc);
+  if(map) drawTerritoryFrame(loc, false, true);
   renderColorAreas(loc);
   renderManualWhiteRoads(loc);
   renderManualRivers(loc);
@@ -5655,7 +5752,10 @@ function publicarTerritorioPronto(loc){
   if(!nube || !loc || nubeAplicando) return;
   clearTimeout(publicarPendiente);
   const cual = loc;
-  publicarPendiente = setTimeout(() => publicarTerritorio(cual), 1200);
+  const congregacionId = congregacionActivaId;
+  publicarPendiente = setTimeout(() => {
+    if(congregacionId === congregacionActivaId) publicarTerritorio(cual);
+  }, 1200);
 }
 
 async function publicarTerritorio(loc){
@@ -5668,6 +5768,7 @@ async function publicarTerritorio(loc){
     calles:whiteRoadSettings[clave] || [],
     rios:manualRiverSettings[clave] || [],
     recuadro:frameScaleSettings[clave] ?? null,
+    centroRecuadro:normalizeFramePosition(framePositionSettings[clave]),
     referencias:leyendaSettings[clave] || null
   };
   try{
@@ -5815,6 +5916,7 @@ function hasLocalSavedWork(){
     || hasSavedDataObject(whiteRoadSettings)
     || hasSavedDataObject(manualRiverSettings)
     || hasSavedDataObject(frameScaleSettings)
+    || hasSavedDataObject(framePositionSettings)
     || loadCustomTerritorySettings().length > 0
     || loadHiddenTerritorySettings().length > 0;
 }
@@ -5963,6 +6065,7 @@ function undoDraftColorPoint(){
 }
 
 function clearColorAreasForCurrent(){
+  if(frameMoveMode){ setStatus('Termina de mover el recuadro con Listo antes de borrar dibujos.', 'warn'); return; }
   const loc = LOCS[currentIndex];
   if(!loc) return;
   if(roadPencilMode && roadDraftPoints.length){
@@ -6022,6 +6125,7 @@ function clearColorAreasForCurrent(){
 
 async function handleColorMapClick(event){
   if(!event?.latlng) return;
+  if(frameMoveMode) return;
   if(event.originalEvent){
     event.originalEvent.preventDefault();
     event.originalEvent.stopPropagation();
@@ -6101,6 +6205,7 @@ function addTextLabelForCurrent(latlng){
     setStatus('Escribe el texto y vuelve a tocar T.', 'warn');
     return;
   }
+  if(frameMoveMode) setFrameMoveMode(false, false);
   const labels = getTextLabelsForLoc(loc).slice();
   labels.push({
     text,
@@ -6169,12 +6274,174 @@ function getFrameScaleForLoc(loc){
 }
 
 function updateFrameControls(loc){
-  if(!frameScaleInput || !frameValue || !frameResetButton || !loc) return;
+  if(frameMoveButton){
+    frameMoveButton.disabled = !map || !loc;
+    frameMoveButton.setAttribute('aria-pressed', String(frameMoveMode));
+    frameMoveButton.setAttribute('aria-label', frameMoveMode ? 'Terminar de mover el recuadro' : 'Mover recuadro');
+    frameMoveButton.title = frameMoveMode ? 'Terminar de mover el recuadro' : 'Mover recuadro';
+    $('frame-move-label').textContent = frameMoveMode ? 'Listo' : 'Mover';
+  }
+  if(!frameScaleInput || !frameValue || !frameResetButton) return;
+  if(!loc){ frameScaleInput.disabled = true; frameResetButton.disabled = true; return; }
   const scale = getFrameScaleForLoc(loc);
   frameScaleInput.value = String(scale);
   frameValue.textContent = scale + '%';
   frameScaleInput.disabled = !map;
-  frameResetButton.disabled = !map || scale === 100;
+  frameResetButton.disabled = !map || (scale === 100 && !normalizeFramePosition(framePositionSettings[String(loc.num)]));
+}
+
+function translateFrameBoundsPlain(bounds, position){
+  const center = normalizeFramePosition(position);
+  if(!center || !bounds || !['south','west','north','east'].every(key => Number.isFinite(bounds[key]))) return null;
+  const halfLat = (bounds.north - bounds.south) / 2, halfLng = (bounds.east - bounds.west) / 2;
+  if(halfLat <= 0 || halfLng <= 0) return null;
+  const moved = {south:center.lat-halfLat, west:center.lng-halfLng, north:center.lat+halfLat, east:center.lng+halfLng};
+  if(moved.south < -85.05112878 || moved.north > 85.05112878 || moved.west < -180 || moved.east > 180) return null;
+  return moved;
+}
+
+function setFramePositionForLoc(loc, position){
+  if(!loc) return false;
+  const center = normalizeFramePosition(position), key = String(loc.num);
+  if(!translateFrameBoundsPlain(getPrintBoundsPlain(loc, loc.zoom || DETAIL_ZOOM), center)) return false;
+  if(stateFingerprint(center) === stateFingerprint(normalizeFramePosition(framePositionSettings[key]))) return false;
+  const next = {...framePositionSettings, [key]:center};
+  if(!saveFramePositionSettings(next)){
+    setStatus('No se pudo guardar la posición. El recuadro conserva su lugar anterior.', 'error');
+    return false;
+  }
+  pushUndoSnapshot('frame-position', loc);
+  framePositionSettings = next;
+  publicarTerritorioPronto(loc);
+  if(map && String(LOCS[currentIndex]?.num) === key){
+    drawTerritoryFrame(loc, false);
+    updateFrameControls(loc);
+    updateLabelOverlayVisibility(loc);
+  }
+  updateColorControls(loc);
+  setStatus('Posición del recuadro guardada. Puedes moverlo otra vez o tocar Listo.', 'warn');
+  return true;
+}
+
+function resetFrameForCurrent(){
+  const loc = LOCS[currentIndex];
+  if(!loc) return;
+  const key = String(loc.num);
+  if(getFrameScaleForLoc(loc) === 100 && !framePositionSettings[key]) return;
+  const positions = {...framePositionSettings}, scales = {...frameScaleSettings};
+  delete positions[key];
+  delete scales[key];
+  if(!saveFramePositionSettings(positions)){
+    setStatus('No se pudo restablecer el recuadro. Inténtalo de nuevo.', 'error'); return;
+  }
+  if(!saveFrameScaleSettings(scales)){
+    saveFramePositionSettings(framePositionSettings);
+    setStatus('No se pudo restablecer el recuadro. Inténtalo de nuevo.', 'error'); return;
+  }
+  pushUndoSnapshot('frame-reset', loc);
+  framePositionSettings = positions;
+  frameScaleSettings = scales;
+  if(frameMoveMode) setFrameMoveMode(false, false);
+  updateFrameControls(loc);
+  if(map) drawTerritoryFrame(loc, true);
+  publicarTerritorioPronto(loc);
+  updateColorControls(loc);
+  setStatus('Recuadro restablecido a su posición y tamaño originales.', 'warn');
+}
+
+function isFrameMoveSessionCurrent(session){
+  const loc = LOCS[currentIndex];
+  return !!(frameMoveMode && session && session === frameMoveSession && loc
+    && session.num === String(loc.num) && session.congregacionId === congregacionActivaId
+    && session.scale === getFrameScaleForLoc(loc)
+    && session.fingerprint === stateFingerprint(normalizeFramePosition(framePositionSettings[session.num])));
+}
+
+function renderFrameMoveHandle(loc){
+  const wasFocused = frameMoveHandle && document.activeElement === frameMoveHandle.getElement();
+  if(frameMoveHandle){ map.removeLayer(frameMoveHandle); frameMoveHandle = null; }
+  frameMoveSession = null;
+  if(!frameMoveMode || !loc || !map || !window.L) return;
+  const bounds = getPrintBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+  const session = frameMoveSession = {num:String(loc.num), congregacionId:congregacionActivaId,
+    scale:getFrameScaleForLoc(loc), fingerprint:stateFingerprint(normalizeFramePosition(framePositionSettings[String(loc.num)])), bounds};
+  const marker = frameMoveHandle = L.marker([(bounds.south+bounds.north)/2, (bounds.west+bounds.east)/2], {
+    pane:'territoryLineEditPane', draggable:true, autoPan:false, bubblingMouseEvents:false,
+    title:'Arrastra para mover el recuadro. También puedes usar las flechas del teclado.',
+    icon:L.divIcon({className:'frame-move-handle', iconSize:[48,48], iconAnchor:[24,24],
+      html:'<span class="frame-move-grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg></span>'})
+  }).addTo(map);
+  const stop = event => { if(event.originalEvent) L.DomEvent.stop(event.originalEvent); };
+  const preview = () => {
+    if(!isFrameMoveSessionCurrent(session)) return;
+    const moved = translateFrameBoundsPlain(session.bounds, marker.getLatLng());
+    if(moved) ringLayer?.setBounds(L.latLngBounds([moved.south,moved.west], [moved.north,moved.east]));
+  };
+  const commit = () => {
+    if(!isFrameMoveSessionCurrent(session)){
+      if(session === frameMoveSession && frameMoveMode) drawTerritoryFrame(LOCS[currentIndex], false);
+      return;
+    }
+    if(!setFramePositionForLoc(loc, marker.getLatLng())) drawTerritoryFrame(loc, false);
+  };
+  marker.on('click dblclick', stop);
+  marker.on('drag', preview);
+  marker.on('dragend', commit);
+  const element = marker.getElement();
+  element?.setAttribute('aria-label', 'Mover recuadro: arrastra o usa las flechas; Escape para terminar');
+  if(element){
+    L.DomEvent.on(element, 'keydown', event => {
+      const steps = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1]};
+      if(steps[event.key]){
+        L.DomEvent.stop(event);
+        if(!isFrameMoveSessionCurrent(session)) return;
+        const point = map.latLngToContainerPoint(marker.getLatLng()), step = event.shiftKey ? 40 : 10;
+        const [x,y] = steps[event.key];
+        marker.setLatLng(map.containerPointToLatLng([point.x+x*step, point.y+y*step]));
+        commit();
+      }else if(event.key === 'Escape' || event.key === 'Enter'){
+        L.DomEvent.stop(event);
+        setFrameMoveMode(false);
+        frameMoveButton?.focus();
+      }
+    });
+    if(wasFocused) element.focus();
+  }
+}
+
+function setFrameMoveMode(active, showMessage = true){
+  const loc = LOCS[currentIndex];
+  if(active && (!map || !loc)) return;
+  frameMoveMode = !!active;
+  if(active){
+    setTerritoryAddMode(false, false);
+    setColorDrawMode(false);
+    setRoadPencilMode(false, false);
+    setRiverPencilMode(false, false);
+    setTextAddMode(false, false);
+    setIconAddMode(false, false);
+    setColorEditMode(false);
+    selectedReference = null;
+    if(ubicacionVigia !== null){
+      ubicacionSigue = false;
+      ubicacionCentroPendiente = null;
+      marcarBotonUbicacion(true, 'Volver a mí');
+    }
+  }
+  frameMoveSession = null;
+  if(frameMoveHandle && map){ map.removeLayer(frameMoveHandle); frameMoveHandle = null; }
+  map?.getContainer().classList.toggle('frame-move-active', frameMoveMode);
+  document.querySelector('.map-wrap')?.classList.toggle('is-frame-moving', frameMoveMode);
+  if(map && loc) drawTerritoryFrame(loc, false);
+  renderTextLabels(loc);
+  renderManualIcons(loc);
+  updateFrameControls(loc);
+  updateColorControls(loc);
+  if(active){
+    const center = frameMoveHandle?.getLatLng();
+    if(center && !map.getBounds().contains(center)) map.panTo(center);
+    if(showMessage) setStatus('Mover recuadro: arrastra el control azul del centro. Se guarda al soltar; toca Listo para terminar.', 'warn');
+  }else if(showMessage){ setStatus('Edición del recuadro finalizada.', 'warn'); }
 }
 
 function setFrameScaleForCurrent(value, fitMap = true){
@@ -6498,14 +6765,15 @@ function drawTerritoryFrame(loc, fitMap = true, silent = false){
   if(ringLayer) map.removeLayer(ringLayer);
 
   ringLayer = L.rectangle(getBoundsForLoc(loc, loc.zoom || DETAIL_ZOOM), {
-    color:'#1f7a47',
-    weight:2,
+    color:frameMoveMode ? '#1f57d6' : '#1f7a47',
+    weight:frameMoveMode ? 3 : 2,
     dashArray:'7,5',
     fillColor:'#1f7a47',
     fillOpacity:.045,
     interactive:false
   }).addTo(map);
   if(ringLayer?.bringToFront) ringLayer.bringToFront();
+  if(frameMoveMode) renderFrameMoveHandle(loc);
   if(fitMap){
     map.fitBounds(getBoundsForLoc(loc, loc.zoom || DETAIL_ZOOM), { padding:[28,28], maxZoom:17, animate: !silent });
   }
@@ -6514,6 +6782,7 @@ function drawTerritoryFrame(loc, fitMap = true, silent = false){
 function goTo(index, silent, fitMap = true){
   const idx = Number(index);
   if(!Number.isFinite(idx) || !LOCS[idx]) return;
+  if(frameMoveMode) setFrameMoveMode(false, false);
   clearSelectedLine();
   currentIndex = idx;
   locSel.value = String(idx);
@@ -7797,11 +8066,13 @@ function getColorAreasBoundsPlain(loc){
 }
 
 function getExportBoundsPlain(loc, z = DETAIL_ZOOM){
+  if(normalizeFramePosition(framePositionSettings[String(loc.num)])) return getPrintBoundsPlain(loc, z);
   return getColorAreasBoundsPlain(loc) || getPrintBoundsPlain(loc, z);
 }
 
 function getPrintBoundsPlain(loc, z = DETAIL_ZOOM){
-  return scaleBoundsPlain(getBaseBoundsPlain(loc, z), getFrameScaleForLoc(loc));
+  const bounds = scaleBoundsPlain(getBaseBoundsPlain(loc, z), getFrameScaleForLoc(loc));
+  return translateFrameBoundsPlain(bounds, framePositionSettings[String(loc.num)]) || bounds;
 }
 
 function getBaseBoundsPlain(loc, z = DETAIL_ZOOM){
@@ -8342,7 +8613,7 @@ function ofrecerCambioDeTerritorio(lat, lng){
   const zona = zonaDeLaUbicacion(lat, lng);
   if(!zona || zona.indice === currentIndex) return;
   if(colorDrawMode || roadPencilMode || riverPencilMode || contourEditMode
-    || textAddMode || iconAddMode || territoryAddMode){
+    || textAddMode || iconAddMode || territoryAddMode || frameMoveMode){
     avisarUbicacion('La ubicación estimada cae en ' + displayTerritoryName(zona.loc)
       + ', pero tienes algo a medio dibujar aquí. Guarda o cancela y vuelve a tocar Mi ubicación.', 'warn');
     return;
@@ -8469,7 +8740,8 @@ $('btn-ubicacion-stop').addEventListener('click', () => apagarUbicacion('Ubicaci
 locSel.addEventListener('change', () => goTo(locSel.value));
 viewSel.addEventListener('change', () => changeView(viewSel.value));
 frameScaleInput.addEventListener('input', () => setFrameScaleForCurrent(frameScaleInput.value));
-frameResetButton.addEventListener('click', () => setFrameScaleForCurrent(100));
+frameResetButton.addEventListener('click', resetFrameForCurrent);
+frameMoveButton.addEventListener('click', () => setFrameMoveMode(!frameMoveMode));
 colorInput.addEventListener('input', () => {
   renderDraftArea();
   applySelectedStyleChange();
@@ -8632,6 +8904,11 @@ refrescarCongregacionesEnInicio();
 document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
 document.addEventListener('keydown', event => {
   if($('congregacion-dialog')?.open) return;
+  if(event.key === 'Escape' && frameMoveMode){
+    setFrameMoveMode(false);
+    frameMoveButton?.focus();
+    return;
+  }
   if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's'){
     event.preventDefault();
     saveAllChanges();

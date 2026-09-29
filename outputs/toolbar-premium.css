@@ -155,8 +155,8 @@
   .premium-toolbar select { width: 100%; min-width: 0; max-width: none; }
   .premium-toolbar .text-input { width: 98px; min-width: 0; }
   .premium-toolbar .text-input::placeholder { color: var(--color-muted); font-weight: 400; }
-  .premium-toolbar .frame-field { flex: 0 0 190px; min-width: 190px; }
-  .premium-toolbar .frame-control { width: 190px; height: var(--control-height); gap: var(--space-sm); }
+  .premium-toolbar .frame-field { flex: 0 0 250px; min-width: 250px; }
+  .premium-toolbar .frame-control { width: 250px; height: var(--control-height); gap: var(--space-sm); }
   .premium-toolbar .frame-value, .premium-toolbar .opacity-value, .premium-toolbar .text-size-value {
     color: var(--color-ink-2);
     font-size: var(--text-caption);
@@ -243,6 +243,23 @@
     transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
   }
   .premium-toolbar .icon-btn { width: var(--control-height); padding: 0; }
+  .premium-toolbar .frame-control .frame-move-btn {
+    width: 53px;
+    min-width: 53px;
+    padding: var(--space-xs);
+    flex-direction: column;
+    gap: 3px;
+    background: var(--color-accent-soft);
+    color: var(--color-accent-deep);
+    border-color: var(--color-rule-strong);
+  }
+  .premium-toolbar .frame-move-btn > span { font-size: 11px; font-weight: 600; line-height: 1; }
+  .premium-toolbar .frame-control .frame-move-btn[aria-pressed=true] {
+    background: var(--gradient-primary);
+    color: var(--color-accent-ink);
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-primary), var(--shadow-inset);
+  }
   .premium-toolbar .icon-btn.con-rotulo { width: auto; min-width: 53px; padding: var(--space-xs) var(--space-sm); flex-direction: column; gap: var(--space-xs); }
   .premium-toolbar .icon-btn-rotulo, .premium-toolbar .btn-rotulo { color: inherit; font-size: var(--text-caption); font-weight: 600; letter-spacing: 0; line-height: 1; opacity: 1; white-space: nowrap; }
   .premium-toolbar .btn svg, .premium-toolbar .icon-btn svg, .premium-toolbar .icon-btn.con-rotulo svg { width: 18px; height: 18px; flex: 0 0 18px; }
@@ -378,7 +395,7 @@
   .premium-toolbar .bar-actions .bar-spacer { display: none; }
 }
 
-@media screen and (min-width: 761px) and (max-width: 980px) {
+@media screen and (min-width: 761px) and (max-width: 1024px) {
   .premium-toolbar .workspace-head { flex-wrap: wrap; }
   .premium-toolbar .brand { flex-basis: 100%; }
   .premium-toolbar .workspace-settings { width: 100%; justify-content: flex-start; }
@@ -402,7 +419,7 @@
   .premium-toolbar #btn-tools-toggle { position: absolute; top: var(--space-md); right: 0; display: inline-flex; order: 0; width: var(--control-height); min-width: var(--control-height); max-width: var(--control-height); padding: 0; font-size: 0; flex: 0 0 var(--control-height); }
   .premium-toolbar #btn-tools-toggle svg { width: 20px; height: 20px; }
   .premium-toolbar .campo-mapa { flex: 1 1 155px; min-width: 0; }
-  .premium-toolbar .frame-field { flex: 1 1 175px; min-width: 0; }
+  .premium-toolbar .frame-field { flex: 1 1 250px; min-width: 0; }
   .premium-toolbar .frame-control { width: 100%; }
   .premium-toolbar .frame-control input[type=range] { min-width: 0; }
   .premium-toolbar #tools-panel { padding: var(--space-md) 0; }

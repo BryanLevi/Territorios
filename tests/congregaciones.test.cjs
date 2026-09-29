@@ -19,6 +19,7 @@ const escucha = seccion('function escucharCongregacion(', 'function aplicarTerri
 const inicio = seccion('function hideWelcomeScreen(', 'function clearHeavyUndoStorage(');
 const eventos = seccion("$('welcome-cong-nueva')?.addEventListener", "$('btn-nube')?.addEventListener");
 const normalizarNombres = seccion('function normalizeTerritorySelectorNote(', 'function populateManualIconSelect(');
+const posiciones = seccion('function normalizeFramePosition(', 'function loadColorAreaSettings(');
 const claves = [...storage.matchAll(/\['\w+', ([A-Z_]+)\]/g)].map(m => m[1]);
 const llaveRegistro = 'croquis-congregaciones-v1';
 const llaveActiva = 'croquis-congregacion-activa-v1';
@@ -61,23 +62,23 @@ function entorno(guardadas = {}){
     location:{ href:'http://localhost/outputs/croquis_territorios.html' },
     map:null, currentIndex:0, LOCS:[{ num:1, name:'Territorio existente' }], locSel:{ value:'0', focus:noOp },
     colorAreaSettings:{}, textLabelSettings:{}, manualIconSettings:{}, whiteRoadSettings:{}, manualRiverSettings:{},
-    frameScaleSettings:{}, leyendaSettings:{}, nombresSettings:{}, undoHistory:[],
+    frameScaleSettings:{}, framePositionSettings:{}, leyendaSettings:{}, nombresSettings:{}, undoHistory:[],
     selectedAreaIndex:null, selectedTextIndex:null, selectedIconIndex:null,
     draftPoints:[], roadDraftPoints:[], riverDraftPoints:[],
-    colorDrawMode:false, roadPencilMode:false, riverPencilMode:false, territoryAddMode:false,
+    colorDrawMode:false, roadPencilMode:false, riverPencilMode:false, territoryAddMode:false, frameMoveMode:false,
     textAddMode:false, iconAddMode:false, contourEditMode:false,
     recargarAjustesGuardados(){ vistas.push(vm.runInContext('congregacionActivaId', contexto)); },
     applyCustomTerritories:noOp, populateSelect:noOp, limpiarMapaSinTerritorios:noOp, updateInfo:noOp, goTo:noOp, saveAllChanges:noOp, clearSelectedLine:noOp,
     safeObject:v => v && typeof v === 'object' && !Array.isArray(v) ? v : {}, safeArray:v => Array.isArray(v) ? v : [],
     normalizeCustomTerritory:v => v, loadCustomTerritorySettings:() => [], loadHiddenTerritorySettings:() => [],
     setColorDrawMode:noOp, setRoadPencilMode:noOp, setRiverPencilMode:noOp, setTextAddMode:noOp,
-    setIconAddMode:noOp, setContourEditMode:noOp, setTerritoryAddMode:noOp,
+    setIconAddMode:noOp, setContourEditMode:noOp, setTerritoryAddMode:noOp, setFrameMoveMode:noOp,
     setStatus:(texto, tipo) => avisos.push({ texto, tipo }), setTimeout:noOp,
     aplicarListaRemota:d => escuchas.push({ lista:d }), aplicarTerritorioRemoto:(id, d) => escuchas.push({ id, d }), pintarEstadoNube:noOp
   });
   claves.forEach(clave => { contexto[clave] = clave.toLowerCase(); });
   vm.runInContext('let nube=null, nubeAplicando=false, nubeYo="yo", nubeQuien="equipo", nubeCorte=null, nubeCorteLista=null, nubeCorteRegistro=null;', contexto);
-  vm.runInContext(normalizarNombres + storage + crud + respaldos + importar + registroNube + escucha + inicio + eventos, contexto);
+  vm.runInContext(posiciones + normalizarNombres + storage + crud + respaldos + importar + registroNube + escucha + inicio + eventos, contexto);
   const ejecutar = codigo => vm.runInContext(codigo, contexto);
   const plano = valor => JSON.parse(JSON.stringify(valor));
   return { contexto, ejecutar, plano, valores, escrituras, vistas, avisos, $, wrappers, escuchas,
@@ -262,6 +263,22 @@ test('el respaldo incluye nombres de la base y datos de las retiradas y hace rou
   assert.equal(otro.vivas().some(c => c.id === base.id), false);
   assert.equal(otro.valores.get('color_areas_storage_key'), '{"1":["BASE"]}');
   assert.equal(otro.activa(), payload.congregacionActiva);
+});
+
+test('el respaldo e importación conservan centros de recuadro distintos por congregación', () => {
+  const centroBase = {'1':{lat:19.05,lng:-97}}, centroNueva = {'1':{lat:20,lng:-98}};
+  const e = entorno({frame_position_storage_key:JSON.stringify(centroBase)});
+  const nueva = e.crear().congregacion;
+  e.valores.set('frame_position_storage_key::' + nueva.id,JSON.stringify(centroNueva));
+  e.contexto.framePositionSettings = centroNueva;
+  const payload = e.plano(e.ejecutar('buildBackupPayload()'));
+  assert.deepEqual(payload.data.framePositions,centroNueva);
+  assert.deepEqual(JSON.parse(payload.porCongregacion[base.id].framePositions),centroBase);
+  assert.deepEqual(JSON.parse(payload.porCongregacion[nueva.id].framePositions),centroNueva);
+  const otro = entorno(); otro.contexto.payload = payload;
+  assert.equal(otro.ejecutar('importBackupPayload(payload)'),true);
+  assert.deepEqual(JSON.parse(otro.valores.get('frame_position_storage_key')),centroBase);
+  assert.deepEqual(JSON.parse(otro.valores.get('frame_position_storage_key::' + nueva.id)),centroNueva);
 });
 
 test('un respaldo antiguo de la base retirada no contamina a la sobreviviente', () => {

@@ -27,7 +27,7 @@ function entorno({roads = [carretera(0), carretera(30)], rivers = [rio(60)], are
     LOCS:[{num:1}, {num:2}], currentIndex:0, congregacionActivaId:'congregacion-a',
     selectedLine:null, selectedAreaIndex:null, selectedTextIndex:null, selectedIconIndex:null,
     selectedReference:null, colorEditMode:false, contourEditMode:false,
-    territoryAddMode:false, textAddMode:false, iconAddMode:false,
+    territoryAddMode:false, textAddMode:false, iconAddMode:false, frameMoveMode:false,
     colorDrawMode:false, roadPencilMode:false, riverPencilMode:false,
     roadDraftPoints:[], riverDraftPoints:[], draftPoints:[],
     whiteRoadSettings:{'1':copia(roads)}, manualRiverSettings:{'1':copia(rivers)},

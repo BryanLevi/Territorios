@@ -17,6 +17,7 @@ const cuentas = seccion('function subterritoriosDeLoc(', 'function updateInfo(')
 const respaldo = seccion('function buildBackupPayload(', 'function datosDeCongregacion(');
 const leerRespaldo = seccion('function getBackupData(', 'function refreshAfterBackupImport(');
 const nube = seccion('async function publicarLista(', '// Se publica solo, en cuanto se cambia algo.');
+const posiciones = seccion('function normalizeFramePosition(', 'function loadColorAreaSettings(');
 const original = { num:15, name:'Moctezuma (Colonia Moctezuma)', lat:19.05, lon:-96.92 };
 
 function entorno({ guardados = {}, divisionCount = 8 } = {}){
@@ -51,14 +52,14 @@ function entorno({ guardados = {}, divisionCount = 8 } = {}){
     normalizeCustomTerritory:v => v, BACKUP_FILE_VERSION:1, location:{ href:'http://localhost/croquis' },
     colorAreaSettings:{ 15:[{ color:'#8b2cff', points:[[19,-97],[20,-97],[19,-96]] }] },
     textLabelSettings:{}, manualIconSettings:{}, whiteRoadSettings:{}, manualRiverSettings:{},
-    frameScaleSettings:{}, leyendaSettings:{}, nombresSettings:{},
+    frameScaleSettings:{}, framePositionSettings:{}, leyendaSettings:{}, nombresSettings:{},
     cargarRegistroCongregaciones:() => [{ id:contexto.congregacionActivaId }],
     datosDeTodasLasCongregaciones:() => ({}),
   });
   for(const match of leerRespaldo.matchAll(/data\[([A-Z_]+)\]/g)){
     if(contexto[match[1]] === undefined) contexto[match[1]] = match[1].toLowerCase();
   }
-  vm.runInContext(rotulos + nombres + selector + cuentas + respaldo + leerRespaldo + nube, contexto);
+  vm.runInContext(posiciones + rotulos + nombres + selector + cuentas + respaldo + leerRespaldo + nube, contexto);
   const ejecutar = codigo => vm.runInContext(codigo, contexto);
   ejecutar('nombresSettings=loadNombresSettings(); applyCustomTerritories(); populateSelect(); refreshTerritoryCounts();');
   const plano = valor => JSON.parse(JSON.stringify(valor));
