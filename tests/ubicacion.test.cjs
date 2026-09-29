@@ -61,6 +61,7 @@ function entorno({ confirmar = false, alConfirmar = () => {}, seguro = true, geo
     LOCS:[{ num:1, name:'Abierto', lat:10, lon:10 }, { num:2, name:'Destino', lat:19.06, lon:-96.97 }],
     colorDrawMode:false, roadPencilMode:false, riverPencilMode:false, contourEditMode:false,
     textAddMode:false, iconAddMode:false, territoryAddMode:false, frameMoveMode:false,
+    destinationAddMode:false, destinationSession:null, cancelDestinationInteraction:noOp,
     getExportColorAreasForLoc:loc => loc.num === 2 ? [{ points:[[19,-97],[19.1,-97],[19.1,-96.9],[19,-96.9]] }] : [],
     getTextLabelsForLoc:loc => loc.num === 2 ? [{ text:'3', lat:19.05, lng:-96.95 }] : [],
     displayTerritoryName:loc => loc.name,

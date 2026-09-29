@@ -28,6 +28,7 @@ function entorno({roads = [carretera(0), carretera(30)], rivers = [rio(60)], are
     selectedLine:null, selectedAreaIndex:null, selectedTextIndex:null, selectedIconIndex:null,
     selectedReference:null, colorEditMode:false, contourEditMode:false,
     territoryAddMode:false, textAddMode:false, iconAddMode:false, frameMoveMode:false,
+    destinationAddMode:false, destinationSession:null, cancelDestinationInteraction:noOp,
     colorDrawMode:false, roadPencilMode:false, riverPencilMode:false,
     roadDraftPoints:[], riverDraftPoints:[], draftPoints:[],
     whiteRoadSettings:{'1':copia(roads)}, manualRiverSettings:{'1':copia(rivers)},

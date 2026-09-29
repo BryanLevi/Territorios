@@ -230,6 +230,33 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .ref-panel-vacio{margin:2px 0;font-size:13px;line-height:1.45;color:#4a6579}
 .ref-panel-nota{margin:10px 0 9px;font-size:12px;line-height:1.4;color:#60726a}
 .ref-panel-pie{display:flex;justify-content:flex-end}
+.destination-label-marker{width:auto!important;height:auto!important;background:transparent;border:0}
+.destination-text-label{display:block;position:absolute;left:0;top:0;transform:translate(-50%,-50%);width:max-content;box-sizing:border-box;color:#17202c;font-family:Arial,sans-serif;font-weight:600;line-height:1.2;text-align:center;white-space:normal;overflow-wrap:anywhere;background:rgba(255,255,255,.94);border:0;border-radius:2px}
+.destination-text-label.is-selected{outline:2px solid #2563eb;outline-offset:3px;cursor:grab}
+.destination-handle{display:grid;place-items:center;background:transparent;border:0;border-radius:50%;cursor:grab;touch-action:none}
+.destination-handle span{width:16px;height:16px;border:3px solid #fff;border-radius:50%;background:#2563eb;box-shadow:0 0 0 1px #1d4ed8,0 2px 6px rgba(15,36,72,.2);pointer-events:none}
+.destination-handle:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.destination-arrow-path{cursor:pointer}
+.map-wrap.is-destination-placing #map{cursor:crosshair}
+.destination-panel{position:absolute;right:16px;bottom:18px;z-index:670;width:min(350px,calc(100% - 28px));padding:16px;border:1px solid #bfd2ff;border-radius:20px;background:rgba(255,255,255,.98);color:#17335e;box-shadow:0 12px 34px rgba(35,66,115,.18);font-size:13px}
+.destination-panel[hidden]{display:none}
+.destination-panel h2{font-size:15px;margin:0 0 6px;letter-spacing:-.02em}
+.destination-panel p{margin:0 0 12px;line-height:1.45;color:#526b91;font-size:12px}
+.destination-panel label{display:block;margin-bottom:6px;font-weight:700;font-size:12px}
+.destination-panel input,.destination-panel select{width:100%;min-height:44px;box-sizing:border-box;border:1px solid #bfd2ff;border-radius:12px;padding:0 12px;color:#17335e;background:#fff;font:inherit}
+.destination-panel input:focus-visible,.destination-panel select:focus-visible{outline:3px solid #d8e5ff;border-color:#2563eb}
+.destination-panel-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;margin:12px 0}
+.destination-panel-row span{font-size:11px;line-height:1.5;color:#526b91;padding-bottom:3px}
+.destination-panel-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}
+.destination-panel-actions .btn{min-height:44px;border:1px solid #c5d6fa;border-radius:12px;background:#f5f8ff;color:#264670;font-family:inherit;font-size:12px;box-shadow:0 2px 4px rgba(35,66,115,.08);transition:background .15s,box-shadow .15s}
+.destination-panel-actions .btn.primary{background:linear-gradient(120deg,#1946bc,#235be4);border-color:#1d4ed8;color:#fff}
+.destination-panel-actions .btn.danger{background:#fff1f1;border-color:#f4caca;color:#b42318}
+.destination-panel-actions .btn:hover{box-shadow:0 3px 7px rgba(35,66,115,.15)}
+.destination-panel-actions .btn:focus-visible{outline:3px solid #c5d6fa;outline-offset:2px}
+@media screen{.destination-label-marker::before{content:"";position:absolute;width:44px;height:44px;left:0;top:0;transform:translate(-50%,-50%);border-radius:50%}.destination-label-marker:focus-visible .destination-text-label{outline:3px solid #2563eb;outline-offset:3px}}
+@media(prefers-reduced-motion:reduce){.destination-panel-actions .btn{transition:none}}
+.destination-error{color:#b42318!important;margin:8px 0!important}
+@media screen and (max-width:680px){.map-wrap.is-destination-placing > #info-card,.map-wrap.is-destination-editing > #info-card{display:none!important}.destination-panel{right:14px;bottom:12px;padding:12px}.destination-panel p{margin-bottom:8px}.destination-panel-row{margin:8px 0}}
 /* --- PDF agrupado ---------------------------------------------------- */
 .agrupar-panel{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:660;width:min(720px,calc(100% - 20px));background:#fff;border:1px solid #cfdcd5;border-radius:12px;box-shadow:0 18px 44px rgba(16,40,26,.26);padding:12px 14px}
 .agrupar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -600,6 +627,7 @@ body.print-preview{overflow:hidden}
         <summary><i class="guide-category-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7V4h14v3M12 4v16M8 20h8"></path></svg></i><span><b>Textos y referencias</b><small>Nombres, destinos e iconos</small></span><svg class="guide-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg></summary>
         <div class="tool-grid">
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg></span><span><b>Agregar texto</b><span>Coloca texto en el mapa. Usa / para separar renglones.</span></span></div>
+          <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 20 5M9 5h11v11"></path></svg></span><span><b>Flecha + destino</b><span>Toca Destino, marca inicio y dirección, y escribe hacia dónde lleva. Arrastra sus puntos o el texto para acomodarlos; el tamaño elegido se conserva en el PDF.</span></span></div>
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><b>Agregar iconos</b><span>Elige la referencia, pulsa Icono y marca su posición en el mapa.</span></span></div>
           <div class="tool-item"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-4.4 7-11a7 7 0 0 0-14 0c0 6.6 7 11 7 11z"></path><circle cx="12" cy="10" r="2.5"></circle><path d="M3 3l18 18" opacity=".55"></path></svg></span><span><b>Editar iconos</b><span>Toca un icono para cambiarlo, moverlo o eliminarlo. Las referencias del mapa pueden hacerse editables.</span></span></div>
         </div>
@@ -764,6 +792,10 @@ body.print-preview{overflow:hidden}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l3 3-3 3H4z"></path><path d="M9 10v10"></path><path d="M6 20h6"></path></svg>
         <span class="icon-btn-rotulo">Carretera</span>
       </button>
+      <button class="icon-btn con-rotulo" id="btn-destino" type="button" disabled aria-pressed="false" title="Agregar una flecha con destino" aria-label="Agregar flecha con destino">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 20 5M9 5h11v11"></path></svg>
+        <span class="icon-btn-rotulo">Destino</span>
+      </button>
       <button class="icon-btn con-rotulo" id="btn-river-pencil" type="button" disabled title="Dibujar rio o arroyo" aria-label="Dibujar rio o arroyo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 13c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path><path d="M2 18.5c2.2 0 2.2 2 4.4 2s2.2-2 4.4-2 2.2 2 4.4 2 2.2-2 4.4-2"></path></svg>
         <span class="icon-btn-rotulo">Rio</span>
@@ -875,6 +907,18 @@ body.print-preview{overflow:hidden}
     <button class="btn primary" id="btn-ref-adopt" type="button" hidden>Hacerlo editable</button>
     <button class="btn danger" id="btn-icon-delete" type="button">Eliminar</button>
   </div>
+  <form class="destination-panel" id="destination-panel" aria-labelledby="destination-title" hidden>
+    <h2 id="destination-title">Flecha + destino</h2>
+    <p>Guarda el destino y arrastra los puntos azules o el texto para acomodarlo.</p>
+    <label for="destination-text">Hacia dónde lleva</label>
+    <input id="destination-text" type="text" maxlength="80" placeholder="Hacia Ocotitlán" autocomplete="off" required>
+    <div class="destination-panel-row">
+      <div><label for="destination-size">Texto en el PDF</label><select id="destination-size"><option value="8">8 pt · pequeño</option><option value="10" selected>10 pt · recomendado</option><option value="12">12 pt · grande</option><option value="14">14 pt · destacado</option><option value="16">16 pt</option><option value="18">18 pt</option></select></div>
+      <span>Flecha negra<br>Trazo 1,2 pt · punta 3 mm</span>
+    </div>
+    <p class="destination-error" id="destination-error" role="alert" hidden></p>
+    <div class="destination-panel-actions"><button class="btn danger" id="destination-delete" type="button" hidden>Eliminar</button><button class="btn ghost" id="destination-cancel" type="button">Cerrar</button><button class="btn primary" id="destination-save" type="submit">Guardar</button></div>
+  </form>
   <div class="ref-panel" id="ref-panel" hidden>
     <div class="ref-panel-head">
       <b>Referencias del territorio</b>
@@ -1214,6 +1258,7 @@ const contourEditButton = $('btn-contour-edit');
 const colorDrawButton = $('btn-color-draw');
 const roadPencilButton = $('btn-road-pencil');
 const carreteraButton = $('btn-carretera');
+const destinationButton = $('btn-destino');
 const riverPencilButton = $('btn-river-pencil');
 const textAddButton = $('btn-text-add');
 const iconAddButton = $('btn-icon-add');
@@ -1514,6 +1559,10 @@ let colorDrawMode = false;
 let colorEditMode = false;
 let contourEditMode = false;
 let textAddMode = false;
+let destinationAddMode = false;
+let destinationStartPoint = null;
+let destinationDraftLayer = null;
+let destinationSession = null;
 let iconAddMode = false;
 let roadPencilMode = false;
 let roadDraftPoints = [];
@@ -1788,13 +1837,14 @@ function loadTextLabelSettings(){
   try{
     const raw = almacen.getItem(TEXT_LABELS_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    return normalizeTextLabelSettings(parsed);
   }catch(e){
     return {};
   }
 }
 
 function saveTextLabelSettings(){
+  textLabelSettings = normalizeTextLabelSettings(textLabelSettings);
   try{
     almacen.setItem(TEXT_LABELS_STORAGE_KEY, JSON.stringify(textLabelSettings));
     return true;
@@ -2076,6 +2126,8 @@ function recargarAjustesGuardados(){
 }
 
 function limpiarMapaSinTerritorios(){
+  cancelDestinationInteraction();
+  map?._directionLayer?.clearLayers();
   if(frameMoveMode) setFrameMoveMode(false, false);
   clearSelectedLine();
   if(ringLayer && map){ map.removeLayer(ringLayer); ringLayer = null; }
@@ -2374,6 +2426,7 @@ function renderTerritoryAddPreview(currentLatLng = null){
 }
 
 function setTerritoryAddMode(active, showMessage = true){
+  if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   territoryAddMode = !!active;
@@ -2524,6 +2577,8 @@ function hideWelcomeScreen(){
 }
 
 function showWelcomeScreen(){
+  cancelDestinationInteraction();
+  renderTextLabels(LOCS[currentIndex]);
   if(frameMoveMode) setFrameMoveMode(false, false);
   $('welcome-screen')?.classList.remove('is-hidden');
   document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
@@ -2789,10 +2844,51 @@ function setColorAreasForLoc(loc, areas, options = {}){
   return saved;
 }
 
+function normalizeDestinationPoint(point){
+  if(!Array.isArray(point) || point.length !== 2) return null;
+  if(point.some(value => value == null || typeof value === 'boolean' || String(value).trim() === '')) return null;
+  const lat = Number(point[0]), lng = Number(point[1]);
+  if(!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 85.05112878 || Math.abs(lng) > 180) return null;
+  return [Number(lat.toFixed(8)), Number(lng.toFixed(8))];
+}
+
+function normalizeDestinationLabel(label){
+  if(!label || typeof label !== 'object' || Array.isArray(label) || label.type !== 'destino') return null;
+  const text = String(label.text || '').trim();
+  const position = normalizeDestinationPoint([label.lat, label.lng]);
+  if(!text || !position || !Array.isArray(label.points) || label.points.length !== 2) return null;
+  const points = label.points.map(normalizeDestinationPoint);
+  if(points.some(point => !point) || (points[0][0] === points[1][0] && points[0][1] === points[1][1])) return null;
+  const dimension = (value, fallback, min, max) => {
+    if(value == null || typeof value === 'boolean' || String(value).trim() === '') return fallback;
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
+  };
+  return {
+    ...label, type:'destino', text, lat:position[0], lng:position[1], points,
+    sizePt:dimension(label.sizePt, 10, 7, 18),
+    strokePt:dimension(label.strokePt, 1.2, .6, 3),
+    headMm:dimension(label.headMm, 3, 2, 6)
+  };
+}
+
+function normalizeTextLabelsForLoc(labels){
+  if(!Array.isArray(labels)) return [];
+  return labels.map(label => {
+    if(!label || !String(label.text || '').trim()) return null;
+    return label.type === 'destino' ? normalizeDestinationLabel(label) : label;
+  }).filter(Boolean);
+}
+
+function normalizeTextLabelSettings(settings){
+  if(!settings || typeof settings !== 'object' || Array.isArray(settings)) return {};
+  return Object.fromEntries(Object.entries(settings).map(([key, labels]) => [key, normalizeTextLabelsForLoc(labels)]).filter(([,labels]) => labels.length));
+}
+
 function getTextLabelsForLoc(loc){
   if(!loc) return [];
   const labels = textLabelSettings[String(loc.num)];
-  return Array.isArray(labels) ? labels : [];
+  return normalizeTextLabelsForLoc(labels);
 }
 
 function setTextLabelsForLoc(loc, labels, options = {}){
@@ -2800,7 +2896,7 @@ function setTextLabelsForLoc(loc, labels, options = {}){
   publicarTerritorioPronto(loc);
   const key = String(loc.num);
   const before = cloneData(getTextLabelsForLoc(loc));
-  const validLabels = (labels || []).filter(label => label && String(label.text || '').trim());
+  const validLabels = normalizeTextLabelsForLoc(labels);
   if(stateFingerprint(before) !== stateFingerprint(validLabels) && !options.skipUndo){
     pushUndoSnapshot('text', loc);
   }
@@ -3045,6 +3141,7 @@ function getSelectedLine(loc = LOCS[currentIndex], selection = selectedLine){
 
 function selectLinearElement(kind, index){
   if(frameMoveMode) return;
+  cancelDestinationInteraction();
   const loc = LOCS[currentIndex];
   const line = (kind === 'river' ? getManualRiversForLoc(loc) : getWhiteRoadsForLoc(loc))[index];
   if(!line) return false;
@@ -3105,14 +3202,20 @@ function deleteSelectedLine(){
 function updateColorControls(loc = LOCS[currentIndex]){
   if(!colorInput || !colorOpacityInput) return;
   const enabled = !!map;
+  if(destinationButton){
+    destinationButton.disabled=!enabled || !loc;
+    destinationButton.classList.toggle('active',destinationAddMode);
+    destinationButton.setAttribute('aria-pressed',String(destinationAddMode));
+  }
   const hasSelection = selectedAreaIndex != null || selectedTextIndex != null || selectedIconIndex != null || selectedLine != null;
+  const directionSelected = getTextLabelsForLoc(loc)[selectedTextIndex]?.type === 'destino';
   colorInput.disabled = !enabled;
   colorOpacityInput.disabled = !enabled;
-  textInput.disabled = !enabled;
+  textInput.disabled = !enabled || directionSelected;
   if(manualIconSelect) manualIconSelect.disabled = !enabled;
 
   syncIconPicker();
-  if(textSizeInput) textSizeInput.disabled = !enabled;
+  if(textSizeInput) textSizeInput.disabled = !enabled || directionSelected;
   colorEditButton.disabled = !enabled || !loc || (getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0 && getManualRiversForLoc(loc).length === 0);
   colorEditButton.classList.toggle('active', colorEditMode || hasSelection);
   contourEditButton.disabled = !enabled || !loc || selectedAreaIndex == null;
@@ -3148,6 +3251,7 @@ function updateColorControls(loc = LOCS[currentIndex]){
   colorOpacityValue.textContent = Math.round(getFillOpacity() * 100) + '%';
   updateTextSizeValue();
   refreshIconActions(loc);
+  renderDirectionAnnotations(map,loc,{interactive:true});
 }
 
 function renderColorAreas(loc){
@@ -3163,7 +3267,7 @@ function renderColorAreas(loc){
     }).addTo(colorLayer);
     polygon.on('click', event => {
       if(event.originalEvent) L.DomEvent.stop(event.originalEvent);
-      if(territoryAddMode || textAddMode || iconAddMode || colorDrawMode || contourEditMode || roadPencilMode || riverPencilMode){
+      if(destinationAddMode || territoryAddMode || textAddMode || iconAddMode || colorDrawMode || contourEditMode || roadPencilMode || riverPencilMode){
         handleColorMapClick(event);
         return;
       }
@@ -4039,6 +4143,203 @@ function renderContourEditHandles(loc){
   });
 }
 
+function directionAnnotationGeometry(targetMap, label, factor = 1){
+  const start = targetMap.latLngToContainerPoint(label.points[0]);
+  const tip = targetMap.latLngToContainerPoint(label.points[1]);
+  const dx = tip.x - start.x, dy = tip.y - start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const ux = dx / length, uy = dy / length;
+  const head = (Number(label.headMm) || 3) * 96 / 25.4 * factor;
+  return {start, tip, wings:[L.point(tip.x - ux * head - uy * head * .55, tip.y - uy * head + ux * head * .55), L.point(tip.x - ux * head + uy * head * .55, tip.y - uy * head - ux * head * .55)]};
+}
+
+function directionInteractionAllowed(){
+  return !frameMoveMode && !destinationAddMode && !destinationSession?.points
+    && !territoryAddMode && !colorDrawMode && !roadPencilMode && !riverPencilMode && !textAddMode && !iconAddMode && !contourEditMode;
+}
+
+// Los tamaños se expresan en la hoja final; layoutScale compensa cada hueco.
+function renderDirectionAnnotations(targetMap, loc, options = {}){
+  if(!targetMap || !window.L) return {bounds:null};
+  if(targetMap._directionLayer) targetMap.removeLayer(targetMap._directionLayer);
+  const layer = L.layerGroup().addTo(targetMap);
+  targetMap._directionLayer = layer;
+  const printMode = !!options.printMode;
+  const scale = Number(options.scale) || 1;
+  const layoutScale = Math.max(.05, Number(options.layoutScale) || 1);
+  const factor = scale / layoutScale;
+  const canEdit = !printMode && options.interactive !== false && directionInteractionAllowed();
+  const namespace = congregacionActivaId, locNum = String(loc?.num);
+  const paneName = 'territoryDirectionPane';
+  if(!targetMap.getPane(paneName)) targetMap.createPane(paneName);
+  targetMap.getPane(paneName).style.zIndex = 570;
+  targetMap.getPane(paneName).style.pointerEvents = printMode ? 'none' : '';
+  let bounds = null;
+  const include = (x, y, padding = 0) => {
+    if(!bounds) bounds = {x0:x-padding,y0:y-padding,x1:x+padding,y1:y+padding};
+    else {bounds.x0=Math.min(bounds.x0,x-padding);bounds.y0=Math.min(bounds.y0,y-padding);bounds.x1=Math.max(bounds.x1,x+padding);bounds.y1=Math.max(bounds.y1,y+padding);}
+  };
+  getTextLabelsForLoc(loc).forEach((raw, index) => {
+    if(raw.type !== 'destino') return;
+    const label = normalizeDestinationLabel(raw);
+    if(!label) return;
+    const fingerprint = stateFingerprint(label);
+    const live = () => !printMode && targetMap === map && targetMap._directionLayer === layer && namespace === congregacionActivaId && locNum === String(LOCS[currentIndex]?.num) && directionInteractionAllowed() && stateFingerprint(getTextLabelsForLoc(loc)[index]) === fingerprint;
+    const select = event => {if(event?.originalEvent) L.DomEvent.stop(event.originalEvent);if(live()) selectDestinationAnnotation(index);};
+    const geometry = directionAnnotationGeometry(targetMap, label, factor);
+    const weight = label.strokePt * 96 / 72 * factor;
+    const style = {pane:paneName,color:'#17202c',weight,opacity:1,lineCap:'round',lineJoin:'round',interactive:canEdit,bubblingMouseEvents:false};
+    const line = L.polyline(label.points,{...style,className:'destination-arrow-path'}).addTo(layer);
+    const head = L.polyline([geometry.wings[0],geometry.tip,geometry.wings[1]].map(p=>targetMap.containerPointToLatLng(p)),{...style,className:'destination-arrow-head'}).addTo(layer);
+    [geometry.start,geometry.tip,...geometry.wings].forEach(p=>include(p.x,p.y,weight/2));
+    if(canEdit){
+      line.on('click',select);head.on('click',select);
+      L.polyline(label.points,{...style,weight:20,opacity:0,className:'destination-arrow-hit'}).addTo(layer).on('click',select);
+    }
+    const selected = !printMode && selectedTextIndex === index;
+    const font = label.sizePt * 96 / 72 * factor;
+    const maxWidth = (Number(options.maxTextWidthMm) || 64) * 96 / 25.4 * factor;
+    const marker = L.marker([label.lat,label.lng],{pane:paneName,draggable:canEdit,interactive:canEdit,bubblingMouseEvents:false,keyboard:canEdit,zIndexOffset:selected && canEdit ? 2400 : 0,
+      icon:L.divIcon({className:'destination-label-marker',iconAnchor:[0,0],html:'<div class="destination-text-label'+(selected?' is-selected':'')+'" data-size-pt="'+label.sizePt+'" data-layout-scale="'+layoutScale+'" data-print-scale="'+scale+'" style="font-size:'+font+'px;max-width:'+maxWidth+'px;padding:'+(2*factor)+'px '+(3*factor)+'px">'+escapeHtml(label.text)+'</div>'})}).addTo(layer);
+    const element = marker.getElement()?.querySelector('.destination-text-label');
+    marker.getElement()?.setAttribute('aria-label','Destino: '+label.text+'. Arrastra para mover el texto.');
+    if(element){
+      const r = element.getBoundingClientRect(), m = targetMap.getContainer().getBoundingClientRect(), size = targetMap.getSize();
+      if(m.width > 0 && m.height > 0 && r.width > 0){
+        include((r.left-m.left)*size.x/m.width,(r.top-m.top)*size.y/m.height);
+        include((r.right-m.left)*size.x/m.width,(r.bottom-m.top)*size.y/m.height);
+      }else{
+        const p=targetMap.latLngToContainerPoint([label.lat,label.lng]);
+        const w=Math.min(maxWidth,label.text.length*font*.65+6*factor),h=Math.ceil((label.text.length*font*.65)/maxWidth)*font*1.2+4*factor;
+        include(p.x-w/2,p.y-h/2);include(p.x+w/2,p.y+h/2);
+      }
+    }
+    if(canEdit){
+      marker.on('click',select);
+      marker.on('dragstart',()=>{if(live()) $('destination-panel').hidden=true;});
+      marker.on('dragend',()=>{if(live()){const p=marker.getLatLng();updateDestinationAnnotation(index,{lat:p.lat,lng:p.lng},fingerprint);}});
+    }
+    if(selected && canEdit){
+      label.points.forEach((point, endpoint)=>{
+        const handle=L.marker(point,{pane:paneName,draggable:true,keyboard:true,bubblingMouseEvents:false,zIndexOffset:1600,
+          icon:L.divIcon({className:'destination-handle destination-handle-'+(endpoint?'end':'start'),iconSize:[44,44],iconAnchor:[22,22],html:'<span></span>'})}).addTo(layer);
+        handle.getElement()?.setAttribute('aria-label',endpoint?'Mover punta de flecha':'Mover inicio de flecha');
+        handle.on('click',e=>{if(e.originalEvent)L.DomEvent.stop(e.originalEvent);});
+        handle.on('dragstart',()=>{if(live()) $('destination-panel').hidden=true;});
+        handle.on('dragend',()=>{if(live()){const p=handle.getLatLng(),points=label.points.map(a=>a.slice());points[endpoint]=[p.lat,p.lng];updateDestinationAnnotation(index,{points},fingerprint);}});
+        handle.getElement()?.addEventListener('keydown',event=>{
+          const delta={ArrowLeft:[-3,0],ArrowRight:[3,0],ArrowUp:[0,-3],ArrowDown:[0,3]}[event.key];
+          if(!delta || !live()) return;event.preventDefault();event.stopPropagation();
+          const p=map.latLngToContainerPoint(point).add(delta),next=map.containerPointToLatLng(p),points=label.points.map(a=>a.slice());points[endpoint]=[next.lat,next.lng];
+          updateDestinationAnnotation(index,{points},fingerprint);
+          map._directionLayer?.getLayers().find(e=>e.getElement?.()?.classList.contains('destination-handle-'+(endpoint?'end':'start')))?.getElement()?.focus();
+        });
+      });
+    }
+  });
+  targetMap._directionBounds = bounds;
+  return {bounds};
+}
+
+function updateDestinationAnnotation(index, patch, fingerprint){
+  const loc=LOCS[currentIndex],labels=getTextLabelsForLoc(loc).slice(),label=labels[index];
+  if(label?.type!=='destino' || (fingerprint && stateFingerprint(label)!==fingerprint)) return false;
+  const next=normalizeDestinationLabel({...label,...patch});
+  if(!next){renderTextLabels(loc);return false;}
+  labels[index]=next;
+  const saved=setTextLabelsForLoc(loc,labels);
+  if(destinationSession?.index===index){destinationSession.fingerprint=stateFingerprint(next);}
+  renderTextLabels(loc);updateColorControls(loc);return saved;
+}
+
+function cancelDestinationInteraction(clearSelection = true){
+  destinationAddMode=false;destinationStartPoint=null;destinationSession=null;
+  destinationDraftLayer?.clearLayers();
+  const panel=$('destination-panel');if(panel)panel.hidden=true;
+  document.querySelector('.map-wrap')?.classList.remove('is-destination-placing','is-destination-editing');
+  if(clearSelection && getTextLabelsForLoc(LOCS[currentIndex])[selectedTextIndex]?.type==='destino') selectedTextIndex=null;
+  destinationButton?.setAttribute('aria-pressed','false');
+  ajustarDobleClic();
+}
+
+function setDestinationAddMode(active){
+  cancelDestinationInteraction();
+  if(active && map && LOCS[currentIndex]){
+    setFrameMoveMode(false,false);setTerritoryAddMode(false,false);setColorDrawMode(false);setRoadPencilMode(false,false);setRiverPencilMode(false,false);setTextAddMode(false,false);setIconAddMode(false,false);setContourEditMode(false,false);
+    clearSelectedLine();selectedAreaIndex=selectedTextIndex=selectedIconIndex=null;selectedReference=null;
+    destinationAddMode=true;colorEditMode=false;
+    document.querySelector('.map-wrap')?.classList.add('is-destination-placing');
+    setStatus('Flecha + destino: toca el inicio junto a la carretera y luego el punto hacia donde debe apuntar.','warn');
+  }
+  renderColorAreas(LOCS[currentIndex]);renderTextLabels(LOCS[currentIndex]);renderManualIcons(LOCS[currentIndex]);updateColorControls();
+  ajustarDobleClic();
+}
+
+function handleDestinationClick(latlng){
+  if(!map || !destinationAddMode || destinationSession) return;
+  const loc=LOCS[currentIndex];
+  if(!getBoundsForLoc(loc).contains(latlng)){setStatus('Coloca la flecha dentro del recuadro del territorio.','warn');return;}
+  if(!destinationDraftLayer)destinationDraftLayer=L.layerGroup().addTo(map);
+  if(!destinationStartPoint){
+    destinationStartPoint=latlng;
+    L.circleMarker(latlng,{radius:5,color:'#2563eb',fillColor:'#fff',fillOpacity:1,weight:2,pane:'territoryDraftPane',interactive:false}).addTo(destinationDraftLayer);
+    setStatus('Ahora toca hacia dónde apunta la flecha.','warn');return;
+  }
+  if(map.latLngToContainerPoint(destinationStartPoint).distanceTo(map.latLngToContainerPoint(latlng))<16){setStatus('Separa un poco los dos puntos para que la flecha se distinga.','warn');return;}
+  const points=[[destinationStartPoint.lat,destinationStartPoint.lng],[latlng.lat,latlng.lng]],g=directionAnnotationGeometry(map,{points,headMm:3});
+  const dx=g.tip.x-g.start.x,dy=g.tip.y-g.start.y,len=Math.hypot(dx,dy);
+  const textPoint=map.containerPointToLatLng([g.tip.x+dx/len*76,g.tip.y+dy/len*76]);
+  destinationSession={namespace:congregacionActivaId,locNum:String(loc.num),points,lat:textPoint.lat,lng:textPoint.lng,index:null};
+  destinationDraftLayer.clearLayers();
+  L.polyline(points,{color:'#2563eb',weight:2,dashArray:'5,4',interactive:false,pane:'territoryDraftPane'}).addTo(destinationDraftLayer);
+  L.polyline([g.wings[0],g.tip,g.wings[1]].map(p=>map.containerPointToLatLng(p)),{color:'#2563eb',weight:2,interactive:false,pane:'territoryDraftPane'}).addTo(destinationDraftLayer);
+  openDestinationPanel();
+}
+
+function openDestinationPanel(label = null){
+  const panel=$('destination-panel');panel.hidden=false;
+  $('destination-text').value=label?.text || '';
+  const size=String(label?.sizePt || 10),select=$('destination-size');
+  if(![...select.options].some(o=>o.value===size)){const o=document.createElement('option');o.value=size;o.textContent=size+' pt';select.appendChild(o);}
+  select.value=size;$('destination-delete').hidden=!label;$('destination-error').hidden=true;
+  $('destination-cancel').textContent=label?'Cerrar':'Cancelar';
+  $('destination-text').focus({preventScroll:true});
+}
+
+function selectDestinationAnnotation(index){
+  if(!directionInteractionAllowed()) return;
+  const loc=LOCS[currentIndex],label=getTextLabelsForLoc(loc)[index];if(label?.type!=='destino')return;
+  cancelDestinationInteraction();clearSelectedLine();selectedReference=null;selectedAreaIndex=selectedIconIndex=null;selectedTextIndex=index;
+  colorEditMode=true;destinationSession={namespace:congregacionActivaId,locNum:String(loc.num),index,fingerprint:stateFingerprint(label)};
+  document.querySelector('.map-wrap')?.classList.add('is-destination-editing');
+  renderColorAreas(loc);renderTextLabels(loc);renderManualIcons(loc);updateColorControls(loc);openDestinationPanel(label);
+}
+
+function saveDestinationPanel(){
+  const session=destinationSession,loc=LOCS[currentIndex];
+  if(!session || session.namespace!==congregacionActivaId || session.locNum!==String(loc?.num)){cancelDestinationInteraction();return false;}
+  const text=$('destination-text').value.trim(),sizePt=Number($('destination-size').value);
+  if(!text){$('destination-error').textContent='Escribe el destino de esta flecha.';$('destination-error').hidden=false;$('destination-text').focus();return false;}
+  const labels=getTextLabelsForLoc(loc).slice();let index=session.index;
+  if(index==null){index=labels.length;labels.push({type:'destino',text,lat:session.lat,lng:session.lng,points:session.points,sizePt,strokePt:1.2,headMm:3});}
+  else {if(stateFingerprint(labels[index])!==session.fingerprint){cancelDestinationInteraction();setStatus('El destino cambió. Selecciónalo de nuevo.','warn');return false;}labels[index]={...labels[index],text,sizePt};}
+  if(!setTextLabelsForLoc(loc,labels))return false;
+  cancelDestinationInteraction(false);selectedTextIndex=index;colorEditMode=true;
+  document.querySelector('.map-wrap')?.classList.add('is-destination-editing');
+  renderTextLabels(loc);updateColorControls(loc);setStatus('Destino guardado. Arrastra los puntos azules para ajustar la flecha o el texto para moverlo.','warn');return true;
+}
+
+function deleteDestinationAnnotation(){
+  const loc=LOCS[currentIndex],labels=getTextLabelsForLoc(loc).slice();
+  if(labels[selectedTextIndex]?.type!=='destino')return false;
+  const session=destinationSession;
+  if(session && (session.namespace!==congregacionActivaId || session.locNum!==String(loc?.num) || session.index!==selectedTextIndex || session.fingerprint!==stateFingerprint(labels[selectedTextIndex]))){
+    cancelDestinationInteraction();renderTextLabels(loc);updateColorControls(loc);setStatus('El destino cambió. Selecciónalo de nuevo antes de eliminarlo.','warn');return false;
+  }
+  labels.splice(selectedTextIndex,1);cancelDestinationInteraction();
+  const saved=setTextLabelsForLoc(loc,labels);renderTextLabels(loc);updateColorControls(loc);setStatus('Flecha y destino eliminados. Puedes recuperarlos con Deshacer.','warn');return saved;
+}
+
 function createTextIcon(label, selected = false, scale = 1, tamCarretera = TAM_CARRETERA_PANTALLA){
   const base = label.type === 'carretera'
     ? tamCarretera
@@ -4080,6 +4381,7 @@ function renderTextLabels(loc){
   if(!textLayer || !window.L) return;
   textLayer.clearLayers();
   getTextLabelsForLoc(loc).forEach((label, index) => {
+    if(label.type === 'destino') return;
     const lat = Number(label.lat);
     const lng = Number(label.lng);
     if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -4111,6 +4413,12 @@ function renderTextLabels(loc){
       }
     });
   });
+  renderDirectionAnnotations(map, loc, {interactive:true});
+  if(getTextLabelsForLoc(loc)[selectedTextIndex]?.type !== 'destino' && !destinationAddMode){
+    destinationSession=null;
+    $('destination-panel').hidden=true;
+    document.querySelector('.map-wrap')?.classList.remove('is-destination-editing');
+  }
 }
 
 function createManualIcon(icon, selected = false, scale = 1){
@@ -4266,11 +4574,12 @@ function finishRoadDraft(){
 // Mientras se dibuja, el doble clic cierra el trazo en vez de acercar el mapa.
 function ajustarDobleClic(){
   if(!map || !map.doubleClickZoom) return;
-  const dibujando = colorDrawMode || roadPencilMode || riverPencilMode;
+  const dibujando = destinationAddMode || colorDrawMode || roadPencilMode || riverPencilMode;
   if(dibujando) map.doubleClickZoom.disable(); else map.doubleClickZoom.enable();
 }
 
 function setRoadPencilMode(active, showMessage = true, carretera = false){
+  if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   roadPencilMode = !!active;
@@ -4351,6 +4660,7 @@ function finishRiverDraft(){
 }
 
 function setRiverPencilMode(active, showMessage = true){
+  if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   riverPencilMode = !!active;
@@ -4382,6 +4692,7 @@ function setRiverPencilMode(active, showMessage = true){
 }
 
 function setColorDrawMode(active){
+  if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   colorDrawMode = !!active;
@@ -4403,6 +4714,7 @@ function setColorDrawMode(active){
 }
 
 function setColorEditMode(active){
+  if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   colorEditMode = !!active;
   if(colorEditMode){
@@ -4427,6 +4739,7 @@ function setColorEditMode(active){
 }
 
 function setContourEditMode(active, showMessage = true){
+  if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   contourEditMode = !!active && selectedAreaIndex != null;
@@ -4450,6 +4763,7 @@ function setContourEditMode(active, showMessage = true){
 }
 
 function setTextAddMode(active, showMessage = true){
+  if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   textAddMode = !!active;
@@ -4479,6 +4793,7 @@ function setTextAddMode(active, showMessage = true){
 }
 
 function setIconAddMode(active, showMessage = true){
+  if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
   iconAddMode = !!active;
@@ -4509,6 +4824,7 @@ function setIconAddMode(active, showMessage = true){
 
 function selectColorArea(index){
   if(frameMoveMode) return;
+  cancelDestinationInteraction();
   clearSelectedLine();
   selectedReference = null;
   const loc = LOCS[currentIndex];
@@ -4536,6 +4852,8 @@ function selectTextLabel(index){
   const loc = LOCS[currentIndex];
   const label = getTextLabelsForLoc(loc)[index];
   if(!label) return;
+  if(label.type === 'destino'){selectDestinationAnnotation(index);return;}
+  cancelDestinationInteraction();
   selectedTextIndex = index;
   selectedAreaIndex = null;
   selectedIconIndex = null;
@@ -4556,6 +4874,7 @@ function selectTextLabel(index){
 // cambiarles el tipo hay que convertirlas antes en un icono propio.
 function selectReference(ref){
   if(frameMoveMode) return;
+  cancelDestinationInteraction();
   clearSelectedLine();
   setContourEditMode(false, false);
   selectedReference = ref;
@@ -4642,6 +4961,7 @@ function refreshIconActions(loc = LOCS[currentIndex]){
 
 function selectManualIcon(index){
   if(frameMoveMode) return;
+  cancelDestinationInteraction();
   clearSelectedLine();
   selectedReference = null;
   const loc = LOCS[currentIndex];
@@ -4673,6 +4993,7 @@ function applySelectedStyleChange(){
   }
   if(selectedTextIndex != null){
     const labels = getTextLabelsForLoc(loc).slice();
+    if(labels[selectedTextIndex]?.type === 'destino') return;
     if(labels[selectedTextIndex]){
       labels[selectedTextIndex] = { ...labels[selectedTextIndex], color:'#243129', size:getTextLabelSize(), type:labels[selectedTextIndex].type || 'colonia' };
       setTextLabelsForLoc(loc, labels);
@@ -5038,6 +5359,8 @@ function finishDraftColorArea(){
 function saveAllChanges(){
   const loc = LOCS[currentIndex];
   if(!loc) return;
+  if(destinationSession){saveDestinationPanel();return;}
+  if(destinationAddMode){setStatus('Marca el inicio y la punta de la flecha antes de guardar.','warn');return;}
   if(colorDrawMode && draftPoints.length > 0 && draftPoints.length < 3){
     setStatus('Marca al menos 3 puntos para cerrar y guardar el area.', 'warn');
     updateColorControls(loc);
@@ -5412,7 +5735,7 @@ function nubeConfigurada(){
 }
 
 function nubeEditando(){
-  return colorDrawMode || roadPencilMode || riverPencilMode || textAddMode
+  return destinationAddMode || !!destinationSession || colorDrawMode || roadPencilMode || riverPencilMode || textAddMode
     || iconAddMode || contourEditMode || territoryAddMode || frameMoveMode || draftPoints.length > 0;
 }
 
@@ -6040,6 +6363,8 @@ async function loadCloudBackup(options = {}){
 }
 
 function undoDraftColorPoint(){
+  if(destinationAddMode || destinationSession?.points){cancelDestinationInteraction();renderTextLabels(LOCS[currentIndex]);updateColorControls();setStatus('Flecha sin guardar cancelada.','warn');return;}
+  if(destinationSession)cancelDestinationInteraction();
   if(roadPencilMode && roadDraftPoints.length){
     roadDraftPoints.pop();
     renderRoadDraft();
@@ -6074,6 +6399,8 @@ function clearColorAreasForCurrent(){
   if(frameMoveMode){ setStatus('Termina de mover el recuadro con Listo antes de borrar dibujos.', 'warn'); return; }
   const loc = LOCS[currentIndex];
   if(!loc) return;
+  if(destinationAddMode || destinationSession?.points){cancelDestinationInteraction();renderTextLabels(loc);updateColorControls(loc);setStatus('Flecha sin guardar cancelada.','warn');return;}
+  if(getTextLabelsForLoc(loc)[selectedTextIndex]?.type==='destino'){deleteDestinationAnnotation();return;}
   if(roadPencilMode && roadDraftPoints.length){
     resetRoadDraft();
     setStatus('Trazo de calle blanca cancelado.', 'warn');
@@ -6132,6 +6459,8 @@ function clearColorAreasForCurrent(){
 async function handleColorMapClick(event){
   if(!event?.latlng) return;
   if(frameMoveMode) return;
+  if(destinationAddMode){handleDestinationClick(event.latlng);return;}
+  if(destinationSession?.points) return;
   if(event.originalEvent){
     event.originalEvent.preventDefault();
     event.originalEvent.stopPropagation();
@@ -6255,6 +6584,7 @@ function editSelectedTextLabel(){
   const labels = getTextLabelsForLoc(loc).slice();
   const label = labels[selectedTextIndex];
   if(!label) return;
+  if(label.type === 'destino'){selectDestinationAnnotation(selectedTextIndex);return;}
   const next = formatColonyLabelText(textInput?.value);
   if(!next.trim()){
     textInput?.focus();
@@ -6416,6 +6746,7 @@ function renderFrameMoveHandle(loc){
 }
 
 function setFrameMoveMode(active, showMessage = true){
+  if(active) cancelDestinationInteraction();
   const loc = LOCS[currentIndex];
   if(active && (!map || !loc)) return;
   frameMoveMode = !!active;
@@ -6604,6 +6935,7 @@ function initApp(){
   map.on('zoomend', () => {
     if(contourEditMode) renderContourEditHandles(LOCS[currentIndex]);
     if(selectedLine) renderLinearEditHandles(LOCS[currentIndex]);
+    renderDirectionAnnotations(map,LOCS[currentIndex],{interactive:true});
   });
 
   subirTransparenciasA50();
@@ -6788,6 +7120,7 @@ function drawTerritoryFrame(loc, fitMap = true, silent = false){
 function goTo(index, silent, fitMap = true){
   const idx = Number(index);
   if(!Number.isFinite(idx) || !LOCS[idx]) return;
+  cancelDestinationInteraction();
   if(frameMoveMode) setFrameMoveMode(false, false);
   clearSelectedLine();
   currentIndex = idx;
@@ -7090,6 +7423,7 @@ function drawPrintColorAreaOutlines(targetMap, loc){
 
 function drawPrintTextLabels(targetMap, loc, ocupadas){
   getTextLabelsForLoc(loc).forEach(label => {
+    if(label.type === 'destino') return;
     const lat = Number(label.lat);
     const lng = Number(label.lng);
     if(!String(label.text || '').trim() || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -7513,6 +7847,17 @@ function escalaDeHueco(hueco){
   return Math.min(hueco.w / A4_LARGO, hueco.h / A4_CORTO);
 }
 
+function acomodarHojaSueltaEnHueco(papel, hueco){
+  const escala = escalaDeHueco(hueco);
+  if(!papel || !(escala > 0) || escala >= 1) return 1;
+  const x = Math.max(0, (hueco.w - A4_LARGO * escala) / 2);
+  const y = Math.max(0, (hueco.h - A4_CORTO * escala) / 2);
+  papel.style.transform = 'translate(' + x.toFixed(2) + 'mm,'
+    + y.toFixed(2) + 'mm) scale(' + escala + ')';
+  papel.style.transformOrigin = 'top left';
+  return escala;
+}
+
 function cuentasAgrupadas(){
   const elegidos = ordenDeLamina();
   const pagina = paginaAgrupada();
@@ -7524,11 +7869,13 @@ function cuentasAgrupadas(){
   let pppMin = Infinity;
   let pppMax = 0;
   elegidos.forEach((loc, i) => {
-    const b = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+    const hueco = huecos[Math.min(i, huecos.length - 1)];
+    const layoutScale = escalaDeHueco(hueco);
+    const anchoDestino = lamina ? Math.max(12, hueco.w - 13) : 64;
+    const b = getDirectionExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM, layoutScale, anchoDestino);
     const bounds = L.latLngBounds([b.south, b.west], [b.north, b.east]);
     const escala = choosePrintRenderScale(loc, bounds, src);
     const densidad = escala < 8 ? 4 : 2;
-    const hueco = huecos[Math.min(i, huecos.length - 1)];
     const k = escalaDeHueco(hueco);
     const ppp = (escala * 96 * (densidad / 2)) / Math.max(k, .01);
     pppMin = Math.min(pppMin, ppp);
@@ -7779,10 +8126,10 @@ function medidaDeLasZonas(mapa, loc){
 // El trozo de hoja que ocupa el croquis, en milimetros de la propia hoja.
 // Con eso se recorta: si se mete la hoja entera en el recuadro, el territorio
 // queda chiquito en medio y sobra blanco, que es lo que pasaba.
-function recorteDelCroquis(mapa, loc){
+function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1){
   const hoja = { x:0, y:15, w:297, h:189 };   // la cabecera son 15 mm
   try{
-    const b = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+    const b = getDirectionExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
     const noroeste = mapa.latLngToContainerPoint([b.north, b.west]);
     const sureste = mapa.latLngToContainerPoint([b.south, b.east]);
     const anchoLienzo = printMapW();
@@ -7798,12 +8145,18 @@ function recorteDelCroquis(mapa, loc){
       a = Math.max(a, zonas.x0 - holgura); c = Math.min(c, zonas.x1 + holgura);
       d = Math.max(d, zonas.y0 - holgura); e = Math.min(e, zonas.y1 + holgura);
     }
+    // Las flechas pueden salir de la zona pintada. Su texto y su punta son
+    // parte del croquis y conservan un margen fisico en la lamina final.
+    if(directionBounds){
+      a = Math.min(a, directionBounds.x0); c = Math.max(c, directionBounds.x1);
+      d = Math.min(d, directionBounds.y0); e = Math.max(e, directionBounds.y1);
+    }
     const x0 = Math.max(0, a) / anchoLienzo;
     const x1 = Math.min(anchoLienzo, c) / anchoLienzo;
     const y0 = Math.max(0, d) / altoLienzo;
     const y1 = Math.min(altoLienzo, e) / altoLienzo;
     if(!(x1 > x0 && y1 > y0)) return hoja;
-    const aire = 1.5;   // mm de respiro alrededor
+    const aire = directionBounds ? 4 / Math.max(.05, layoutScale) : 1.5;
     return {
       x:Math.max(0, x0 * 297 - aire),
       y:Math.max(15, 15 + y0 * 189 - aire),
@@ -7907,7 +8260,11 @@ async function generarAgrupado(modo){
         aviso.textContent = 'Dibujando ' + displayTerritoryName(loc)
           + '  (' + (i + 1) + ' de ' + c.elegidos.length + ')';
       }
-      await imprimir({ loc, soloPreparar:true, conservar:true, lamina:c.lamina });
+      const hueco = c.huecos[c.lamina ? Math.min(i, c.huecos.length - 1) : 0];
+      const directionLayoutScale = escalaDeHueco(hueco);
+      const directionTextWidthMm = c.lamina ? Math.max(12, hueco.w - 13) : 64;
+      await imprimir({ loc, soloPreparar:true, conservar:true, lamina:c.lamina,
+        directionLayoutScale, directionTextWidthMm });
       const papel = document.querySelector('#print-sheet .print-paper');
       const sobrante = $('print-sheet');
       if(papel){
@@ -7917,7 +8274,6 @@ async function generarAgrupado(modo){
           const nodo = papel.querySelector('#' + nombre);
           if(nodo) nodo.id = nombre + '-hoja' + (i + 1);
         });
-        const hueco = c.huecos[c.lamina ? Math.min(i, c.huecos.length - 1) : 0];
         const caso = document.createElement('div');
         caso.className = 'hueco-agrupado' + (c.lamina ? ' en-lamina' : '');
         caso.style.left = hueco.x + 'mm';
@@ -7936,20 +8292,47 @@ async function generarAgrupado(modo){
         }
         // Solo en la lamina se recorta: ahi el croquis comparte pagina y hay
         // que estirarlo hasta llenar su recuadro. Una hoja suelta es la misma
-        // que sale del boton de siempre, con su cabecera y su rosa, asi que se
-        // queda tal cual.
+        // que sale del boton de siempre, con su cabecera y su rosa: entra
+        // entera y solo se ajusta si la pagina elegida es vertical.
         let k = 1;
         if(c.lamina){
-          const rec = recorteDelCroquis(printMap, loc);
           // el croquis no toca el filo: se le deja aire a los cuatro lados
           const util = { w:hueco.w - 5, h:hueco.h - alturaRotulo - 5 };
+          let rec = recorteDelCroquis(printMap, loc);
           k = Math.min(util.w / rec.w, util.h / rec.h);
+          if(printDirectionLabelsForLoc(loc).length){
+            // El mapa encoge dentro del recuadro; el texto, el trazo y la
+            // punta mantienen sus puntos/mm. Se mide a esa escala real para
+            // dejarles sitio sin recortar las referencias fuera del color.
+            for(let paso = 0; paso < 48; paso++){
+              const dibujadas = renderDirectionAnnotations(printMap, loc, {
+                printMode:true, scale:printRenderScale, layoutScale:k,
+                maxTextWidthMm:directionTextWidthMm, interactive:false
+              });
+              rec = recorteDelCroquis(printMap, loc, dibujadas?.bounds || null, k);
+              const siguiente = Math.min(util.w / rec.w, util.h / rec.h);
+              if(Math.abs(siguiente - k) < .00001 * Math.max(1, k)) break;
+              k = siguiente;
+            }
+            const finales = renderDirectionAnnotations(printMap, loc, {
+              printMode:true, scale:printRenderScale, layoutScale:k,
+              maxTextWidthMm:directionTextWidthMm, interactive:false
+            });
+            rec = recorteDelCroquis(printMap, loc, finales?.bounds || null, k);
+            // El ultimo ajuste solo reserva mas aire; no amplifica el papel
+            // tras medir los textos y por tanto no puede cortar un extremo.
+            k = Math.min(k, util.w / rec.w, util.h / rec.h);
+          }
           const sobraX = (util.w - rec.w * k) / 2;
           const sobraY = (util.h - rec.h * k) / 2;
           papel.style.transform = 'translate('
             + (2.5 + sobraX - rec.x * k).toFixed(2) + 'mm,'
             + (alturaRotulo + 2.5 + sobraY - rec.y * k).toFixed(2) + 'mm) scale(' + k + ')';
           papel.style.transformOrigin = 'top left';
+        }else{
+          // La hoja base es horizontal. En una pagina vertical entra entera
+          // al escalarla; la flecha ya compensa esta escala y conserva 10 pt.
+          k = acomodarHojaSueltaEnHueco(papel, hueco);
         }
         // La hoja sigue viviendo dentro de un .print-sheet. Media pagina de
         // estilos cuelga de esa clase -que capas se ven, como se mezclan-, y
@@ -8076,6 +8459,56 @@ function getExportBoundsPlain(loc, z = DETAIL_ZOOM){
   return getColorAreasBoundsPlain(loc) || getPrintBoundsPlain(loc, z);
 }
 
+function printDirectionLabelsForLoc(loc){
+  return getTextLabelsForLoc(loc).filter(label => label.type === 'destino'
+    && String(label.text || '').trim()
+    && Number.isFinite(Number(label.lat)) && Number.isFinite(Number(label.lng))
+    && Array.isArray(label.points) && label.points.length === 2
+    && label.points.every(point => Array.isArray(point) && point.length >= 2
+      && Number.isFinite(Number(point[0])) && Number.isFinite(Number(point[1]))));
+}
+
+// La flecha puede apuntar fuera del color. Se reserva espacio para el texto
+// en la hoja final sin alterar el recuadro que el usuario mueve en el editor.
+function getDirectionExportBoundsPlain(loc, z = DETAIL_ZOOM, layoutScale = 1, maxTextWidthMm = 64){
+  const original = getExportBoundsPlain(loc, z);
+  const labels = printDirectionLabelsForLoc(loc);
+  if(!labels.length) return original;
+  const bounds = {...original};
+  const escala = Math.max(.05, Number(layoutScale) || 1);
+  const anchoTexto = Math.max(12, Number(maxTextWidthMm) || 64);
+  let anchoMax = 0, altoMax = 0, puntaMax = 0;
+  labels.forEach(label => {
+    [[Number(label.lat), Number(label.lng)], ...label.points].forEach(point => {
+      bounds.south = Math.min(bounds.south, Number(point[0]));
+      bounds.north = Math.max(bounds.north, Number(point[0]));
+      bounds.west = Math.min(bounds.west, Number(point[1]));
+      bounds.east = Math.max(bounds.east, Number(point[1]));
+    });
+    const fuenteMm = Math.max(7, Math.min(18, Number(label.sizePt) || 10)) * 25.4 / 72;
+    const renglones = String(label.text).trim().split(/\r?\n|\s*\/\s*/);
+    let lineas = 0, ancho = 0;
+    renglones.forEach(renglon => {
+      const natural = Math.max(fuenteMm, renglon.length * fuenteMm * .62);
+      ancho = Math.max(ancho, Math.min(anchoTexto, natural));
+      lineas += Math.max(1, Math.ceil(natural / anchoTexto));
+    });
+    anchoMax = Math.max(anchoMax, ancho * 1.08 / escala);
+    altoMax = Math.max(altoMax, lineas * fuenteMm * 1.4 / escala);
+    puntaMax = Math.max(puntaMax, Math.max(1.5, Math.min(6, Number(label.headMm) || 3)) / escala);
+  });
+  const reservaX = Math.min(297 * .4, Math.max(anchoMax / 2, puntaMax) + 4 / escala);
+  const reservaY = Math.min(189 * .4, Math.max(altoMax / 2, puntaMax) + 4 / escala);
+  const latSpan = Math.max(bounds.north - bounds.south, .0006);
+  const lngSpan = Math.max(bounds.east - bounds.west, .0006);
+  const padLat = latSpan * reservaY / (189 - 2 * reservaY);
+  const padLng = lngSpan * reservaX / (297 - 2 * reservaX);
+  return {
+    south:bounds.south - padLat, north:bounds.north + padLat,
+    west:bounds.west - padLng, east:bounds.east + padLng
+  };
+}
+
 function getPrintBoundsPlain(loc, z = DETAIL_ZOOM){
   const bounds = scaleBoundsPlain(getBaseBoundsPlain(loc, z), getFrameScaleForLoc(loc));
   return translateFrameBoundsPlain(bounds, framePositionSettings[String(loc.num)]) || bounds;
@@ -8126,7 +8559,10 @@ async function imprimir(opciones = {}){
 
   // El encuadre primero: de su tamano sale la resolucion de la hoja, y de la
   // resolucion sale el tamano del lienzo que se arma justo despues.
-  const plainBounds = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+  const directionLayoutScale = Math.max(.05, Number(opciones.directionLayoutScale) || 1);
+  const directionTextWidthMm = Math.max(12, Number(opciones.directionTextWidthMm) || 64);
+  const plainBounds = getDirectionExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM,
+    directionLayoutScale, directionTextWidthMm);
   const bounds = L.latLngBounds([plainBounds.south, plainBounds.west], [plainBounds.north, plainBounds.east]);
   printRenderScale = choosePrintRenderScale(loc, bounds, src);
   console.info('Croquis: resolucion', printRenderScale.toFixed(2), 'para', loc.name);
@@ -8359,6 +8795,10 @@ async function imprimir(opciones = {}){
                                [bounds.getSouth(), bounds.getWest()]] }];
       renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO, areas:marco, fondo:'#ffffff' });
     }
+    renderDirectionAnnotations(printMap, loc, {
+      printMode:true, scale:printRenderScale, layoutScale:directionLayoutScale,
+      maxTextWidthMm:directionTextWidthMm, interactive:false
+    });
     // Al final: antes de encuadrar el mapa no tiene tamano todavia, y la
     // esquina se elegiria con cuentas sin sentido.
     colocarLeyenda(printMap, loc);
@@ -8619,7 +9059,7 @@ function ofrecerCambioDeTerritorio(lat, lng){
   const zona = zonaDeLaUbicacion(lat, lng);
   if(!zona || zona.indice === currentIndex) return;
   if(colorDrawMode || roadPencilMode || riverPencilMode || contourEditMode
-    || textAddMode || iconAddMode || territoryAddMode || frameMoveMode){
+    || textAddMode || iconAddMode || territoryAddMode || frameMoveMode || destinationAddMode || destinationSession){
     avisarUbicacion('La ubicación estimada cae en ' + displayTerritoryName(zona.loc)
       + ', pero tienes algo a medio dibujar aquí. Guarda o cancela y vuelve a tocar Mi ubicación.', 'warn');
     return;
@@ -8862,6 +9302,10 @@ $('ref-panel-close')?.addEventListener('click', cerrarPanelReferencias);
 $('ref-panel-save')?.addEventListener('click', guardarPanelReferencias);
 roadPencilButton?.addEventListener('click', () => setRoadPencilMode(!(roadPencilMode && !modoCarretera), true, false));
 carreteraButton?.addEventListener('click', () => setRoadPencilMode(!(roadPencilMode && modoCarretera), true, true));
+destinationButton?.addEventListener('click',()=>setDestinationAddMode(!destinationAddMode));
+$('destination-panel')?.addEventListener('submit',event=>{event.preventDefault();saveDestinationPanel();});
+$('destination-cancel')?.addEventListener('click',()=>{cancelDestinationInteraction();renderTextLabels(LOCS[currentIndex]);updateColorControls();destinationButton?.focus();});
+$('destination-delete')?.addEventListener('click',deleteDestinationAnnotation);
 riverPencilButton?.addEventListener('click', () => setRiverPencilMode(!riverPencilMode));
 textAddButton.addEventListener('click', () => {
   if(selectedTextIndex != null){
@@ -8910,6 +9354,9 @@ refrescarCongregacionesEnInicio();
 document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
 document.addEventListener('keydown', event => {
   if($('congregacion-dialog')?.open) return;
+  if(event.key==='Escape' && (destinationAddMode || destinationSession || (!$('destination-panel')?.hidden))){
+    event.preventDefault();cancelDestinationInteraction();renderTextLabels(LOCS[currentIndex]);updateColorControls();destinationButton?.focus();return;
+  }
   if(event.key === 'Escape' && frameMoveMode){
     setFrameMoveMode(false);
     frameMoveButton?.focus();

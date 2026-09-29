@@ -57,6 +57,7 @@ function entorno({guardados = {}, cuota = false} = {}){
     framePositionSettings:{}, frameScaleSettings:{}, frameMoveMode:false, frameMoveSession:null, frameMoveHandle:null,
     colorDrawMode:false, roadPencilMode:false, riverPencilMode:false, textAddMode:false,
     iconAddMode:false, contourEditMode:false, territoryAddMode:false, draftPoints:[],
+    destinationAddMode:false, destinationSession:null, cancelDestinationInteraction:noOp,
     nube:null, nubeAplicando:false, nubeYo:'yo', nubeQuien:'Equipo', leyendaSettings:{},
     colorAreaSettings:{'custom-1':[{color:'#1257c5', points:[[19,-97],[19.02,-97],[19.01,-96.98]]}]},
     textLabelSettings:{'custom-1':[{text:'Zona', lat:19.01, lng:-97}]},
