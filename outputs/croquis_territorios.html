@@ -283,7 +283,11 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .hueco-agrupado .print-paper{box-shadow:none}
 /* En la lamina cada croquis va en su recuadro, como en los de toda la vida:
    un solo filo negro y nada mas. */
-.hueco-agrupado.en-lamina{border:.3mm solid #000;background:#fff;box-shadow:none}
+.hueco-agrupado.en-lamina{border:.3mm solid transparent;background:#fff;box-shadow:none}
+/* El marco se pinta por encima del papel ampliado y sus máscaras blancas,
+   para que ninguna capa del croquis tape sus lados al exportar. El borde
+   transparente conserva las medidas y la posición del contenido. */
+.hueco-agrupado.en-lamina::after{content:"";position:absolute;inset:0;box-sizing:border-box;border:.3mm solid #000;z-index:1000;pointer-events:none}
 /* El escenario del mapa tiene un gris verdoso de fondo que, dentro del
    recuadro, asomaba alrededor del croquis y parecia un segundo marco verde. */
 .hueco-agrupado.en-lamina .print-map-stage,
