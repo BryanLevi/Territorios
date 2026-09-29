@@ -522,7 +522,7 @@ body.print-preview{overflow:hidden}
   @page{size:A4 landscape;margin:0}
   html,body{width:297mm;height:210mm;overflow:hidden;background:#fff}
   body{display:block}
-  .bar,.map-wrap,.map-status,.legend,.welcome-screen,.congregacion-dialog{display:none!important}
+  .bar,.map-wrap,.map-status,.legend,.welcome-screen,.congregacion-dialog,.privacy-dialog{display:none!important}
   .print-sheet,.print-sheet.is-open{display:block!important;position:static!important;inset:auto!important;width:297mm;height:210mm;padding:0;background:#fff;overflow:hidden}
   .print-paper{width:297mm;height:210mm;min-width:0;box-shadow:none}
   /* Chrome aplasta a 300 ppp cualquier capa con filter al imprimir, y la
@@ -540,7 +540,7 @@ body.print-preview{overflow:hidden}
 </style>
 <link rel="stylesheet" href="../tokens.css?v=blue-bubbles-1">
 <link rel="stylesheet" href="./toolbar-premium.css?v=frame-move-1">
-<link rel="stylesheet" href="./welcome-premium.css?v=welcome-auto-fast-1">
+<link rel="stylesheet" href="./welcome-premium.css?v=privacy-dialog-1">
 <link rel="stylesheet" href="./editor-premium.css?v=frame-move-1">
 </head>
 <body>
@@ -654,10 +654,34 @@ body.print-preview{overflow:hidden}
     </aside>
     <footer class="welcome-footer">
       <span>Copyright © Bryan Levi 2026</span>
-      <a href="./aviso-de-privacidad.html" target="_blank" rel="noopener noreferrer" aria-label="Aviso de privacidad (abre en una pestaña nueva)">Aviso de privacidad</a>
+      <button class="welcome-privacy-trigger" id="welcome-privacy-open" type="button" aria-haspopup="dialog" aria-controls="privacy-dialog">Aviso de privacidad</button>
     </footer>
   </div>
 </section>
+<dialog class="privacy-dialog" id="privacy-dialog" aria-labelledby="privacy-dialog-title" aria-describedby="privacy-dialog-description">
+  <div class="privacy-dialog-panel">
+    <header class="privacy-dialog-head">
+      <span aria-hidden="true"></span>
+      <h2 id="privacy-dialog-title">Aviso de privacidad</h2>
+      <button class="privacy-dialog-x" id="privacy-dialog-x" type="button" aria-label="Cerrar aviso de privacidad" autofocus>×</button>
+    </header>
+    <div class="privacy-dialog-body">
+      <p class="privacy-dialog-intro" id="privacy-dialog-description">Información breve sobre esta herramienta y los datos que utiliza.</p>
+      <section class="privacy-dialog-section">
+        <h3>¿Para qué sirve esta página?</h3>
+        <p>Ayuda a organizar territorios, dibujar zonas y referencias sobre el mapa y preparar croquis en PDF para guardar o imprimir.</p>
+      </section>
+      <section class="privacy-dialog-section">
+        <h3>Información sobre tus datos</h3>
+        <p>Los cambios se guardan en este navegador. Si usas «Conectar equipo», también se sincronizan en línea; si usas «Guardar GitHub», el respaldo se publica en el repositorio del proyecto. Evita incluir información personal que no quieras compartir.</p>
+        <p>«Mi ubicación» muestra tu posición en el mapa con tu permiso, pero no la incluye en los respaldos. Los servicios externos de mapas reciben el área que consultas.</p>
+      </section>
+    </div>
+    <footer class="privacy-dialog-footer">
+      <button id="privacy-dialog-close" type="button">Cerrar</button>
+    </footer>
+  </div>
+</dialog>
 <dialog class="congregacion-dialog" id="congregacion-dialog" aria-labelledby="congregacion-dialog-title" aria-describedby="congregacion-dialog-description">
   <form id="congregacion-form" novalidate>
     <div class="congregacion-dialog-head">
@@ -9337,6 +9361,15 @@ $('welcome-start')?.addEventListener('click', hideWelcomeScreen);
 $('welcome-cong-nueva')?.addEventListener('click', crearCongregacion);
 $('welcome-cong-renombrar')?.addEventListener('click', renombrarCongregacion);
 $('welcome-cong-eliminar')?.addEventListener('click', confirmarEliminarCongregacion);
+const privacyDialog = $('privacy-dialog');
+$('welcome-privacy-open')?.addEventListener('click', () => {
+  if(privacyDialog && !privacyDialog.open) privacyDialog.showModal();
+});
+$('privacy-dialog-x')?.addEventListener('click', () => privacyDialog?.close());
+$('privacy-dialog-close')?.addEventListener('click', () => privacyDialog?.close());
+privacyDialog?.addEventListener('close', () => {
+  if(!$('welcome-screen')?.classList.contains('is-hidden')) $('welcome-privacy-open')?.focus({ preventScroll:true });
+});
 $('congregacion-form')?.addEventListener('submit', enviarFormularioCongregacion);
 $('congregacion-cancel')?.addEventListener('click', cancelarFormularioCongregacion);
 $('congregacion-dialog')?.addEventListener('cancel', event => {
@@ -9357,7 +9390,7 @@ $('welcome-cong-sel')?.addEventListener('change', event => {
 refrescarCongregacionesEnInicio();
 document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
 document.addEventListener('keydown', event => {
-  if($('congregacion-dialog')?.open) return;
+  if($('congregacion-dialog')?.open || privacyDialog?.open) return;
   if(event.key==='Escape' && (destinationAddMode || destinationSession || (!$('destination-panel')?.hidden))){
     event.preventDefault();cancelDestinationInteraction();renderTextLabels(LOCS[currentIndex]);updateColorControls();destinationButton?.focus();return;
   }
