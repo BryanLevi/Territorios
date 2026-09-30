@@ -4,15 +4,16 @@
  */
 @media screen {
   .premium-welcome {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-3xl);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    justify-items: center;
+    gap: var(--space-md);
+    padding: var(--space-xl) var(--space-3xl) var(--space-md);
     background: radial-gradient(ellipse at 15% 15%, var(--color-paper) 0%, var(--color-paper-2) 48%, var(--color-paper-3) 100%);
     color: var(--color-ink);
     font-family: var(--font-body);
-    overflow-x: clip;
-    overflow-y: auto;
+    overflow: hidden;
     isolation: isolate;
   }
   .welcome-bubbles { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
@@ -64,8 +65,10 @@
   .premium-welcome .welcome-panel {
     display: grid;
     grid-template-columns: minmax(0, 1.16fr) minmax(0, 0.84fr);
+    align-self: center;
     width: min(1160px, 100%);
-    max-height: calc(100dvh - 80px);
+    min-height: 0;
+    max-height: 100%;
     overflow: auto;
     border: var(--rule-thin) solid var(--color-glass-rule);
     border-radius: 32px;
@@ -74,16 +77,15 @@
     box-shadow: var(--shadow-glass);
   }
   .premium-welcome .welcome-footer {
-    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: var(--space-xs) var(--space-lg);
-    min-height: 64px;
-    padding: var(--space-sm) var(--space-3xl);
-    border-top: var(--rule-thin) solid var(--color-rule);
-    background: linear-gradient(100deg, var(--color-paper-2), var(--color-accent-soft));
+    width: min(1160px, 100%);
+    min-height: 44px;
+    padding: 0 var(--space-sm);
+    background: transparent;
     color: var(--color-muted);
     font-size: var(--text-control);
   }
@@ -354,13 +356,12 @@
   .premium-welcome { padding: var(--space-xl); }
   .premium-welcome .welcome-main { padding: var(--space-xl); }
   .premium-welcome .welcome-guide { padding: var(--space-2xl) var(--space-xl); }
-  .premium-welcome .welcome-panel { max-height: calc(100dvh - 48px); }
 }
 
 @media screen and (max-width: 760px) {
-  .premium-welcome { align-items: flex-start; padding: var(--space-lg); }
-  .premium-welcome .welcome-panel { grid-template-columns: minmax(0, 1fr); max-height: none; overflow: visible; border-radius: 26px; }
-  .premium-welcome .welcome-footer { padding: var(--space-sm) var(--space-xl); }
+  .premium-welcome { padding: var(--space-lg); }
+  .premium-welcome .welcome-panel { grid-template-columns: minmax(0, 1fr); align-self: start; overflow: auto; border-radius: 26px; }
+  .premium-welcome .welcome-footer { padding: 0; }
   .premium-welcome .welcome-main { padding: var(--space-xl); border-right: 0; border-bottom: var(--rule-thin) solid var(--color-rule); }
   .premium-welcome .welcome-guide { padding: var(--space-xl); }
   .premium-welcome .welcome-brand { margin-bottom: var(--space-xl); }
@@ -385,7 +386,6 @@
   .privacy-dialog-section { padding: var(--space-lg); }
   .privacy-dialog-footer { padding: var(--space-md) var(--space-lg); }
   .premium-welcome { padding: var(--space-md); }
-  .premium-welcome .welcome-footer { padding: var(--space-sm) var(--space-lg); }
   .premium-welcome .welcome-main, .premium-welcome .welcome-guide { padding: var(--space-lg); }
   .premium-welcome .welcome-brand { gap: var(--space-sm); }
   .premium-welcome .welcome-brand strong { font-size: var(--text-body); }
