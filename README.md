@@ -66,6 +66,12 @@ El navegador necesita permiso de ubicacion y una pagina segura (HTTPS o localhos
 
 Las pruebas de ubicacion se ejecutan con `node --test tests/ubicacion.test.cjs`.
 
+## Mapa sin conexion
+
+En Inicio, selecciona la congregacion y pulsa `Descargar congregacion` mientras tengas internet. Se guardan las calles y referencias de **todos** sus territorios, ademas de los archivos necesarios para abrir la pagina. La descarga muestra el avance y se puede cancelar o reanudar; `Quitar descarga` borra solo los datos del mapa de esa congregacion. Los colores, textos y trazos se conservan en el almacenamiento local habitual. El selector `Mapa descargado` permite verlo tambien con internet y se activa automaticamente al perder la conexion. `Sin conexion` en el editor abre la tarjeta de descarga.
+
+Este mapa usa datos vectoriales abiertos de OpenStreetMap, no teselas de Google, CARTO ni del servidor de teselas de OpenStreetMap. Muestra calles, rios y referencias disponibles en esos datos; el aspecto y detalle pueden diferir del mapa en linea. Los PDF requieren volver a una vista con conexion. `Mi ubicacion` puede mostrar el punto sin internet cuando el dispositivo y el navegador entregan una lectura reciente con permiso; la posicion no se guarda en la descarga. Para conservar la descarga, abre siempre la misma direccion HTTPS en el mismo navegador y evita borrar sus datos del sitio. Los limites de almacenamiento del navegador y la disponibilidad del servidor de calles pueden interrumpir una descarga; al reintentar se conservan los territorios ya guardados.
+
 ## Token de GitHub
 
 `Guardar GitHub` y `Cargar GitHub` piden un token para escribir en `data/croquis-sync.json`.

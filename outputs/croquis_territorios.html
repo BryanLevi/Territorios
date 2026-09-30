@@ -5,12 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Croquis de territorio realizado por Bryan Levi</title>
 <link rel="icon" href="data:,">
-<link rel="preconnect" href="https://tile.openstreetmap.org">
-<link rel="preconnect" href="https://unpkg.com">
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
-<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous"></noscript>
+<link rel="stylesheet" href="../vendor/leaflet/leaflet.css">
 <style>
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -126,6 +121,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 /* z-index propio: aisla los paneles de Leaflet (llegan a 700) para que no tapen la barra */
 .map-wrap{position:relative;z-index:0;flex:1;min-height:0;background:#dbe4df}
 #map{position:absolute;inset:0;width:100%;height:100%}
+#map.offline-map{background:#eaf1f8}
 .map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-icon-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container,.map-wrap.is-river-pencil .leaflet-container{cursor:crosshair}
 .map-wrap.is-contour-editing .leaflet-container{cursor:default}
 .contour-handle{cursor:grab}
@@ -581,6 +577,25 @@ body.print-preview{overflow:hidden}
         </div>
         <button class="welcome-start" id="welcome-start" type="button"><span>Abrir editor</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"></path></svg></button>
       </div>
+      <section class="offline-card" id="offline-card" aria-labelledby="offline-title">
+        <div class="offline-card-head">
+          <span class="offline-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg></span>
+          <div class="offline-card-title"><span class="offline-card-kicker">Llévate tus territorios</span><h3 id="offline-title">Mapa sin conexión</h3></div>
+          <span class="offline-card-badge" id="offline-badge">Sin descargar</span>
+        </div>
+        <p class="offline-card-copy">Descarga las calles y referencias de todos los territorios de esta congregación. Tus colores y dibujos se conservan en este dispositivo.</p>
+        <div class="offline-card-actions">
+          <button id="offline-download" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg><span>Descargar congregación</span></button>
+          <button id="offline-cancel" type="button" hidden>Cancelar</button>
+          <button id="offline-remove" type="button" hidden>Quitar descarga</button>
+        </div>
+        <div class="offline-progress-wrap" id="offline-progress-wrap" hidden>
+          <div class="offline-progress-line"><span>Descargando mapas</span><strong id="offline-progress-label">0 de 0</strong></div>
+          <progress id="offline-progress" value="0" max="100" aria-label="Avance de la descarga de territorios">0 %</progress>
+        </div>
+        <p class="offline-card-status" id="offline-status" role="status" aria-live="polite">Prepara los mapas mientras tengas internet.</p>
+        <p class="offline-card-note">La ubicación funciona sin internet si el dispositivo obtiene señal GPS y le concedes permiso. Para descargar PDF, conéctate y elige un mapa en línea.</p>
+      </section>
       <div class="welcome-steps" aria-label="Pasos principales">
         <div class="welcome-step"><b>1</b><span><strong>Elige el territorio</strong><span>Revisa la localidad y su mapa.</span></span></div>
         <div class="welcome-step"><b>2</b><span><strong>Dale forma al croquis</strong><span>Pinta zonas y añade referencias.</span></span></div>
@@ -674,7 +689,7 @@ body.print-preview{overflow:hidden}
       <section class="privacy-dialog-section">
         <h3>Información sobre tus datos</h3>
         <p>Los cambios se guardan en este navegador. Si usas «Conectar equipo», también se sincronizan en línea; si usas «Guardar GitHub», el respaldo se publica en el repositorio del proyecto. Evita incluir información personal que no quieras compartir.</p>
-        <p>«Mi ubicación» muestra tu posición en el mapa con tu permiso, pero no la incluye en los respaldos. Los servicios externos de mapas reciben el área que consultas.</p>
+        <p>«Mi ubicación» muestra tu posición en el mapa con tu permiso, pero no la incluye en los respaldos. Los servicios externos de mapas reciben el área que consultas. Si descargas el mapa sin conexión, las calles y referencias de la congregación se guardan en este navegador; puedes quitarlas desde Inicio.</p>
       </section>
     </div>
     <footer class="privacy-dialog-footer">
@@ -743,6 +758,7 @@ body.print-preview{overflow:hidden}
     <select id="view-sel" disabled>
       <option value="g-road" selected>Google Calles - principal</option>
       <option value="g-sat">Google Satélite - vista previa</option>
+      <option value="offline">Mapa descargado · sin internet</option>
     </select>
   </div>
   <div class="field frame-field">
@@ -881,6 +897,10 @@ body.print-preview{overflow:hidden}
   <p class="ubicacion-estado sr-only" id="ubicacion-estado" role="status" aria-live="polite" hidden></p>
   </div>
   <div class="bar-group grupo-doc">
+  <button class="btn ghost" id="btn-offline" type="button" title="Preparar mapas de todos los territorios para usarlos sin internet" aria-label="Preparar mapa sin conexión">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg>
+    Sin conexión
+  </button>
   <button class="btn secondary" id="btn-agrupar" type="button" disabled title="Descargar un territorio o varios juntos" aria-label="Agrupar y descargar PDF">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
     Descargar PDF
@@ -1021,6 +1041,7 @@ body.print-preview{overflow:hidden}
 
 <div id="hojas-agrupadas" aria-hidden="true"></div>
 
+<script src="offline-data.js"></script>
 <script>
 const MUNICIPIO = 'Ixhuatlán del Café';
 const ESTADO = 'Veracruz de Ignacio de la Llave';
@@ -1128,6 +1149,13 @@ const OVERPASS_ENDPOINTS = [
 ];
 
 const TILES = {
+  offline: {
+    name:'Mapa descargado · sin internet',
+    sinNombres:true,
+    maxZ:20,
+    attr:'<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© colaboradores de OpenStreetMap (ODbL)</a>',
+    downloadable:false
+  },
   osm: {
     name: 'OpenStreetMap - más detallado en pantalla',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -1252,6 +1280,8 @@ let tileLayer = null;
 let ringLayer = null;
 let currentIndex = 0;
 let currentView = 'g-road';
+let offlineAutoView = false;
+let lastOnlineView = 'g-road';
 let tileErrorCount = 0;
 let printMap = null;
 const originalDocumentTitle = document.title;
@@ -2201,6 +2231,7 @@ function actualizarVistaCongregacion(cambioDeSeleccion){
     refrescarCongregacionesEnInicio();
     if(LOCS[currentIndex]) updateInfo(LOCS[currentIndex]);
     else limpiarMapaSinTerritorios();
+    if(typeof window !== 'undefined') window.refreshOfflineCard?.();
     return;
   }
   recargarAjustesGuardados();
@@ -2221,6 +2252,7 @@ function actualizarVistaCongregacion(cambioDeSeleccion){
     if(contourEditMode) setContourEditMode(false, false);
     limpiarMapaSinTerritorios();
   }
+  if(typeof window !== 'undefined') window.refreshOfflineCard?.();
 }
 
 function firmaCongregacion(c){
@@ -2611,6 +2643,7 @@ function showWelcomeScreen(){
   $('welcome-screen')?.classList.remove('is-hidden');
   document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
   refrescarCongregacionesEnInicio();
+  if(typeof window !== 'undefined') window.refreshOfflineCard?.();
   ($('welcome-cong-sel')?.disabled ? $('welcome-cong-nueva') : $('welcome-cong-sel'))?.focus();
 }
 
@@ -3656,6 +3689,17 @@ function drawRuntimeVectorRoads(roadWays){
   const waterways = roadWays.filter(isWaterway);
   const streets = roadWays.filter(way => !isWaterway(way));
   const fondoSinNombres = !!(TILES[currentView] || {}).sinNombres;
+  if(currentView === 'offline') streets.forEach(way => {
+    const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
+    if(latLngs.length < 2) return;
+    const major = /^(motorway|trunk|primary|secondary|tertiary)/.test(way.highway || '');
+    const path = /^(footway|path|steps|cycleway|track)/.test(way.highway || '');
+    const weight = major ? 5 : path ? 1.8 : 3.2;
+    const common = {pane:'territoryRoadPane',interactive:false,lineCap:'round',lineJoin:'round'};
+    L.polyline(latLngs,{...common,color:'#657d99',weight:weight + 2.2,opacity:.82}).addTo(vectorRoadLayer);
+    L.polyline(latLngs,{...common,color:path ? '#d8e4f1' : '#fff',weight,
+      opacity:.98,dashArray:path ? '4,5' : null}).addTo(vectorRoadLayer);
+  });
   // El rio lo dibujamos solo cuando el mapa de fondo no lo trae, que en la
   // practica es el satelite. Sobre Google salia dos veces -el suyo y el
   // nuestro encima- y como las dos geometrias no coinciden del todo, parecian
@@ -3710,6 +3754,20 @@ async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
   vectorRoadLayer.clearLayers();
   if(!loc) return;
   const key = getRuntimeRoadCacheKey(loc);
+  if(currentView === 'offline'){
+    const congregationId = congregacionActivaId;
+    const record = window.CroquisOfflineData
+      ? await window.CroquisOfflineData.get(congregationId, String(loc.num)).catch(() => null) : null;
+    if(requestId !== runtimeRoadRequestId || congregationId !== congregacionActivaId) return;
+    if(record && (!window.offlineRecordCovers || window.offlineRecordCovers(loc, record))){
+      const ways = unpackRoadWays(record.roads || []);
+      runtimeRoadCache = {key,roadWays:ways};
+      drawRuntimeVectorRoads(ways);
+    }else{
+      setStatus('Este territorio aún no tiene calles descargadas. En Inicio, descarga la congregación con internet.', 'warn');
+    }
+    return;
+  }
   if(runtimeRoadCache?.key === key && Array.isArray(runtimeRoadCache.roadWays)){
     drawRuntimeVectorRoads(runtimeRoadCache.roadWays);
     return;
@@ -4047,6 +4105,18 @@ async function updateRuntimeReferenceOverlay(loc = LOCS[currentIndex]){
   runtimeReferenceLayer.clearLayers();
   if(!loc) return;
   const key = 'ref:' + getRuntimeRoadCacheKey(loc);
+  if(currentView === 'offline'){
+    const congregationId = congregacionActivaId;
+    const record = window.CroquisOfflineData
+      ? await window.CroquisOfflineData.get(congregationId, String(loc.num)).catch(() => null) : null;
+    if(requestId !== runtimeReferenceRequestId || congregationId !== congregacionActivaId) return;
+    if(record && (!window.offlineRecordCovers || window.offlineRecordCovers(loc, record))){
+      const references = dedupeReferences(record.refs || []);
+      runtimeReferenceCache = {key, references};
+      drawRuntimeReferences(references);
+    }
+    return;
+  }
   if(runtimeReferenceCache?.key === key && Array.isArray(runtimeReferenceCache.references)){
     drawRuntimeReferences(runtimeReferenceCache.references);
     return;
@@ -5811,6 +5881,11 @@ async function armarNube(){
 }
 
 async function conectarNube(silencioso){
+  if(typeof navigator !== 'undefined' && !navigator.onLine){
+    pintarEstadoNube('Sin internet: el trabajo queda guardado en este dispositivo', false);
+    if(!silencioso) setStatus('Sin internet. Puedes seguir trabajando con lo guardado en este dispositivo.', 'warn');
+    return false;
+  }
   if(!nubeConfigurada()){
     if(!silencioso) setStatus('Falta poner la configuracion de Firebase en FIREBASE_CONFIG.', 'warn');
     return false;
@@ -6168,23 +6243,8 @@ function githubHeaders(token, json = false){
 }
 
 
-// Se quitaron el mapa sin internet y el token recordado. Esto desmonta lo que
-// quedo guardado de esas dos funciones en los navegadores que ya las usaron:
-// borrar el codigo no basta, el service worker seguiria interceptando peticiones
-// y el token seguiria en el navegador sin ninguna pantalla para quitarlo.
+// El token antiguo no debe permanecer guardado en el dispositivo.
 function purgeRemovedFeatures(){
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.getRegistrations?.().then(registros => {
-      registros.forEach(registro => {
-        if(registro.active?.scriptURL?.includes('/sw.js')) registro.unregister();
-      });
-    }).catch(() => {});
-  }
-  if('caches' in window){
-    caches.keys().then(nombres => {
-      nombres.filter(nombre => nombre.startsWith('croquis-')).forEach(nombre => caches.delete(nombre));
-    }).catch(() => {});
-  }
   try{
     if(localStorage.getItem('croquis-territory-github-token-device-v1')){
       localStorage.removeItem('croquis-territory-github-token-device-v1');
@@ -6857,6 +6917,7 @@ function loadLeaflet(){
   }
   const LEAFLET_INTEGRITY = 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH';
   const sources = [
+    '../vendor/leaflet/leaflet.js',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
     'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'
   ];
@@ -6867,7 +6928,7 @@ function loadLeaflet(){
       return;
     }
     if(sourceIndex >= sources.length){
-      setStatus('No se pudo cargar Leaflet. Revisa la conexión a internet y vuelve a abrir el archivo.', 'error');
+      setStatus('No se pudo cargar el mapa. Vuelve a abrir la página con conexión y descarga los territorios.', 'error');
       return;
     }
     const script = document.createElement('script');
@@ -6968,13 +7029,20 @@ function initApp(){
 
   subirTransparenciasA50();
   recoverIxcatlaBlueIfMissing();
+  if(!navigator.onLine){ currentView = 'offline'; offlineAutoView = true; }
+  viewSel.value = currentView;
   changeView(currentView, true);
   goTo(currentIndex, true);
-  setTimeout(() => loadCloudBackup({ auto:true }), 700);
+  if(navigator.onLine) setTimeout(() => loadCloudBackup({ auto:true }), 700);
   setTimeout(() => map.invalidateSize(), 150);
+  window.refreshOfflineCard?.();
 }
 
 function changeView(key, silent){
+  if(key !== 'offline'){
+    lastOnlineView = key;
+    offlineAutoView = false;
+  }
   currentView = key;
   const src = TILES[key] || TILES.osm;
   tileErrorCount = 0;
@@ -6982,6 +7050,28 @@ function changeView(key, silent){
   if(colorRestoreLayer) map.removeLayer(colorRestoreLayer);
   if(labelOverlayLayer) map.removeLayer(labelOverlayLayer);
   if(roadOverlayLayer) map.removeLayer(roadOverlayLayer);
+  tileLayer = null;
+  colorRestoreLayer = null;
+  labelOverlayLayer = null;
+  roadOverlayLayer = null;
+  map.getContainer().classList.toggle('offline-map', key === 'offline');
+  if(key === 'offline'){
+    if(!map._offlineAttribution){
+      map.attributionControl.addAttribution(src.attr);
+      map._offlineAttribution = true;
+    }
+    runtimeRoadCache = null;
+    runtimeReferenceCache = null;
+    updateRuntimeVectorRoadOverlay();
+    updateRuntimeReferenceOverlay();
+    setStatus('', '');
+    updateButtons();
+    return;
+  }
+  if(map._offlineAttribution){
+    map.attributionControl.removeAttribution(TILES.offline.attr);
+    map._offlineAttribution = false;
+  }
   tileLayer = L.tileLayer(src.url, {
     maxZoom: src.maxZ,
     subdomains: src.sub || '',
@@ -7043,6 +7133,10 @@ function changeView(key, silent){
     }
   }
   updateButtons();
+  if(vectorRoadLayer && LOCS[currentIndex]){
+    updateRuntimeVectorRoadOverlay();
+    updateRuntimeReferenceOverlay();
+  }
 }
 
 function ll2t(lat, lon, z){
@@ -7118,12 +7212,12 @@ function updateInfo(loc){
 function updateButtons(){
   // El boton de la hoja suelta ya no esta en la barra: vive dentro del panel.
   const botonPdf = $('btn-pr');
-  if(botonPdf) botonPdf.disabled = !map;
+  if(botonPdf) botonPdf.disabled = !map || currentView === 'offline';
   $('btn-add-territory').disabled = !map;
   const botonNombre = $('btn-rename-territory');
   if(botonNombre) botonNombre.disabled = !map || !LOCS[currentIndex];
   const botonAgrupar = $('btn-agrupar');
-  if(botonAgrupar) botonAgrupar.disabled = !map || !LOCS.length;
+  if(botonAgrupar) botonAgrupar.disabled = !map || !LOCS.length || currentView === 'offline';
   $('btn-delete-territory').disabled = !map || LOCS.length <= (esCongregacionBase() ? 1 : 0);
 }
 
@@ -9383,7 +9477,8 @@ $('congregacion-dialog')?.addEventListener('close', () => {
 $('btn-nube')?.addEventListener('click', () => conectarNube(false));
 $('welcome-nube')?.addEventListener('click', () => conectarNube(false));
 // si ya se entro antes en este dispositivo, se reengancha solo
-if(nubeConfigurada()) conectarNube(true);
+if(nubeConfigurada() && navigator.onLine) conectarNube(true);
+window.addEventListener('online', () => { if(nubeConfigurada()) conectarNube(true); });
 $('welcome-cong-sel')?.addEventListener('change', event => {
   if(!activarCongregacion(event.target.value)) refrescarCongregacionesEnInicio();
 });
@@ -9515,5 +9610,6 @@ if(document.readyState === 'loading'){
   loadLeaflet();
 }
 </script>
+<script src="offline-controller.js"></script>
 </body>
 </html>

@@ -2,6 +2,9 @@
  * Preview pages, reference glyphs, color values and geolocation stay unchanged.
  */
 @media screen {
+  .premium-toolbar #btn-offline { border-color: var(--color-rule-strong); background: var(--color-accent-soft); color: var(--color-accent-deep); }
+  .premium-toolbar #btn-offline:hover { background: var(--color-accent-soft-hover); color: var(--color-accent-hover); }
+  .premium-toolbar #btn-offline svg { width: 17px; height: 17px; }
   .map-wrap.is-frame-moving > #info-card { display: none !important; }
   .linear-edit-handle { cursor: grab; background: transparent; border: 0; border-radius: 50%; }
   .linear-edit-handle:active { cursor: grabbing; }
@@ -337,6 +340,11 @@
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: none; }
   }
+}
+
+@media screen and (max-width: 760px) {
+  .premium-toolbar .grupo-doc { flex: 1 1 100%; flex-wrap: wrap; }
+  .premium-toolbar .grupo-doc .btn { width: auto; flex: 1 1 145px; }
 }
 
 @media screen and (hover: hover) {
