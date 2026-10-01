@@ -74,6 +74,12 @@ En Inicio, selecciona una congregación y usa `Contraseña` para crear una clave
 
 Este bloqueo controla la entrada desde la interfaz. No cifra los croquis, los mapas descargados ni los respaldos. El repositorio y algunos datos publicados siguen siendo accesibles por separado; para privacidad real hacen falta permisos por congregación en Firebase y retirar los datos protegidos de los archivos públicos.
 
+## Flechas y espacio del texto en el PDF
+
+Al colocar o seleccionar un destino, activa `Ver espacio del texto en el PDF`. La guía muestra el espacio físico del texto sobre el mapa, según la hoja individual o la lámina seleccionada en `Descargar PDF`; cambia al escribir el destino o ajustar sus puntos. Un aviso naranja indica si taparía una zona pintada u otro destino. Arrastra la guía o usa `Buscar espacio libre` y pulsa `Guardar` para aplicar la posición. Cerrar descarta la propuesta. En el teléfono, el panel se puede minimizar para dejar visible el mapa; el texto también se mueve con las flechas del teclado cuando tiene el foco.
+
+La lámina aprovecha casi todo el lado disponible de cada recuadro y mantiene las proporciones del territorio, los contornos y las marcas exteriores. Las referencias se colocan en una esquina con menos interferencias y conservan letras de 8 puntos e iconos de 4 mm, independientemente de la escala del mapa. En la hoja individual usan 9 puntos e iconos de 5 mm. Una lista muy larga usa columnas y se ajusta solo cuando no cabe completa en su recuadro.
+
 ## Mapa sin conexion
 
 En Inicio, selecciona la congregacion y abre el editor. Alli pulsa `Mapa sin conexion` para abrir su panel independiente y `Descargar congregacion` mientras tengas internet. Se guardan las calles y referencias de **todos** sus territorios, ademas de los archivos necesarios para abrir la pagina. La descarga muestra el avance y se puede cancelar o reanudar; `Quitar descarga` borra solo los datos del mapa de esa congregacion. Los colores, textos y trazos se conservan en el almacenamiento local habitual. El selector `Mapa descargado` permite verlo tambien con internet y se activa automaticamente al perder la conexion. Cada congregacion muestra por separado su estado de descarga.

@@ -8,7 +8,7 @@
   let running = null;
   let shellPromise = null;
   let preparedPackPromise = null;
-  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-data.js', 'offline-controller.js',
+  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-data.js', 'offline-controller.js', 'destination-placement.js',
     'congregation-password.js', 'congregation-access.js', '../tokens.css', 'welcome-premium.css',
     'toolbar-premium.css', 'editor-premium.css', '../vendor/leaflet/leaflet.js', '../vendor/leaflet/leaflet.css',
     '../vendor/leaflet/images/layers.png', '../vendor/leaflet/images/layers-2x.png',
@@ -98,7 +98,7 @@
       });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v4');
+        const shellCache = await caches.open('croquis-app-shell-v5');
         shellReady = await shellComplete(shellCache);
       }
       if (group !== congregacionActivaId || (running && running.group === group)) return;
@@ -166,7 +166,7 @@
         navigator.serviceWorker.ready,
         new Promise((_, reject) => setTimeout(() => reject(new Error('La página tardó en prepararse. Recárgala e intenta de nuevo.')), 20000))
       ]);
-      const cache = await caches.open('croquis-app-shell-v4');
+      const cache = await caches.open('croquis-app-shell-v5');
       if (!await shellComplete(cache)) {
         const worker = registration.active;
         if (!worker) throw new Error('No se pudo guardar la página para abrirla sin internet.');
