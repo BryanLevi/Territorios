@@ -68,7 +68,7 @@ Las pruebas de ubicacion se ejecutan con `node --test tests/ubicacion.test.cjs`.
 
 ## Contraseña por congregación
 
-En Inicio, selecciona una congregación y usa `Contraseña` para crear una clave de al menos 12 caracteres. Al pulsar `Abrir editor`, la página pide la clave; al volver a Inicio o recargar, vuelve a pedirla. Desde el mismo botón se puede cambiar o quitar escribiendo la contraseña actual. La clave no se guarda en texto: se conserva un verificador PBKDF2 con sal aleatoria dentro del registro de congregaciones, que se comparte entre equipos al conectar la sincronización. Una congregación sin contraseña sigue abriéndose directamente.
+En Inicio, selecciona una congregación y usa `Contraseña` para crear una clave de exactamente 6 dígitos, solo números (puede empezar por cero). Cada campo tiene un ojo para mostrar u ocultar la contraseña. Al pulsar `Abrir editor`, la página pide la clave; al volver a Inicio o recargar, vuelve a pedirla. Desde el mismo botón se puede cambiar o quitar escribiendo la contraseña actual. Las claves anteriores siguen funcionando y se pueden cambiar por una de 6 dígitos. La clave no se guarda en texto: se conserva un verificador PBKDF2 con sal aleatoria dentro del registro de congregaciones, que se comparte entre equipos al conectar la sincronización. Una congregación sin contraseña sigue abriéndose directamente.
 
 Este bloqueo controla la entrada desde la interfaz. No cifra los croquis, los mapas descargados ni los respaldos. El repositorio y algunos datos publicados siguen siendo accesibles por separado; para privacidad real hacen falta permisos por congregación en Firebase y retirar los datos protegidos de los archivos públicos.
 

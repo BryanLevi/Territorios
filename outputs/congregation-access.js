@@ -7,6 +7,7 @@
   const dialog = element('password-dialog');
   const form = element('password-form');
   if (!password || !dialog || !form) return;
+  const visibilityButtons = Array.from(form.querySelectorAll('[data-password-toggle]'));
 
   let granted = null;
   let pending = null;
@@ -62,7 +63,24 @@
     ['password-current', 'password-new', 'password-confirm', 'password-submit', 'password-remove'].forEach(id => {
       element(id).disabled = value;
     });
+    visibilityButtons.forEach(button => { button.disabled = value; });
     element('password-submit').setAttribute('aria-busy', String(value));
+  }
+
+  function setVisibility(button, visible) {
+    const input = element(button.dataset.passwordToggle);
+    input.type = visible ? 'text' : 'password';
+    const label = input.id === 'password-confirm'
+      ? 'confirmación de contraseña'
+      : input.closest('.password-field').querySelector('label').textContent.toLocaleLowerCase('es');
+    const action = (visible ? 'Ocultar ' : 'Mostrar ') + label;
+    button.setAttribute('aria-pressed', String(visible));
+    button.setAttribute('aria-label', action);
+    button.title = action;
+  }
+
+  function resetVisibility() {
+    visibilityButtons.forEach(button => setVisibility(button, false));
   }
 
   function open(mode, onGranted = null) {
@@ -84,11 +102,12 @@
     const title = mode === 'unlock' ? 'Entrar a la congregación' : mode === 'set' ? 'Crear contraseña' : 'Cambiar contraseña';
     element('password-dialog-title').textContent = title;
     element('password-current-label').textContent = mode === 'unlock' ? 'Contraseña' : 'Contraseña actual';
+    resetVisibility();
     element('password-dialog-description').textContent = mode === 'unlock'
       ? 'Escribe la contraseña de esta congregación para abrir su editor.'
       : mode === 'set'
-        ? 'Quienes entren desde Inicio deberán escribir esta contraseña. Usa al menos 12 caracteres y guárdala: la página no puede recuperarla. Los mapas y respaldos existentes no se vuelven privados.'
-        : 'Escribe la contraseña actual para cambiarla o quitarla.';
+        ? 'Quienes entren desde Inicio deberán escribir esta contraseña. Usa exactamente 6 dígitos, solo números, y guárdala: la página no puede recuperarla. Los mapas y respaldos existentes no se vuelven privados.'
+        : 'Escribe la contraseña actual para cambiarla o quitarla. La nueva contraseña debe tener exactamente 6 dígitos, solo números.';
     element('password-submit').textContent = mode === 'unlock' ? 'Entrar' : mode === 'set' ? 'Guardar contraseña' : 'Cambiar contraseña';
     dialog.showModal();
     element(mode === 'set' ? 'password-new' : 'password-current').focus();
@@ -110,8 +129,7 @@
   function validateNew() {
     const next = element('password-new').value;
     const confirmation = element('password-confirm').value;
-    if (next.length < 12) { error('Usa al menos 12 caracteres.', 'password-new'); return null; }
-    if (next.length > 128) { error('La contraseña es demasiado larga.', 'password-new'); return null; }
+    if (!/^[0-9]{6}$/.test(next)) { error('La contraseña debe tener exactamente 6 dígitos, solo números.', 'password-new'); return null; }
     if (next !== confirmation) { error('Las contraseñas no coinciden.', 'password-confirm'); return null; }
     return next;
   }
@@ -204,10 +222,14 @@
   element('password-cancel')?.addEventListener('click', () => dialog.close());
   element('password-remove')?.addEventListener('click', remove);
   form.addEventListener('submit', submit);
+  visibilityButtons.forEach(button => button.addEventListener('click', () => {
+    if (!busy) setVisibility(button, element(button.dataset.passwordToggle).type === 'password');
+  }));
   dialog.addEventListener('close', () => {
     const previous = pending?.returnFocus;
     pending = null;
     form.reset();
+    resetVisibility();
     error('');
     if (!element('welcome-screen')?.classList.contains('is-hidden') && !element('congregacion-dialog')?.open) previous?.focus?.();
   });

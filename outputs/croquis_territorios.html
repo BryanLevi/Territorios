@@ -748,9 +748,27 @@ body.print-preview{overflow:hidden}
         <strong id="password-dialog-congregation"></strong>
       </div>
       <div class="password-dialog-body">
-        <div class="password-field" id="password-current-field"><label id="password-current-label" for="password-current">Contraseña</label><input id="password-current" type="password" autocomplete="current-password" maxlength="128" aria-describedby="password-error" required></div>
-        <div class="password-field" id="password-new-field" hidden><label for="password-new">Nueva contraseña</label><input id="password-new" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="password-error"></div>
-        <div class="password-field" id="password-confirm-field" hidden><label for="password-confirm">Confirmar nueva contraseña</label><input id="password-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="password-error"></div>
+        <div class="password-field" id="password-current-field">
+          <label id="password-current-label" for="password-current">Contraseña</label>
+          <div class="password-input-wrap">
+            <input id="password-current" type="password" autocomplete="current-password" maxlength="128" aria-describedby="password-error" required>
+            <button class="password-toggle" type="button" data-password-toggle="password-current" aria-controls="password-current" aria-label="Mostrar contraseña" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye-slash" d="m3 3 18 18"/></svg></button>
+          </div>
+        </div>
+        <div class="password-field" id="password-new-field" hidden>
+          <label for="password-new">Nueva contraseña</label>
+          <div class="password-input-wrap">
+            <input id="password-new" type="password" autocomplete="new-password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="6 dígitos" aria-describedby="password-error">
+            <button class="password-toggle" type="button" data-password-toggle="password-new" aria-controls="password-new" aria-label="Mostrar nueva contraseña" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye-slash" d="m3 3 18 18"/></svg></button>
+          </div>
+        </div>
+        <div class="password-field" id="password-confirm-field" hidden>
+          <label for="password-confirm">Confirmar nueva contraseña</label>
+          <div class="password-input-wrap">
+            <input id="password-confirm" type="password" autocomplete="new-password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="Repite los 6 dígitos" aria-describedby="password-error">
+            <button class="password-toggle" type="button" data-password-toggle="password-confirm" aria-controls="password-confirm" aria-label="Mostrar confirmación de contraseña" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye-slash" d="m3 3 18 18"/></svg></button>
+          </div>
+        </div>
         <p class="password-error" id="password-error" role="alert" hidden></p>
       </div>
       <div class="password-dialog-footer">
