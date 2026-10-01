@@ -518,7 +518,7 @@ body.print-preview{overflow:hidden}
   @page{size:A4 landscape;margin:0}
   html,body{width:297mm;height:210mm;overflow:hidden;background:#fff}
   body{display:block}
-  .bar,.map-wrap,.map-status,.legend,.welcome-screen,.congregacion-dialog,.privacy-dialog{display:none!important}
+  .bar,.map-wrap,.map-status,.legend,.welcome-screen,.congregacion-dialog,.privacy-dialog,.offline-dialog{display:none!important}
   .print-sheet,.print-sheet.is-open{display:block!important;position:static!important;inset:auto!important;width:297mm;height:210mm;padding:0;background:#fff;overflow:hidden}
   .print-paper{width:297mm;height:210mm;min-width:0;box-shadow:none}
   /* Chrome aplasta a 300 ppp cualquier capa con filter al imprimir, y la
@@ -577,25 +577,6 @@ body.print-preview{overflow:hidden}
         </div>
         <button class="welcome-start" id="welcome-start" type="button"><span>Abrir editor</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"></path></svg></button>
       </div>
-      <section class="offline-card" id="offline-card" aria-labelledby="offline-title">
-        <div class="offline-card-head">
-          <span class="offline-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg></span>
-          <div class="offline-card-title"><span class="offline-card-kicker">Llévate tus territorios</span><h3 id="offline-title">Mapa sin conexión</h3></div>
-          <span class="offline-card-badge" id="offline-badge">Sin descargar</span>
-        </div>
-        <p class="offline-card-copy">Descarga las calles y referencias de todos los territorios de esta congregación. Tus colores y dibujos se conservan en este dispositivo.</p>
-        <div class="offline-card-actions">
-          <button id="offline-download" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg><span>Descargar congregación</span></button>
-          <button id="offline-cancel" type="button" hidden>Cancelar</button>
-          <button id="offline-remove" type="button" hidden>Quitar descarga</button>
-        </div>
-        <div class="offline-progress-wrap" id="offline-progress-wrap" hidden>
-          <div class="offline-progress-line"><span>Descargando mapas</span><strong id="offline-progress-label">0 de 0</strong></div>
-          <progress id="offline-progress" value="0" max="100" aria-label="Avance de la descarga de territorios">0 %</progress>
-        </div>
-        <p class="offline-card-status" id="offline-status" role="status" aria-live="polite">Prepara los mapas mientras tengas internet.</p>
-        <p class="offline-card-note">La ubicación funciona sin internet si el dispositivo obtiene señal GPS y le concedes permiso. Para descargar PDF, conéctate y elige un mapa en línea.</p>
-      </section>
       <div class="welcome-steps" aria-label="Pasos principales">
         <div class="welcome-step"><b>1</b><span><strong>Elige el territorio</strong><span>Revisa la localidad y su mapa.</span></span></div>
         <div class="welcome-step"><b>2</b><span><strong>Dale forma al croquis</strong><span>Pinta zonas y añade referencias.</span></span></div>
@@ -673,6 +654,39 @@ body.print-preview{overflow:hidden}
     <button class="welcome-privacy-trigger" id="welcome-privacy-open" type="button" aria-haspopup="dialog" aria-controls="privacy-dialog">Aviso de privacidad</button>
   </footer>
 </section>
+<dialog class="offline-dialog" id="offline-dialog" aria-labelledby="offline-dialog-title" aria-describedby="offline-dialog-congregation">
+  <div class="offline-dialog-panel">
+    <header class="offline-dialog-head">
+      <div>
+        <span class="offline-dialog-kicker">Congregación activa</span>
+        <h2 id="offline-dialog-title">Mapa sin conexión</h2>
+        <p id="offline-dialog-congregation">Congregación</p>
+      </div>
+      <button id="offline-dialog-close" type="button" aria-label="Cerrar mapa sin conexión">×</button>
+    </header>
+    <div class="offline-dialog-body">
+      <section class="offline-card" id="offline-card" aria-labelledby="offline-title">
+        <div class="offline-card-head">
+          <span class="offline-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg></span>
+          <div class="offline-card-title"><span class="offline-card-kicker">Disponible por congregación</span><h3 id="offline-title">Todos los territorios</h3></div>
+          <span class="offline-card-badge" id="offline-badge">Sin descargar</span>
+        </div>
+        <p class="offline-card-copy">Descarga las calles y referencias de esta congregación. Tus colores y dibujos se conservan en este dispositivo.</p>
+        <div class="offline-card-actions">
+          <button id="offline-download" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg><span>Descargar congregación</span></button>
+          <button id="offline-cancel" type="button" hidden>Cancelar</button>
+          <button id="offline-remove" type="button" hidden>Quitar descarga</button>
+        </div>
+        <div class="offline-progress-wrap" id="offline-progress-wrap" hidden>
+          <div class="offline-progress-line"><span>Descargando mapas</span><strong id="offline-progress-label">0 de 0</strong></div>
+          <progress id="offline-progress" value="0" max="100" aria-label="Avance de la descarga de territorios">0 %</progress>
+        </div>
+        <p class="offline-card-status" id="offline-status" role="status" aria-live="polite">Prepara los mapas mientras tengas internet.</p>
+        <p class="offline-card-note">La ubicación funciona sin internet si el dispositivo obtiene señal GPS y le concedes permiso. Para descargar PDF, conéctate y elige un mapa en línea.</p>
+      </section>
+    </div>
+  </div>
+</dialog>
 <dialog class="privacy-dialog" id="privacy-dialog" aria-labelledby="privacy-dialog-title" aria-describedby="privacy-dialog-description">
   <div class="privacy-dialog-panel">
     <header class="privacy-dialog-head">
@@ -689,7 +703,7 @@ body.print-preview{overflow:hidden}
       <section class="privacy-dialog-section">
         <h3>Información sobre tus datos</h3>
         <p>Los cambios se guardan en este navegador. Si usas «Conectar equipo», también se sincronizan en línea; si usas «Guardar GitHub», el respaldo se publica en el repositorio del proyecto. Evita incluir información personal que no quieras compartir.</p>
-        <p>«Mi ubicación» muestra tu posición en el mapa con tu permiso, pero no la incluye en los respaldos. Los servicios externos de mapas reciben el área que consultas. Si descargas el mapa sin conexión, las calles y referencias de la congregación se guardan en este navegador; puedes quitarlas desde Inicio.</p>
+        <p>«Mi ubicación» muestra tu posición en el mapa con tu permiso, pero no la incluye en los respaldos. Los servicios externos de mapas reciben el área que consultas. Si descargas el mapa sin conexión, las calles y referencias de esa congregación se guardan en este navegador; puedes quitarlas desde «Mapa sin conexión» en su editor.</p>
       </section>
     </div>
     <footer class="privacy-dialog-footer">
@@ -897,9 +911,9 @@ body.print-preview{overflow:hidden}
   <p class="ubicacion-estado sr-only" id="ubicacion-estado" role="status" aria-live="polite" hidden></p>
   </div>
   <div class="bar-group grupo-doc">
-  <button class="btn ghost" id="btn-offline" type="button" title="Preparar mapas de todos los territorios para usarlos sin internet" aria-label="Preparar mapa sin conexión">
+  <button class="btn ghost" id="btn-offline" type="button" title="Preparar los mapas de esta congregación para usarlos sin internet" aria-label="Mapa sin conexión de esta congregación" aria-haspopup="dialog" aria-controls="offline-dialog">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg>
-    Sin conexión
+    Mapa sin conexión
   </button>
   <button class="btn secondary" id="btn-agrupar" type="button" disabled title="Descargar un territorio o varios juntos" aria-label="Agrupar y descargar PDF">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
@@ -2643,7 +2657,6 @@ function showWelcomeScreen(){
   $('welcome-screen')?.classList.remove('is-hidden');
   document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
   refrescarCongregacionesEnInicio();
-  if(typeof window !== 'undefined') window.refreshOfflineCard?.();
   ($('welcome-cong-sel')?.disabled ? $('welcome-cong-nueva') : $('welcome-cong-sel'))?.focus();
 }
 
@@ -3764,7 +3777,7 @@ async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
       runtimeRoadCache = {key,roadWays:ways};
       drawRuntimeVectorRoads(ways);
     }else{
-      setStatus('Este territorio aún no tiene calles descargadas. En Inicio, descarga la congregación con internet.', 'warn');
+      setStatus('Este territorio aún no tiene calles descargadas. Abre «Mapa sin conexión» y descarga esta congregación con internet.', 'warn');
     }
     return;
   }

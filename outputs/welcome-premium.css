@@ -148,6 +148,7 @@
   }
   .premium-welcome .welcome-cong select { padding-right: var(--space-2xl); }
   .premium-welcome button,
+  .offline-dialog button,
   .congregacion-dialog button {
     position: relative;
     display: inline-flex;
@@ -175,7 +176,7 @@
     transform: none;
     transition: background-color var(--dur-normal) var(--ease-out), box-shadow var(--dur-normal) var(--ease-out), color var(--dur-normal) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
   }
-  .premium-welcome button svg, .congregacion-dialog button svg { width: 18px; height: 18px; flex: 0 0 18px; }
+  .premium-welcome button svg, .offline-dialog button svg, .congregacion-dialog button svg { width: 18px; height: 18px; flex: 0 0 18px; }
   .premium-welcome .welcome-cong-actions button { gap: var(--space-xs); padding: 0 var(--space-sm); font-size: var(--text-control); box-shadow: var(--shadow-control); }
   .premium-welcome #welcome-cong-nueva { background: var(--color-accent-soft); color: var(--color-accent); border-color: var(--color-rule); }
   .premium-welcome #welcome-cong-eliminar { color: var(--color-error); background: var(--color-paper); }
@@ -202,20 +203,67 @@
   .premium-welcome #welcome-status.error,
   .premium-welcome #welcome-status.is-error { color: var(--color-error); }
   .premium-welcome #welcome-status.success { color: var(--color-success); }
-  .premium-welcome .offline-card {
+  .offline-dialog {
+    position: fixed;
+    inset: 0;
+    width: min(650px, calc(100vw - 32px));
+    max-width: none;
+    max-height: calc(100dvh - 32px);
+    margin: auto;
+    padding: 0;
+    border: var(--rule-thin) solid var(--color-rule);
+    border-radius: 26px;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    box-shadow: var(--shadow-panel);
+    overflow: hidden;
+  }
+  .offline-dialog::backdrop { background: var(--color-backdrop); }
+  .offline-dialog-panel { display: flex; flex-direction: column; min-height: 0; max-height: calc(100dvh - 32px); }
+  .offline-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    flex: 0 0 auto;
+    min-height: 76px;
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: var(--rule-thin) solid var(--color-rule);
+    background: var(--gradient-surface);
+  }
+  .offline-dialog-head > div { min-width: 0; }
+  .offline-dialog-kicker { display: block; margin-bottom: 3px; color: var(--color-accent); font-size: var(--text-caption); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .offline-dialog-head h2 { margin: 0; color: var(--color-ink); font-family: var(--font-display); font-size: 23px; font-weight: 700; line-height: 1.2; letter-spacing: -.025em; }
+  .offline-dialog #offline-dialog-congregation { display: block; margin: 3px 0 0; color: var(--color-muted); font-size: var(--text-caption); line-height: 1.35; overflow-wrap: anywhere; }
+  .offline-dialog #offline-dialog-close {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: var(--radius-md);
+    background: var(--color-paper);
+    color: var(--color-muted);
+    font-size: 25px;
+    line-height: 1;
+  }
+  .offline-dialog-body { min-height: 0; padding: var(--space-xl); overflow-y: auto; overscroll-behavior: contain; }
+  .offline-dialog .offline-card {
     position: relative;
     isolation: isolate;
     overflow: hidden;
     display: grid;
     gap: var(--space-md);
-    margin-top: var(--space-xl);
+    margin: 0;
     padding: var(--space-lg);
     border: var(--rule-thin) solid var(--color-rule);
     border-radius: 22px;
     background: linear-gradient(125deg, var(--color-paper), var(--color-accent-soft) 95%);
     box-shadow: var(--shadow-control), var(--shadow-inset);
   }
-  .premium-welcome .offline-card::before {
+  .offline-dialog .offline-card::before {
     content: "";
     position: absolute;
     z-index: -1;
@@ -228,8 +276,8 @@
     opacity: .65;
     pointer-events: none;
   }
-  .premium-welcome .offline-card-head { display: flex; align-items: center; gap: var(--space-md); min-width: 0; }
-  .premium-welcome .offline-card-icon {
+  .offline-dialog .offline-card-head { display: flex; align-items: center; gap: var(--space-md); min-width: 0; }
+  .offline-dialog .offline-card-icon {
     display: grid;
     place-items: center;
     flex: 0 0 42px;
@@ -241,11 +289,11 @@
     color: var(--color-accent);
     box-shadow: var(--shadow-control);
   }
-  .premium-welcome .offline-card-icon svg { width: 21px; height: 21px; }
-  .premium-welcome .offline-card-title { min-width: 0; flex: 1 1 auto; }
-  .premium-welcome .offline-card-kicker { color: var(--color-muted); font-size: var(--text-caption); font-weight: 600; letter-spacing: .02em; }
-  .premium-welcome .offline-card h3 { margin: 2px 0 0; color: var(--color-ink); font-size: var(--text-title); line-height: 1.2; letter-spacing: -.02em; }
-  .premium-welcome .offline-card-badge {
+  .offline-dialog .offline-card-icon svg { width: 21px; height: 21px; }
+  .offline-dialog .offline-card-title { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+  .offline-dialog .offline-card-kicker { color: var(--color-muted); font-size: var(--text-caption); font-weight: 600; letter-spacing: .02em; }
+  .offline-dialog .offline-card h3 { margin: 2px 0 0; color: var(--color-ink); font-size: var(--text-title); line-height: 1.2; letter-spacing: -.02em; overflow-wrap: anywhere; }
+  .offline-dialog .offline-card-badge {
     flex: 0 0 auto;
     padding: 6px 9px;
     border: var(--rule-thin) solid var(--color-rule);
@@ -256,27 +304,28 @@
     font-weight: 700;
     line-height: 1;
   }
-  .premium-welcome .offline-card-badge[data-state=ready] { background: var(--color-success-soft); border-color: var(--color-success); color: var(--color-success); }
-  .premium-welcome .offline-card-badge[data-state=loading] { background: var(--color-info-soft); color: var(--color-info); }
-  .premium-welcome .offline-card-badge[data-state=error] { background: var(--color-error-soft); color: var(--color-error); }
-  .premium-welcome .welcome-main .offline-card-copy { color: var(--color-ink-2); font-size: var(--text-control); line-height: 1.45; }
-  .premium-welcome .offline-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); }
-  .premium-welcome .offline-card-actions button { min-height: 39px; height: 39px; padding: 0 var(--space-md); font-size: var(--text-control); }
-  .premium-welcome #offline-download { flex: 1 1 185px; justify-content: center; border-color: var(--color-accent); background: var(--gradient-primary); color: var(--color-accent-ink); box-shadow: var(--shadow-primary); }
-  .premium-welcome #offline-cancel { color: var(--color-info); }
-  .premium-welcome #offline-remove { color: var(--color-error); }
-  .premium-welcome .offline-card [hidden] { display: none !important; }
-  .premium-welcome .offline-progress-wrap { display: grid; gap: var(--space-xs); }
-  .premium-welcome .offline-progress-line { display: flex; justify-content: space-between; gap: var(--space-sm); color: var(--color-ink-2); font-size: var(--text-caption); font-weight: 600; }
-  .premium-welcome .offline-progress-line strong { font-variant-numeric: tabular-nums; }
-  .premium-welcome .offline-progress-wrap progress { display: block; width: 100%; height: 8px; overflow: hidden; border: 0; border-radius: var(--radius-pill); background: var(--color-paper-3); accent-color: var(--color-accent); }
-  .premium-welcome .offline-progress-wrap progress::-webkit-progress-bar { border-radius: var(--radius-pill); background: var(--color-paper-3); }
-  .premium-welcome .offline-progress-wrap progress::-webkit-progress-value { border-radius: var(--radius-pill); background: var(--gradient-primary); }
-  .premium-welcome .offline-progress-wrap progress::-moz-progress-bar { border-radius: var(--radius-pill); background: var(--color-accent); }
-  .premium-welcome .welcome-main .offline-card-status { color: var(--color-muted); font-size: var(--text-caption); line-height: 1.4; }
-  .premium-welcome .offline-card-status[data-state=error] { color: var(--color-error); }
-  .premium-welcome .offline-card-status[data-state=ready] { color: var(--color-success); }
-  .premium-welcome .welcome-main .offline-card-note { padding-top: var(--space-sm); border-top: var(--rule-thin) solid var(--color-rule); color: var(--color-muted); font-size: var(--text-caption); line-height: 1.4; }
+  .offline-dialog .offline-card-badge[data-state=ready] { background: var(--color-success-soft); border-color: var(--color-success); color: var(--color-success); }
+  .offline-dialog .offline-card-badge[data-state=loading] { background: var(--color-info-soft); color: var(--color-info); }
+  .offline-dialog .offline-card-badge[data-state=error] { background: var(--color-error-soft); color: var(--color-error); }
+  .offline-dialog .offline-card p { margin: 0; }
+  .offline-dialog .offline-card-copy { color: var(--color-ink-2); font-size: var(--text-control); line-height: 1.45; }
+  .offline-dialog .offline-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); }
+  .offline-dialog .offline-card-actions button { min-height: 44px; height: 44px; padding: 0 var(--space-md); font-size: var(--text-control); }
+  .offline-dialog #offline-download { flex: 1 1 185px; justify-content: center; border-color: var(--color-accent); background: var(--gradient-primary); color: var(--color-accent-ink); box-shadow: var(--shadow-primary); }
+  .offline-dialog #offline-cancel { color: var(--color-info); }
+  .offline-dialog #offline-remove { color: var(--color-error); }
+  .offline-dialog .offline-card [hidden] { display: none !important; }
+  .offline-dialog .offline-progress-wrap { display: grid; gap: var(--space-xs); }
+  .offline-dialog .offline-progress-line { display: flex; justify-content: space-between; gap: var(--space-sm); color: var(--color-ink-2); font-size: var(--text-caption); font-weight: 600; }
+  .offline-dialog .offline-progress-line strong { font-variant-numeric: tabular-nums; }
+  .offline-dialog .offline-progress-wrap progress { display: block; width: 100%; height: 8px; overflow: hidden; border: 0; border-radius: var(--radius-pill); background: var(--color-paper-3); accent-color: var(--color-accent); }
+  .offline-dialog .offline-progress-wrap progress::-webkit-progress-bar { border-radius: var(--radius-pill); background: var(--color-paper-3); }
+  .offline-dialog .offline-progress-wrap progress::-webkit-progress-value { border-radius: var(--radius-pill); background: var(--gradient-primary); }
+  .offline-dialog .offline-progress-wrap progress::-moz-progress-bar { border-radius: var(--radius-pill); background: var(--color-accent); }
+  .offline-dialog .offline-card-status { color: var(--color-muted); font-size: var(--text-caption); line-height: 1.4; }
+  .offline-dialog .offline-card-status[data-state=error] { color: var(--color-error); }
+  .offline-dialog .offline-card-status[data-state=ready] { color: var(--color-success); }
+  .offline-dialog .offline-card-note { padding-top: var(--space-sm); border-top: var(--rule-thin) solid var(--color-rule); color: var(--color-muted); font-size: var(--text-caption); line-height: 1.4; }
   .premium-welcome .welcome-steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-md); margin: var(--space-xl) 0 0; padding-top: var(--space-lg); border-top: var(--rule-thin) solid var(--color-rule); }
   .premium-welcome .welcome-step { display: flex; align-items: center; gap: var(--space-md); color: var(--color-muted); font-size: var(--text-control); line-height: 1.4; }
   .premium-welcome .welcome-step b { width: 28px; height: 28px; flex: 0 0 28px; border: var(--rule-thin) solid var(--color-rule); border-radius: 50%; background: var(--color-accent-soft); color: var(--color-accent); font-size: var(--text-caption); font-weight: 650; }
@@ -385,29 +434,29 @@
   .congregacion-dialog #congregacion-submit { background: var(--gradient-primary); color: var(--color-accent-ink); border-color: var(--color-accent); box-shadow: var(--shadow-primary); }
   .congregacion-dialog #congregacion-submit.danger, .congregacion-dialog #congregacion-submit.is-danger, .congregacion-dialog[data-mode=delete] #congregacion-submit { background: var(--color-error); color: var(--color-accent-ink); border-color: var(--color-error); }
 
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary):focus-visible,
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary).is-focus { position: relative; z-index: 1; outline: 3px solid var(--color-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--color-paper); transition: none; }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select, summary):focus-visible,
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select, summary).is-focus { position: relative; z-index: 1; outline: 3px solid var(--color-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--color-paper); transition: none; }
   .premium-welcome #welcome-start:focus-visible, .premium-welcome #welcome-start.is-focus,
   .congregacion-dialog #congregacion-submit:focus-visible, .congregacion-dialog #congregacion-submit.is-focus { box-shadow: 0 0 0 2px var(--color-paper); transition: none; }
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary):active:not(:disabled),
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary).is-active { box-shadow: var(--shadow-inset); }
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select):disabled,
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[aria-disabled=true] { opacity: 0.48; cursor: not-allowed; transform: none; filter: none; }
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[data-state=loading],
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[aria-busy=true] { cursor: progress; }
-  :is(.premium-welcome, .congregacion-dialog) button[data-state=loading]::after,
-  :is(.premium-welcome, .congregacion-dialog) button[aria-busy=true]::after { content: ""; width: 12px; height: 12px; flex: 0 0 12px; border: 2px solid currentColor; border-right-color: var(--color-transparent); border-radius: 50%; animation: welcome-spin 850ms linear infinite; }
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[data-state=error],
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[aria-invalid=true] { border-color: var(--color-error); }
-  :is(.premium-welcome, .congregacion-dialog) button[data-state=error],
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select, summary):active:not(:disabled),
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select, summary).is-active { box-shadow: var(--shadow-inset); }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select):disabled,
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select)[aria-disabled=true] { opacity: 0.48; cursor: not-allowed; transform: none; filter: none; }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select)[data-state=loading],
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select)[aria-busy=true] { cursor: progress; }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) button[data-state=loading]::after,
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) button[aria-busy=true]::after { content: ""; width: 12px; height: 12px; flex: 0 0 12px; border: 2px solid currentColor; border-right-color: var(--color-transparent); border-radius: 50%; animation: welcome-spin 850ms linear infinite; }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select)[data-state=error],
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select)[aria-invalid=true] { border-color: var(--color-error); }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) button[data-state=error],
   .premium-welcome #welcome-start[data-state=error],
   .congregacion-dialog #congregacion-submit[data-state=error] { background: var(--color-error-soft); color: var(--color-error); border-color: var(--color-error); }
-  :is(.premium-welcome, .congregacion-dialog) button[data-state=error]::after { content: "!"; font-size: var(--text-control); font-weight: 800; }
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select)[data-state=success] { border-color: var(--color-success); }
-  :is(.premium-welcome, .congregacion-dialog) button[data-state=success],
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) button[data-state=error]::after { content: "!"; font-size: var(--text-control); font-weight: 800; }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select)[data-state=success] { border-color: var(--color-success); }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) button[data-state=success],
   .premium-welcome #welcome-start[data-state=success],
   .congregacion-dialog #congregacion-submit[data-state=success] { background: var(--color-success-soft); color: var(--color-success); border-color: var(--color-success); }
-  :is(.premium-welcome, .congregacion-dialog) button[data-state=success]::after { content: "✓"; font-size: var(--text-control); font-weight: 800; }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) button[data-state=success]::after { content: "✓"; font-size: var(--text-control); font-weight: 800; }
   @keyframes welcome-spin { to { transform: rotate(360deg); } }
 }
 
@@ -416,11 +465,12 @@
 }
 
 @media screen and (hover: hover) {
-  :is(.premium-welcome, .congregacion-dialog) :where(button, select, input, summary):hover:where(:not(:disabled):not([aria-disabled=true]):not([data-state=error]):not([data-state=success])) { background: var(--color-paper-3); color: var(--color-ink); filter: none; transform: none; }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :where(button, select, input, summary):hover:where(:not(:disabled):not([aria-disabled=true]):not([data-state=error]):not([data-state=success])) { background: var(--color-paper-3); color: var(--color-ink); filter: none; transform: none; }
   .premium-welcome #welcome-start:hover:not(:disabled):where(:not([data-state=error]):not([data-state=success])),
   .congregacion-dialog #congregacion-submit:hover:not(:disabled):where(:not([data-state=error]):not([data-state=success])) { background: var(--gradient-primary-hover); color: var(--color-accent-ink); }
   .premium-welcome #welcome-cong-nueva:hover:not(:disabled) { background: var(--color-accent-soft-hover); color: var(--color-accent); }
-  .premium-welcome #offline-download:hover:not(:disabled) { background: var(--gradient-primary-hover); color: var(--color-accent-ink); }
+  .offline-dialog #offline-download:hover:not(:disabled) { background: var(--gradient-primary-hover); color: var(--color-accent-ink); }
+  .offline-dialog #offline-dialog-close:hover { background: var(--color-accent-soft); color: var(--color-accent); }
   .premium-welcome #welcome-cong-eliminar:hover:not(:disabled),
   .congregacion-dialog #congregacion-submit.danger:hover:not(:disabled),
   .congregacion-dialog #congregacion-submit.is-danger:hover:not(:disabled),
@@ -443,8 +493,8 @@
   .premium-welcome .welcome-brand { margin-bottom: var(--space-xl); }
   .premium-welcome .welcome-main h2 { max-width: 20ch; font-size: 36px; }
   .premium-welcome .welcome-main .welcome-intro { font-size: var(--text-body); }
-  .premium-welcome .offline-card-head { flex-wrap: wrap; }
-  .premium-welcome .offline-card-badge { margin-left: 54px; }
+  .offline-dialog .offline-card-head { flex-wrap: wrap; }
+  .offline-dialog .offline-card-badge { margin-left: 54px; }
   .premium-welcome .welcome-selection-head { align-items: flex-start; }
   .premium-welcome .welcome-cong-actions { width: 100%; }
   .premium-welcome .welcome-cong-actions button { flex: 1 0 auto; }
@@ -456,6 +506,12 @@
 }
 
 @media screen and (max-width: 420px) {
+  .offline-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: var(--radius-lg); }
+  .offline-dialog-panel { max-height: calc(100dvh - 16px); }
+  .offline-dialog-head { min-height: 64px; padding: var(--space-sm) var(--space-md); }
+  .offline-dialog-head h2 { font-size: 20px; }
+  .offline-dialog-body { padding: var(--space-lg); }
+  .offline-dialog .offline-card { padding: var(--space-md); }
   .privacy-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: var(--radius-lg); }
   .privacy-dialog-panel { max-height: calc(100dvh - 16px); }
   .privacy-dialog-head { min-height: 64px; padding: var(--space-sm) var(--space-md); }
@@ -554,9 +610,9 @@
 @media screen and (prefers-reduced-motion: reduce) {
   .premium-welcome :is(.welcome-main, .welcome-guide, .welcome-bubbles, .welcome-bubbles span, .welcome-map-bubble, .map-bubble-core, .map-bubble-orbit, .map-bubble-small, .map-bubble-tiny, .bubble-map-pin-group, .bubble-pin-shadow, .tool-grid),
   .premium-welcome #welcome-start > svg { animation: none; }
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary) { transition: opacity var(--dur-fast) var(--ease-out); }
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary):active:not(:disabled),
-  :is(.premium-welcome, .congregacion-dialog) :is(button, input, select, summary).is-active { transform: none; }
-  :is(.premium-welcome, .congregacion-dialog) button[data-state=loading]::after,
-  :is(.premium-welcome, .congregacion-dialog) button[aria-busy=true]::after { animation: none; }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select, summary) { transition: opacity var(--dur-fast) var(--ease-out); }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select, summary):active:not(:disabled),
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) :is(button, input, select, summary).is-active { transform: none; }
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) button[data-state=loading]::after,
+  :is(.premium-welcome, .offline-dialog, .congregacion-dialog) button[aria-busy=true]::after { animation: none; }
 }

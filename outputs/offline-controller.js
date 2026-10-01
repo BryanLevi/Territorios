@@ -4,6 +4,7 @@
 
   const $offline = id => document.getElementById(id);
   const dataStore = window.CroquisOfflineData;
+  const offlineDialog = $offline('offline-dialog');
   let running = null;
   let shellPromise = null;
 
@@ -64,10 +65,13 @@
   async function refresh() {
     if (!dataStore) return;
     const group = congregacionActivaId;
+    const name = congregacionActual().nombre;
+    if ($offline('offline-dialog-congregation')) $offline('offline-dialog-congregation').textContent = name;
+    if (running && running.group !== group) running.controller.abort();
     const territories = LOCS.slice();
     try {
       const records = await dataStore.list(group);
-      if (group !== congregacionActivaId || running) return;
+      if (group !== congregacionActivaId || (running && running.group === group)) return;
       const found = new Map(records.map(record => [record.key, record.data]));
       let complete = 0;
       territories.forEach(loc => {
@@ -80,7 +84,9 @@
         const shellCache = await caches.open('croquis-app-shell-v2');
         shellReady = !!await shellCache.match(new URL('croquis_territorios.html', location.href).href);
       }
+      if (group !== congregacionActivaId || (running && running.group === group)) return;
       controls(false, records.length > 0);
+      if (running && running.group !== group) $offline('offline-download').disabled = true;
       const downloadLabel = $offline('offline-download').querySelector('span');
       if (downloadLabel) downloadLabel.textContent = territories.length && complete === territories.length
         ? (shellReady ? 'Actualizar mapas' : 'Completar descarga') : 'Descargar congregación';
@@ -96,7 +102,7 @@
       } else if (complete === territories.length) {
         badge('Listo', 'ready');
         status(complete + (complete === 1 ? ' territorio disponible' : ' territorios disponibles') +
-          ' sin internet. Puedes abrir el editor y usar «Mapa descargado».', 'ready');
+          ' sin internet. Elige «Mapa descargado» en el selector Mapa.', 'ready');
       } else if (complete > 0) {
         badge(complete + ' de ' + territories.length, 'loading');
         progress(complete, territories.length);
@@ -107,6 +113,7 @@
           'Conéctate a internet para descargar los mapas.');
       }
     } catch (error) {
+      if (group !== congregacionActivaId) return;
       controls(false, false);
       badge('No disponible', 'error');
       status(error.message || 'No se pudo consultar la descarga.', 'error');
@@ -252,11 +259,15 @@
   $offline('offline-cancel')?.addEventListener('click', () => running?.controller.abort());
   $offline('offline-remove')?.addEventListener('click', removeAll);
   $offline('btn-offline')?.addEventListener('click', () => {
-    showWelcomeScreen();
-    $offline('offline-card')?.scrollIntoView({behavior:'smooth',block:'center'});
-    $offline('offline-download')?.focus({preventScroll:true});
+    if (!offlineDialog || offlineDialog.open) return;
+    $offline('offline-dialog-congregation').textContent = congregacionActual().nombre;
+    offlineDialog.showModal();
+    refresh();
+    $offline('offline-dialog-close')?.focus({preventScroll:true});
   });
-  $offline('welcome-cong-sel')?.addEventListener('change', () => setTimeout(refresh, 0));
+  $offline('offline-dialog-close')?.addEventListener('click', () => offlineDialog?.close());
+  offlineDialog?.addEventListener('click', event => { if (event.target === offlineDialog) offlineDialog.close(); });
+  offlineDialog?.addEventListener('close', () => $offline('btn-offline')?.focus({preventScroll:true}));
   window.addEventListener('online', networkChange);
   window.addEventListener('offline', networkChange);
   window.refreshOfflineCard = refresh;
