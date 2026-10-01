@@ -32,6 +32,8 @@ Junto a `Recuadro`, pulsa `Mover` y arrastra el control azul del centro para cam
 
 Toca una calle blanca, carretera o río dibujado para seleccionarlo, incluso sobre una zona pintada. Arrastra sus puntos blancos para moverlos, toca un punto pequeño para agregar un vértice y usa doble clic en un vértice para quitarlo (el trazo conserva al menos dos puntos). `Borrar` o `Supr` eliminan únicamente el trazo seleccionado; `Deshacer` lo recupera. Texto e iconos siguen teniendo su propia selección.
 
+`Referencias` reconoce tanto los iconos que colocaste como los símbolos que la página dibuja a partir de OpenStreetMap, incluidos los descargados para uso sin conexión. Puedes elegir qué tipos incluir en la leyenda del PDF y editar sus nombres. La lista se actualiza cuando llegan más referencias sin perder los cambios que estás escribiendo; las referencias retiradas o sustituidas por un icono propio se excluyen. La leyenda del PDF incluye las referencias automáticas que se dibujan dentro de su croquis.
+
 `Renombrar` permite editar el nombre completo, sus paréntesis y la descripción final del selector de localidad. En el campo de descripción, `auto` restaura el conteo de subterritorios y dejarlo vacío oculta el sufijo. Esta descripción no cambia las divisiones ni los dibujos guardados.
 
 La selección de territorios del PDF usa texto de 11 px y filas compactas; las casillas pequeñas conservan su área táctil. Las pruebas se ejecutan con `node --test tests/*.test.cjs`.

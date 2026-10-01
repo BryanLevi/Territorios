@@ -62,7 +62,7 @@ function entorno(guardados = {}){
     normalizeFramePosition:() => null, normalizeFramePositionSettings:() => ({}), getFrameScaleForLoc:() => 100,
     saveFramePositionSettings:noOp, saveFrameScaleSettings:noOp, saveLeyendaSettings:noOp,
     saveColorAreaSettings:noOp, saveManualIconSettings:noOp, saveWhiteRoadSettings:noOp, saveManualRiverSettings:noOp,
-    resetDraftArea:noOp, clearSelectedLine:noOp, setContourEditMode:noOp, goTo:noOp, updateColorControls:noOp,
+    resetDraftArea:noOp, clearSelectedLine:noOp, cerrarPanelReferencias:noOp, setContourEditMode:noOp, goTo:noOp, updateColorControls:noOp,
     renderColorAreas:noOp, renderTextLabels:noOp, renderManualIcons:noOp, renderManualWhiteRoads:noOp, renderManualRivers:noOp,
     cancelDestinationInteraction(){c.destinationSession=null;c.destinationAddMode=false;c.selectedTextIndex=null;},
     safeObject:v => v && typeof v === 'object' && !Array.isArray(v) ? v : {}, safeArray:v => Array.isArray(v) ? v : [],

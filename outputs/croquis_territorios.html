@@ -1034,7 +1034,7 @@ body.print-preview{overflow:hidden}
       </button>
     </div>
     <div class="ref-panel-list" id="ref-panel-list"></div>
-    <p class="ref-panel-nota">Los iconos salen solos de los que tiene puestos este territorio. Marca los que quieres en el PDF y cambiales el nombre si hace falta.</p>
+    <p class="ref-panel-nota">Incluye los iconos que colocaste y las referencias detectadas en el mapa. Marca los que quieres en el PDF y cambia su nombre si hace falta.</p>
     <div class="ref-panel-pie">
       <button class="btn primary" id="ref-panel-save" type="button">Guardar</button>
     </div>
@@ -2271,6 +2271,7 @@ function recargarAjustesGuardados(){
 }
 
 function limpiarMapaSinTerritorios(){
+  cerrarPanelReferencias();
   cancelDestinationInteraction();
   map?._directionLayer?.clearLayers();
   if(frameMoveMode) setFrameMoveMode(false, false);
@@ -4162,6 +4163,7 @@ function canPlaceLabel(box, placedBoxes, pad = 5){
 function drawRuntimeReferences(references){
   if(!runtimeReferenceLayer || !window.L) return;
   runtimeReferenceLayer.clearLayers();
+  actualizarPanelReferencias();
   if(!Array.isArray(references) || !references.length) return;
   const hasAreas = getColorAreasForLoc(LOCS[currentIndex]).length > 0;
   const opacity = hasAreas ? 1 : .9;
@@ -4199,33 +4201,33 @@ async function updateRuntimeReferenceOverlay(loc = LOCS[currentIndex]){
   const requestId = ++runtimeReferenceRequestId;
   runtimeReferenceLayer.clearLayers();
   if(!loc) return;
+  const congregationId = congregacionActivaId;
   const key = 'ref:' + getRuntimeRoadCacheKey(loc);
   if(currentView === 'offline'){
-    const congregationId = congregacionActivaId;
     const record = window.CroquisOfflineData
       ? await window.CroquisOfflineData.get(congregationId, String(loc.num)).catch(() => null) : null;
     if(requestId !== runtimeReferenceRequestId || congregationId !== congregacionActivaId) return;
     if(record && (!window.offlineRecordCovers || window.offlineRecordCovers(loc, record))){
       const references = dedupeReferences(record.refs || []);
-      runtimeReferenceCache = {key, references};
+      runtimeReferenceCache = {key, congregationId, references};
       drawRuntimeReferences(references);
     }
     return;
   }
-  if(runtimeReferenceCache?.key === key && Array.isArray(runtimeReferenceCache.references)){
+  if(runtimeReferenceCache?.key === key && runtimeReferenceCache.congregationId === congregationId && Array.isArray(runtimeReferenceCache.references)){
     drawRuntimeReferences(runtimeReferenceCache.references);
     return;
   }
   const guardadas = readOverpassCache(loc, 'refs');
   if(Array.isArray(guardadas)){
-    runtimeReferenceCache = { key, references:guardadas };
+    runtimeReferenceCache = { key, congregationId, references:guardadas };
     drawRuntimeReferences(guardadas);
     return;
   }
   try{
     const references = await fetchReferencesForBounds(getRuntimeRoadBounds(loc));
-    if(requestId !== runtimeReferenceRequestId) return;
-    runtimeReferenceCache = { key, references };
+    if(requestId !== runtimeReferenceRequestId || congregationId !== congregacionActivaId) return;
+    runtimeReferenceCache = { key, congregationId, references };
     writeOverpassCache(loc, 'refs', references);
     drawRuntimeReferences(references);
   }catch(err){
@@ -4658,6 +4660,7 @@ function renderManualIcons(loc){
       }
     });
   });
+  actualizarPanelReferencias();
 }
 
 function renderDraftArea(){
@@ -5093,7 +5096,7 @@ function adoptSelectedReference(){
   setManualIconsForLoc(loc, icons);
   selectedIconIndex = icons.length - 1;
   renderManualIcons(loc);
-  drawRuntimeReferences(runtimeReferenceCache?.references || []);
+  drawRuntimeReferences(referenciasAutomaticasDeLoc(loc));
   setStatus('Listo: ahora es un icono tuyo. Arrastralo, cambia su tipo o eliminalo.', 'warn');
   updateColorControls(loc);
   return true;
@@ -5104,7 +5107,7 @@ function hideSelectedReference(){
   if(!loc || !selectedReference) return false;
   hideReference(loc, selectedReference);
   selectedReference = null;
-  drawRuntimeReferences(runtimeReferenceCache?.references || []);
+  drawRuntimeReferences(referenciasAutomaticasDeLoc(loc));
   setStatus('Referencia quitada de este territorio.', 'warn');
   updateColorControls(loc);
   return true;
@@ -7339,6 +7342,7 @@ function drawTerritoryFrame(loc, fitMap = true, silent = false){
 function goTo(index, silent, fitMap = true){
   const idx = Number(index);
   if(!Number.isFinite(idx) || !LOCS[idx]) return;
+  cerrarPanelReferencias();
   cancelDestinationInteraction();
   if(frameMoveMode) setFrameMoveMode(false, false);
   clearSelectedLine();
@@ -7424,14 +7428,35 @@ function saveLeyendaSettings(){
   }
 }
 
-// Los tipos de icono que tiene puestos este territorio, sin repetir.
-function tiposDeIconoEn(loc){
-  const vistos = [];
-  getManualIconsForLoc(loc).forEach(icono => {
+// La caché en memoria pertenece a una congregación y a un encuadre concretos.
+// En otros territorios se lee su copia guardada, nunca la del último mapa abierto.
+function referenciasAutomaticasDeLoc(loc){
+  if(!loc) return [];
+  const key = 'ref:' + getRuntimeRoadCacheKey(loc);
+  if(runtimeReferenceCache?.key === key
+    && runtimeReferenceCache.congregationId === congregacionActivaId
+    && Array.isArray(runtimeReferenceCache.references)) return runtimeReferenceCache.references;
+  const guardadas = readOverpassCache(loc, 'refs');
+  return Array.isArray(guardadas) ? guardadas : [];
+}
+
+// Une los símbolos propios y automáticos sin repetir sus tipos. Una referencia
+// quitada o sustituida por un icono propio ya no aporta su símbolo anterior.
+function tiposDeIconoEn(loc, automaticas = referenciasAutomaticasDeLoc(loc)){
+  const vistos = new Set();
+  const manuales = getManualIconsForLoc(loc);
+  const ocultas = getHiddenReferencesForLoc(loc);
+  const agregar = icono => {
+    if(!Number.isFinite(Number(icono?.lat)) || !Number.isFinite(Number(icono?.lng))) return;
     const kind = String(icono.kind || 'Referencia').trim() || 'Referencia';
-    if(!vistos.includes(kind)) vistos.push(kind);
+    vistos.add(kind);
+  };
+  manuales.forEach(agregar);
+  (automaticas || []).forEach(ref => {
+    if(!ref || !referenceLabelText(ref) || ocultas.has(referenceKey(ref)) || isCoveredByManualIcon(ref, manuales)) return;
+    agregar(ref);
   });
-  return vistos;
+  return [...vistos];
 }
 
 function nombrePorDefectoDeIcono(kind){
@@ -7441,10 +7466,10 @@ function nombrePorDefectoDeIcono(kind){
 
 // Junta lo que hay en el mapa con lo que se haya cambiado a mano. Un icono
 // que nunca se ha tocado sale con su nombre de siempre y marcado.
-function referenciasDeLoc(loc){
+function referenciasDeLoc(loc, automaticas = referenciasAutomaticasDeLoc(loc)){
   if(!loc) return [];
   const guardado = leyendaSettings[String(loc.num)] || {};
-  return tiposDeIconoEn(loc).map(kind => {
+  return tiposDeIconoEn(loc, automaticas).map(kind => {
     const suyo = guardado[kind] || {};
     return {
       kind,
@@ -7454,27 +7479,44 @@ function referenciasDeLoc(loc){
   }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 
-function abrirPanelReferencias(){
+function contextoPanelReferencias(loc){
+  return JSON.stringify([congregacionActivaId, getRuntimeRoadCacheKey(loc)]);
+}
+
+function actualizarPanelReferencias(){
   const loc = LOCS[currentIndex];
   const panel = $('ref-panel');
   const lista = $('ref-panel-list');
-  if(!loc || !panel || !lista) return;
-  lista.innerHTML = '';
+  if(!panel || panel.hidden || !lista) return;
+  if(!loc || panel.dataset.contexto !== contextoPanelReferencias(loc)){
+    cerrarPanelReferencias();
+    return;
+  }
   const filas = referenciasDeLoc(loc);
+  const anteriores = new Map(Array.from(lista.querySelectorAll('.ref-fila')).map(renglon => [renglon.dataset.kind, renglon]));
+  const tipos = new Set(filas.map(fila => fila.kind));
+  anteriores.forEach((renglon, kind) => { if(!tipos.has(kind)) renglon.remove(); });
   if(!filas.length){
+    if(lista.querySelector('.ref-panel-vacio')) return;
     const vacio = document.createElement('p');
     vacio.className = 'ref-panel-vacio';
-    vacio.textContent = 'Este territorio todavia no tiene iconos puestos. Agrega alguno y vuelve aqui.';
+    vacio.setAttribute('role', 'status');
+    vacio.textContent = 'Todavía no se han detectado referencias. Si el mapa está cargando, esta lista se actualizará automáticamente. También puedes colocar un icono con la herramienta Icono.';
     lista.appendChild(vacio);
   }else{
+    lista.querySelector('.ref-panel-vacio')?.remove();
     filas.forEach(fila => {
+      // Conserva las casillas, los nombres y el foco mientras llegan más datos.
+      if(anteriores.has(fila.kind)) return;
       const renglon = document.createElement('div');
       renglon.className = 'ref-fila';
+      renglon.dataset.kind = fila.kind;
       const marca = document.createElement('input');
       marca.type = 'checkbox';
       marca.checked = fila.ver;
       marca.dataset.kind = fila.kind;
       marca.title = 'Que salga en el PDF';
+      marca.setAttribute('aria-label', 'Incluir ' + fila.nombre + ' en el PDF');
       const glifo = document.createElement('span');
       glifo.className = 'ref-glifo';
       glifo.innerHTML = referenceIconSvg({ kind:fila.kind });
@@ -7483,11 +7525,22 @@ function abrirPanelReferencias(){
       nombre.className = 'ref-nombre';
       nombre.value = fila.nombre;
       nombre.dataset.kind = fila.kind;
+      nombre.setAttribute('aria-label', 'Nombre de ' + nombrePorDefectoDeIcono(fila.kind));
       renglon.append(marca, glifo, nombre);
       lista.appendChild(renglon);
     });
   }
+}
+
+function abrirPanelReferencias(){
+  const loc = LOCS[currentIndex];
+  const panel = $('ref-panel');
+  const lista = $('ref-panel-list');
+  if(!loc || !panel || !lista) return;
+  lista.innerHTML = '';
+  panel.dataset.contexto = contextoPanelReferencias(loc);
   panel.hidden = false;
+  actualizarPanelReferencias();
 }
 
 function cerrarPanelReferencias(){
@@ -7497,9 +7550,10 @@ function cerrarPanelReferencias(){
 
 function guardarPanelReferencias(){
   const loc = LOCS[currentIndex];
+  const panel = $('ref-panel');
   const lista = $('ref-panel-list');
-  if(!loc || !lista) return;
-  const datos = {};
+  if(!loc || !lista || !panel || panel.hidden || panel.dataset.contexto !== contextoPanelReferencias(loc)) return;
+  const datos = { ...(leyendaSettings[String(loc.num)] || {}) };
   lista.querySelectorAll('.ref-fila').forEach(renglon => {
     const marca = renglon.querySelector('input[type=checkbox]');
     const nombre = renglon.querySelector('.ref-nombre');
@@ -7512,7 +7566,7 @@ function guardarPanelReferencias(){
   leyendaSettings[String(loc.num)] = datos;
   publicarTerritorioPronto(loc);
   if(saveLeyendaSettings()){
-    const cuantas = Object.values(datos).filter(d => d.ver).length;
+    const cuantas = referenciasDeLoc(loc).filter(fila => fila.ver).length;
     setStatus(cuantas
       ? 'Referencias guardadas: saldran ' + cuantas + (cuantas === 1 ? ' en el PDF.' : ' en el PDF.')
       : 'Referencias guardadas. Este territorio no llevara lista en el PDF.', 'warn');
@@ -7524,8 +7578,8 @@ function guardarPanelReferencias(){
 
 // La lista de lo que significa cada icono del territorio. Solo salen los
 // que el territorio tiene puestos, una vez cada uno.
-function construirLeyendaIconos(loc){
-  const vistos = referenciasDeLoc(loc).filter(r => r.ver);
+function construirLeyendaIconos(loc, automaticas = referenciasAutomaticasDeLoc(loc)){
+  const vistos = referenciasDeLoc(loc, automaticas).filter(r => r.ver);
   if(!vistos.length) return '';
   const filas = vistos.map(v =>
     '<span class="print-leyenda-fila"><span class="print-leyenda-icono">'
@@ -7710,7 +7764,8 @@ function isInsidePrintZones(shapes, punto){
 
 
 function drawPrintReferences(targetMap, references, loc, ocupadas, zonas){
-  if(!targetMap || !Array.isArray(references) || !references.length) return;
+  const dibujadas = [];
+  if(!targetMap || !Array.isArray(references) || !references.length) return dibujadas;
   const ocultas = getHiddenReferencesForLoc(loc);
   const iconosPropios = getManualIconsForLoc(loc);
   // Un lugar no se puede mover de sitio, asi que solo se compara contra otros
@@ -7743,7 +7798,9 @@ function drawPrintReferences(targetMap, references, loc, ocupadas, zonas){
         iconAnchor:[0,0]
       })
     }).addTo(targetMap);
+    dibujadas.push(ref);
   });
+  return dibujadas;
 }
 
 function drawPrintManualIcons(targetMap, loc){
@@ -8994,7 +9051,11 @@ async function imprimir(opciones = {}){
     const ocupadas = [];
     const zonasPintadas = usingColorMask ? buildPrintZoneShapes(printMap, loc) : null;
     drawPrintTextLabels(printMap, loc, ocupadas);
-    drawPrintReferences(printMap, readOverpassCache(loc, 'refs') || [], loc, ocupadas, zonasPintadas);
+    const referenciasImpresas = drawPrintReferences(printMap, referenciasAutomaticasDeLoc(loc), loc, ocupadas, zonasPintadas);
+    const leyendaImpresa = construirLeyendaIconos(loc, referenciasImpresas);
+    const leyendaAnterior = sheet.querySelector('#print-leyenda');
+    if(leyendaAnterior) leyendaAnterior.outerHTML = leyendaImpresa;
+    else if(leyendaImpresa) sheet.querySelector('.print-map-stage').insertAdjacentHTML('beforeend', leyendaImpresa);
     // En la lamina el tapado es blanco si o si: la opcion 'transparente' deja
     // el campo verde de Google tocando el filo negro del recuadro.
     const fondoTapa = opciones.lamina ? '#ffffff' : undefined;
