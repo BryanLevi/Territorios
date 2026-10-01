@@ -12,6 +12,9 @@
   const REFERENCE_KEYS = ['amenity', 'shop', 'tourism', 'leisure', 'historic', 'healthcare'];
   const ROAD_KINDS = 'motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|road|track|path|footway|steps|cycleway|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link';
   const WATER_KINDS = 'river|stream|canal|ditch|drain';
+  const REQUEST_TIMEOUT_MS = 25000;
+  const DOWNLOAD_BUDGET_MS = 90000;
+  const endpointState = new Map();
   let opening = null;
 
   function abortError() {
@@ -20,6 +23,9 @@
 
   function ensureNotAborted(signal) {
     if (signal && signal.aborted) throw abortError();
+    if (global.navigator && global.navigator.onLine === false) {
+      throw new Error('Se perdió la conexión. Lo descargado se conserva; vuelve a intentarlo cuando tengas internet.');
+    }
   }
 
   function open() {
@@ -168,7 +174,7 @@
     const box = plainBounds(bounds);
     // Dos conjuntos y dos salidas dentro de UNA petición. Las calles conservan
     // su geometría; los lugares, su punto central. Luego se separan por tipo.
-    return '[out:json][timeout:50];' +
+    return '[out:json][timeout:20];' +
       '(way["highway"~"^(' + ROAD_KINDS + ')$"](' + box + ');' +
       'way["waterway"~"^(' + WATER_KINDS + ')$"](' + box + ');)->.roads;' +
       '(nw[~"^(amenity|shop|tourism|leisure|historic|healthcare)$"~"."](' + box + ');)->.places;' +
@@ -176,31 +182,46 @@
       '.places out center tags;';
   }
 
-  function pause(ms, signal) {
-    return new Promise((resolve, reject) => {
-      ensureNotAborted(signal);
-      const timer = setTimeout(() => {
-        if (signal) signal.removeEventListener('abort', onAbort);
-        resolve();
-      }, ms);
-      function onAbort() {
-        clearTimeout(timer);
-        reject(abortError());
-      }
-      if (signal) signal.addEventListener('abort', onAbort, { once: true });
-    });
+  function remainingTime(deadline) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error('La descarga sigue pendiente porque los servidores están ocupados. Los mapas ya guardados se conservan.');
+    return remaining;
   }
 
-  async function requestOverpass(endpoint, query, signal) {
+  function retryAfter(response, fallback) {
+    const after = response.headers && response.headers.get('Retry-After');
+    const seconds = after && Number(after);
+    if (after && Number.isFinite(seconds)) return Math.max(1000, seconds * 1000);
+    const date = after && Date.parse(after);
+    return Number.isFinite(date) ? Math.max(1000, date - Date.now()) : fallback;
+  }
+
+  function notify(options, details) {
+    if (typeof options.onProgress === 'function') options.onProgress(details);
+  }
+
+  function orderedEndpoints() {
+    return ENDPOINTS.slice().sort((a, b) =>
+      (endpointState.get(b)?.lastSuccess || 0) - (endpointState.get(a)?.lastSuccess || 0));
+  }
+
+  async function requestOverpass(endpoint, query, signal, deadline) {
     ensureNotAborted(signal);
+    const requestTime = Math.min(REQUEST_TIMEOUT_MS, remainingTime(deadline));
     const controller = new AbortController();
     let timedOut = false;
+    let disconnected = false;
     const relayAbort = () => controller.abort();
+    const offline = () => {
+      disconnected = true;
+      controller.abort();
+    };
     if (signal) signal.addEventListener('abort', relayAbort, { once: true });
+    if (global.addEventListener) global.addEventListener('offline', offline, { once: true });
     const timer = setTimeout(() => {
       timedOut = true;
       controller.abort();
-    }, 65000);
+    }, requestTime);
     try {
       const response = await global.fetch(endpoint, {
         method: 'POST',
@@ -213,26 +234,70 @@
           ? 'El servidor de calles está ocupado; vuelve a intentar en unos momentos.'
           : 'Servidor de calles: ' + response.status);
         if (response.status === 429 || response.status === 503) {
-          const after = response.headers.get('Retry-After');
-          const seconds = Number(after);
-          const dateMs = after && !Number.isFinite(seconds) ? Date.parse(after) - Date.now() : NaN;
-          error.retryAfterMs = Math.max(1000, Math.min(30000,
-            Number.isFinite(seconds) && after ? seconds * 1000 :
-              Number.isFinite(dateMs) ? dateMs : response.status === 429 ? 5000 : 2500));
+          error.retryAfterMs = retryAfter(response, response.status === 429 ? 30000 : 10000);
         }
+        error.splitEligible = response.status === 504;
         throw error;
       }
       const data = await response.json();
       if (!data || !Array.isArray(data.elements)) throw new Error('El servidor de calles devolvió una respuesta incompleta.');
+      if (String(data.remark || '').trim()) {
+        const error = new Error('El servidor no terminó de preparar todas las calles y referencias.');
+        error.splitEligible = /timeout|timed?\s*out|out of memory|run out of memory|resource|runtime error/i.test(data.remark);
+        throw error;
+      }
+      ensureNotAborted(signal);
+      remainingTime(deadline);
       return data.elements;
     } catch (error) {
       if (signal && signal.aborted) throw abortError();
-      if (timedOut) throw new Error('El servidor de calles tardó demasiado.');
+      if (disconnected) throw new Error('Se perdió la conexión. Los mapas ya guardados se conservan.');
+      ensureNotAborted(signal);
+      if (timedOut) {
+        const timeout = new Error('El servidor de calles está tardando en responder.');
+        timeout.splitEligible = true;
+        throw timeout;
+      }
       throw error;
     } finally {
       clearTimeout(timer);
       if (signal) signal.removeEventListener('abort', relayAbort);
+      if (global.removeEventListener) global.removeEventListener('offline', offline);
     }
+  }
+
+  function subdivide(bounds) {
+    const [south, west, north, east] = plainBounds(bounds).split(',').map(Number);
+    const middleLat = (south + north) / 2;
+    const middleLon = (west + east) / 2;
+    return [
+      { south, west, north:middleLat, east:middleLon },
+      { south, west:middleLon, north:middleLat, east },
+      { south:middleLat, west, north, east:middleLon },
+      { south:middleLat, west:middleLon, north, east }
+    ];
+  }
+
+  function mergeElements(collections) {
+    const elements = new Map();
+    const unidentified = [];
+    for (const collection of collections) {
+      for (const element of collection) {
+        if (!element || element.id == null || !element.type) {
+          if (element) unidentified.push(element);
+          continue;
+        }
+        const key = String(element.type) + ':' + String(element.id);
+        const existing = elements.get(key);
+        elements.set(key, existing ? {
+          ...existing, ...element,
+          tags:{...existing.tags, ...element.tags},
+          ...(existing.geometry && !element.geometry ? {geometry:existing.geometry} : {}),
+          ...(existing.center && !element.center ? {center:existing.center} : {})
+        } : element);
+      }
+    }
+    return [...elements.values(), ...unidentified];
   }
 
   function splitElements(elements) {
@@ -240,6 +305,7 @@
     const references = [];
     const referenceIds = new Set();
     for (const element of elements) {
+      if (!element || typeof element !== 'object') continue;
       const tags = element && element.tags || {};
       if (element.type === 'way' && Array.isArray(element.geometry) && element.geometry.length >= 2 &&
           (tags.highway || tags.waterway)) {
@@ -257,25 +323,61 @@
   }
 
   async function download(bounds, options) {
-    const signal = options && options.signal;
-    const query = buildQuery(bounds);
-    let lastError = null;
-    for (let round = 0; round < 2; round++) {
-      let retryDelay = 0;
-      for (const endpoint of ENDPOINTS) {
+    options = options || {};
+    const signal = options.signal;
+    const deadline = Date.now() + DOWNLOAD_BUDGET_MS;
+    // Se intenta cada servidor una vez. Las respuestas con errores de ejecución
+    // nunca se guardan como completas, aunque contengan algunos elementos.
+    async function downloadBox(box, part, total) {
+      const query = buildQuery(box);
+      let lastError = null;
+      let splitEligible = false;
+      let attempt = 0;
+      for (const endpoint of orderedEndpoints()) {
         ensureNotAborted(signal);
+        remainingTime(deadline);
+        const state = endpointState.get(endpoint) || {};
+        if (state.cooldownUntil > Date.now()) {
+          lastError = state.lastError || lastError;
+          continue;
+        }
         try {
-          const elements = await requestOverpass(endpoint, query, signal);
-          return splitElements(elements);
+          notify(options, {phase:attempt ? 'retry' : 'request', endpoint, part, total,
+            message:attempt ? 'Probando otro servidor de mapas…' :
+              total > 1 ? 'Guardando zona ' + part + ' de ' + total + '…' : 'Consultando calles y referencias…'});
+          attempt++;
+          const elements = await requestOverpass(endpoint, query, signal, deadline);
+          endpointState.set(endpoint, {lastSuccess:Date.now(), cooldownUntil:0});
+          return elements;
         } catch (error) {
           if (signal && signal.aborted) throw abortError();
+          ensureNotAborted(signal);
           lastError = error;
-          retryDelay = Math.max(retryDelay, Number(error.retryAfterMs) || 0);
+          splitEligible = splitEligible || !!error.splitEligible;
+          endpointState.set(endpoint, {...state, lastError:error,
+            cooldownUntil:error.retryAfterMs ? Date.now() + error.retryAfterMs : 0});
         }
       }
-      if (round === 0) await pause(Math.max(2000, retryDelay), signal);
+      remainingTime(deadline);
+      const error = lastError || new Error('Los servidores de mapas están ocupados. Vuelve a intentarlo en unos momentos.');
+      error.splitEligible = splitEligible;
+      throw error;
     }
-    throw lastError || new Error('No se pudieron descargar las calles.');
+    try {
+      return splitElements(mergeElements([await downloadBox(bounds, 1, 1)]));
+    } catch (error) {
+      ensureNotAborted(signal);
+      remainingTime(deadline);
+      if (!error.splitEligible) throw error;
+      notify(options, {phase:'split', part:0, total:4,
+        message:'Preparando el territorio en 4 zonas más pequeñas…'});
+      const collections = [];
+      const cells = subdivide(bounds);
+      for (let index = 0; index < cells.length; index++) {
+        collections.push(await downloadBox(cells[index], index + 1, cells.length));
+      }
+      return splitElements(mergeElements(collections));
+    }
   }
 
   global.CroquisOfflineData = Object.freeze({ open, get, set, list, clear, status, download });

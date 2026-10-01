@@ -1100,7 +1100,7 @@ body.print-preview{overflow:hidden}
 
 <div id="hojas-agrupadas" aria-hidden="true"></div>
 
-<script src="offline-data.js"></script>
+<script src="offline-data.js?v=offline-pack-1"></script>
 <script src="congregation-password.js"></script>
 <script>
 const MUNICIPIO = 'Ixhuatlán del Café';
@@ -5301,7 +5301,23 @@ function referenceIsNoise(tags = {}){
     .some(clave => REFERENCE_TAG_NOISE.has(String(tags[clave] || '')));
 }
 
+const onlineMapRequests = new Set();
+let onlineMapRequestEpoch = 0;
+window.pauseOnlineMapRequests = () => {
+  window.offlineDownloadInProgress = true;
+  onlineMapRequestEpoch++;
+  onlineMapRequests.forEach(controller => controller.abort());
+};
+window.resumeOnlineMapRequests = () => { window.offlineDownloadInProgress = false; };
+
 async function fetchOverpassRoadData(query, options = {}){
+  const epoch = onlineMapRequestEpoch;
+  const checkPriority = () => {
+    if(window.offlineDownloadInProgress || epoch !== onlineMapRequestEpoch){
+      throw new DOMException('Consulta del mapa pausada.', 'AbortError');
+    }
+  };
+  checkPriority();
   let lastError = null;
   const vueltas = options.rounds || 2;
   const espera = ms => new Promise(res => setTimeout(res, ms));
@@ -5309,7 +5325,9 @@ async function fetchOverpassRoadData(query, options = {}){
   // alternando endpoints y esperando cada vez mas antes de rendirse.
   for(let vuelta = 0; vuelta < vueltas; vuelta++){
     for(const endpoint of OVERPASS_ENDPOINTS){
+      checkPriority();
       const controller = new AbortController();
+      onlineMapRequests.add(controller);
       // Mas que el timeout que lleva la consulta dentro, para no cortarle al
       // servidor justo cuando estaba por responder
       const timer = setTimeout(() => controller.abort(), options.timeoutMs || 50000);
@@ -5320,9 +5338,11 @@ async function fetchOverpassRoadData(query, options = {}){
           body:'data=' + encodeURIComponent(query),
           signal:controller.signal
         });
+        checkPriority();
         clearTimeout(timer);
         if(!response.ok) throw new Error('Overpass ' + response.status);
         const data = await response.json();
+        checkPriority();
         if(options.preferElements && (!Array.isArray(data?.elements) || !data.elements.length)){
           lastError = new Error('Overpass respondio sin elementos.');
           continue;
@@ -5330,7 +5350,10 @@ async function fetchOverpassRoadData(query, options = {}){
         return data;
       }catch(err){
         clearTimeout(timer);
+        checkPriority();
         lastError = err;
+      }finally{
+        onlineMapRequests.delete(controller);
       }
     }
     if(vuelta < vueltas - 1) await espera(3000);
@@ -9767,6 +9790,6 @@ if(document.readyState === 'loading'){
 }
 </script>
 <script src="congregation-access.js"></script>
-<script src="offline-controller.js"></script>
+<script src="offline-controller.js?v=offline-pack-1"></script>
 </body>
 </html>

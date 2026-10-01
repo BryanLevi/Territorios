@@ -7,6 +7,13 @@
   const offlineDialog = $offline('offline-dialog');
   let running = null;
   let shellPromise = null;
+  let preparedPackPromise = null;
+  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-data.js', 'offline-controller.js',
+    'congregation-password.js', 'congregation-access.js', '../tokens.css', 'welcome-premium.css',
+    'toolbar-premium.css', 'editor-premium.css', '../vendor/leaflet/leaflet.js', '../vendor/leaflet/leaflet.css',
+    '../vendor/leaflet/images/layers.png', '../vendor/leaflet/images/layers-2x.png',
+    '../vendor/leaflet/images/marker-icon.png', '../vendor/leaflet/images/marker-icon-2x.png',
+    '../vendor/leaflet/images/marker-shadow.png'];
 
   function plain(bounds) {
     return {
@@ -32,8 +39,18 @@
 
   function covers(saved, required) {
     if (!saved || !required) return false;
+    if (!['south','west','north','east'].every(name => Number.isFinite(saved[name]) && Number.isFinite(required[name]))) return false;
+    if (saved.south >= saved.north || saved.west >= saved.east) return false;
     return saved.south <= required.south + .000001 && saved.west <= required.west + .000001 &&
       saved.north >= required.north - .000001 && saved.east >= required.east - .000001;
+  }
+
+  function completeRecord(record, required) {
+    return Array.isArray(record?.roads) && Array.isArray(record?.refs) && covers(record.bounds, required);
+  }
+
+  async function shellComplete(cache) {
+    return (await Promise.all(shellFiles.map(path => cache.match(new URL(path, location.href).href)))).every(Boolean);
   }
 
   function status(message, state) {
@@ -76,20 +93,20 @@
       let complete = 0;
       territories.forEach(loc => {
         try {
-          if (covers(found.get(String(loc.num))?.bounds, territoryBounds(loc))) complete++;
+          if (completeRecord(found.get(String(loc.num)), territoryBounds(loc))) complete++;
         } catch (error) { /* El botón mostrará el error al intentar descargar. */ }
       });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v3');
-        shellReady = !!await shellCache.match(new URL('croquis_territorios.html', location.href).href);
+        const shellCache = await caches.open('croquis-app-shell-v4');
+        shellReady = await shellComplete(shellCache);
       }
       if (group !== congregacionActivaId || (running && running.group === group)) return;
       controls(false, records.length > 0);
       if (running && running.group !== group) $offline('offline-download').disabled = true;
       const downloadLabel = $offline('offline-download').querySelector('span');
       if (downloadLabel) downloadLabel.textContent = territories.length && complete === territories.length
-        ? (shellReady ? 'Actualizar mapas' : 'Completar descarga') : 'Descargar congregación';
+        ? (shellReady ? 'Comprobar descarga' : 'Completar descarga') : complete ? 'Continuar descarga' : 'Descargar congregación';
       $offline('offline-progress-wrap').hidden = complete === 0 || complete === territories.length;
       if (!territories.length) {
         badge('Sin territorios', '');
@@ -106,7 +123,7 @@
       } else if (complete > 0) {
         badge(complete + ' de ' + territories.length, 'loading');
         progress(complete, territories.length);
-        status('Faltan territorios. Toca «Descargar congregación» para completar la descarga.');
+        status('Faltan territorios. Toca «Continuar descarga» para completar la descarga.');
       } else {
         badge('Sin descargar', '');
         status(navigator.onLine ? 'Prepara los mapas mientras tengas internet.' :
@@ -125,17 +142,32 @@
       throw new Error('Para guardar la página, ábrela con HTTPS en este navegador.');
     }
     if (!shellPromise) shellPromise = (async () => {
-      await navigator.serviceWorker.register('../sw.js', { scope:'../' });
+      const registered = await navigator.serviceWorker.register('../sw.js', { scope:'../' });
+      const updating = registered.installing || registered.waiting;
+      // Durante una actualización, ready puede devolver todavía el trabajador
+      // anterior. Esperamos al nuevo antes de pedirle que complete su caché.
+      if (updating && updating.state !== 'activated') {
+        await new Promise((resolve, reject) => {
+          const finish = error => {
+            clearTimeout(timer);
+            updating.removeEventListener('statechange', changed);
+            error ? reject(error) : resolve();
+          };
+          const changed = () => {
+            if (updating.state === 'activated') finish();
+            else if (updating.state === 'redundant') finish(new Error('No se pudo actualizar la página sin conexión. Recarga e intenta de nuevo.'));
+          };
+          const timer = setTimeout(() => finish(new Error('La página tardó en actualizarse. Recárgala e intenta de nuevo.')), 20000);
+          updating.addEventListener('statechange', changed);
+          changed();
+        });
+      }
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
         new Promise((_, reject) => setTimeout(() => reject(new Error('La página tardó en prepararse. Recárgala e intenta de nuevo.')), 20000))
       ]);
-      const cache = await caches.open('croquis-app-shell-v3');
-      const required = ['croquis_territorios.html', 'offline-data.js', 'offline-controller.js', 'congregation-password.js', 'congregation-access.js',
-        '../vendor/leaflet/leaflet.js', '../vendor/leaflet/leaflet.css'];
-      const shellComplete = async () => (await Promise.all(required.map(path =>
-        cache.match(new URL(path, location.href).href)))).every(Boolean);
-      if (!await shellComplete()) {
+      const cache = await caches.open('croquis-app-shell-v4');
+      if (!await shellComplete(cache)) {
         const worker = registration.active;
         if (!worker) throw new Error('No se pudo guardar la página para abrirla sin internet.');
         await new Promise((resolve, reject) => {
@@ -147,11 +179,53 @@
           };
           worker.postMessage({type:'CACHE_SHELL'}, [channel.port2]);
         });
-        if (!await shellComplete()) throw new Error('No se pudo guardar la página para abrirla sin internet.');
+        if (!await shellComplete(cache)) throw new Error('No se pudo guardar la página para abrirla sin internet.');
       }
       return true;
     })().finally(() => { shellPromise = null; });
     return shellPromise;
+  }
+
+  function checkActive(signal, group) {
+    if (signal.aborted || group !== congregacionActivaId) throw new DOMException('Descarga cancelada.', 'AbortError');
+  }
+
+  function cancellable(promise, signal) {
+    return new Promise((resolve, reject) => {
+      const onAbort = () => reject(new DOMException('Descarga cancelada.', 'AbortError'));
+      signal.addEventListener('abort', onAbort, {once:true});
+      if (signal.aborted) onAbort();
+      promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort));
+    });
+  }
+
+  async function preparedPack(signal) {
+    if (!preparedPackPromise) preparedPackPromise = (async () => {
+      const controller = new AbortController();
+      const onAbort = () => controller.abort();
+      signal.addEventListener('abort', onAbort, {once:true});
+      if (signal.aborted) onAbort();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      try {
+        const response = await fetch(new URL('offline-map-pack.json', location.href), {signal:controller.signal});
+        if (!response.ok) return null;
+        const pack = await response.json();
+        return pack?.version === 1 && Array.isArray(pack.territories) ? pack : null;
+      } catch (error) {
+        if (signal.aborted) throw new DOMException('Descarga cancelada.', 'AbortError');
+        return null;
+      } finally {
+        clearTimeout(timer);
+        signal.removeEventListener('abort', onAbort);
+      }
+    })();
+    return preparedPackPromise;
+  }
+
+  function preparedRecord(pack, territory) {
+    const usable = entry => Array.isArray(entry?.roads) && Array.isArray(entry?.refs) && covers(entry.bounds, territory.bounds);
+    return pack?.territories.find(entry => entry.key === territory.key && usable(entry))
+      || pack?.territories.find(usable) || null;
   }
 
   async function downloadAll() {
@@ -173,51 +247,99 @@
       return;
     }
     const controller = new AbortController();
+    let timeLimit = false;
+    const downloadTimer = setTimeout(() => { timeLimit = true; controller.abort(); }, 180000);
     running = {group, controller};
+    window.pauseOnlineMapRequests?.();
+    preparedPackPromise = null;
     let finalNotice = null;
     controls(true, false);
     badge('Preparando', 'loading');
     progress(0, territories.length);
     status('Guardando la página y preparando los territorios…', 'loading');
     try {
-      await ensureShell();
-      if (navigator.storage?.persist) await navigator.storage.persist().catch(() => false);
+      await cancellable(ensureShell(), controller.signal);
+      checkActive(controller.signal, group);
+      if (navigator.storage?.persist) await cancellable(navigator.storage.persist().catch(() => false), controller.signal);
       let done = 0;
+      const failed = [];
+      let pack;
       for (const territory of territories) {
-        if (controller.signal.aborted || group !== congregacionActivaId) throw new DOMException('Descarga cancelada.', 'AbortError');
+        checkActive(controller.signal, group);
         const existing = await dataStore.get(group, territory.key);
-        if (!covers(existing?.bounds, territory.bounds)) {
-          status('Descargando ' + displayTerritoryName(territory.loc) + ' (' + (done + 1) + ' de ' + territories.length + ')…', 'loading');
-          const elements = await dataStore.download(territory.bounds, {signal:controller.signal});
-          const roads = packRoadWays(roadWaysFromOverpass({elements:elements.roadElements}));
-          const refs = referencesFromOverpass({elements:elements.referenceElements});
-          await dataStore.set(group, territory.key, {
-            roads, refs, bounds:territory.bounds, savedAt:Date.now()
-          });
-          if (done + 1 < territories.length) await new Promise(resolve => setTimeout(resolve, 1200));
+        checkActive(controller.signal, group);
+        if (!completeRecord(existing, territory.bounds)) {
+          const name = displayTerritoryName(territory.loc);
+          if (pack === undefined) {
+            status('Preparando los mapas de la congregación…', 'loading');
+            pack = await preparedPack(controller.signal);
+            checkActive(controller.signal, group);
+          }
+          const prepared = preparedRecord(pack, territory);
+          let record;
+          if (prepared) {
+            status('Guardando ' + name + ' en este dispositivo…', 'loading');
+            record = {roads:prepared.roads, refs:prepared.refs, bounds:prepared.bounds, savedAt:Date.now()};
+          } else {
+            status('Descargando ' + name + ' (' + (done + 1) + ' de ' + territories.length + ')…', 'loading');
+            try {
+              const elements = await dataStore.download(territory.bounds, {
+                signal:controller.signal,
+                onProgress:event => {
+                  if (!controller.signal.aborted && group === congregacionActivaId) status(name + ': ' + event.message, 'loading');
+                }
+              });
+              record = {
+                roads:packRoadWays(roadWaysFromOverpass({elements:elements.roadElements})),
+                refs:referencesFromOverpass({elements:elements.referenceElements}),
+                bounds:territory.bounds, savedAt:Date.now()
+              };
+            } catch (error) {
+              checkActive(controller.signal, group);
+              if (error?.name === 'AbortError') throw error;
+              failed.push({name, message:error?.message || 'No se pudo guardar este mapa.'});
+              continue;
+            }
+          }
+          checkActive(controller.signal, group);
+          await dataStore.set(group, territory.key, record);
+          checkActive(controller.signal, group);
+          // El mapa que está abierto puede usar también estos datos, sin hacer
+          // otra consulta al servidor mientras se prepara su copia sin conexión.
+          writeOverpassCache(territory.loc, 'roads', unpackRoadWays(record.roads));
+          writeOverpassCache(territory.loc, 'refs', record.refs);
         }
         done++;
         progress(done, territories.length);
       }
-      badge('Listo', 'ready');
-      status('Listo: ' + done + (done === 1 ? ' territorio guardado' : ' territorios guardados') +
-        '. Los colores, dibujos y tu ubicación se verán en el mapa descargado.', 'ready');
-      if (currentView === 'offline') {
-        runtimeRoadCache = null;
-        runtimeReferenceCache = null;
-        updateRuntimeVectorRoadOverlay();
-        updateRuntimeReferenceOverlay();
+      if (failed.length) {
+        finalNotice = [done ? 'Se guardaron ' + done + ' de ' + territories.length + ' territorios. Faltan: '
+          + failed.map(item => item.name).join(', ') + '. Toca «Continuar descarga» para reintentar solo los pendientes.'
+          : failed[0].message + ' Los mapas no se completaron. Toca «Descargar congregación» para reintentar.', 'error'];
+      } else {
+        badge('Listo', 'ready');
+        status('Listo: ' + done + (done === 1 ? ' territorio guardado' : ' territorios guardados') +
+          '. Los colores, dibujos y tu ubicación se verán en el mapa descargado.', 'ready');
       }
     } catch (error) {
       if (error?.name === 'AbortError') {
         badge('Pausado', '');
-        finalNotice = ['Descarga pausada. Los territorios ya guardados se conservan; puedes reanudarla.', ''];
+        finalNotice = [timeLimit ? 'El servidor sigue ocupado. Los mapas que ya se guardaron se conservan; vuelve a intentar para continuar los pendientes.'
+          : 'Descarga pausada. Los territorios ya guardados se conservan; puedes reanudarla.', ''];
       } else {
         badge('Incompleto', 'error');
         finalNotice = [(error?.message || 'No se completó la descarga.') + ' Toca «Descargar congregación» para continuar.', 'error'];
       }
     } finally {
+      clearTimeout(downloadTimer);
       running = null;
+      window.resumeOnlineMapRequests?.();
+      if (group === congregacionActivaId && map && $offline('welcome-screen')?.classList.contains('is-hidden')) {
+        runtimeRoadCache = null;
+        runtimeReferenceCache = null;
+        updateRuntimeVectorRoadOverlay();
+        updateRuntimeReferenceOverlay();
+      }
       await refresh();
       if (finalNotice && group === congregacionActivaId) status(finalNotice[0], finalNotice[1]);
     }
@@ -240,6 +362,7 @@
   }
 
   function networkChange() {
+    if (!navigator.onLine) running?.controller.abort();
     if (!map) { refresh(); return; }
     if (!navigator.onLine && currentView !== 'offline') {
       lastOnlineView = currentView;
@@ -271,7 +394,7 @@
   window.addEventListener('online', networkChange);
   window.addEventListener('offline', networkChange);
   window.refreshOfflineCard = refresh;
-  window.offlineRecordCovers = (loc, record) => !!record && covers(record.bounds, territoryBounds(loc));
+  window.offlineRecordCovers = (loc, record) => completeRecord(record, territoryBounds(loc));
   if (window.isSecureContext && 'serviceWorker' in navigator) ensureShell().then(refresh).catch(() => {});
   refresh();
 })();
