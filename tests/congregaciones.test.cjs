@@ -283,6 +283,50 @@ test('el respaldo e importación conservan centros de recuadro distintos por con
   assert.deepEqual(JSON.parse(otro.valores.get('frame_position_storage_key::' + nueva.id)),centroNueva);
 });
 
+test('la contraseña de una congregación se conserva al renombrar y restaurar un respaldo', () => {
+  const proteccion = {
+    v:1, salt:Buffer.alloc(16, 7).toString('base64'),
+    hash:Buffer.alloc(32, 9).toString('base64'), iterations:310000
+  };
+  const e = entorno({ [llaveRegistro]:JSON.stringify({ version:2, entradas:[{ ...base, proteccion }] }) });
+  assert.deepEqual(e.vivas()[0].proteccion, proteccion);
+  assert.equal(e.renombrar(base.id, 'Centro').ok, true);
+  assert.deepEqual(e.vivas()[0].proteccion, proteccion);
+  const payload = e.plano(e.ejecutar('buildBackupPayload()'));
+  const otro = entorno();
+  otro.contexto.payload = payload;
+  assert.equal(otro.ejecutar('importBackupPayload(payload)'), true);
+  assert.deepEqual(otro.vivas()[0].proteccion, proteccion);
+});
+
+test('un renombre atrasado no quita la contraseña y una retirada de clave posterior sí lo hace', () => {
+  const proteccion = {
+    v:1, salt:Buffer.alloc(16, 3).toString('base64'),
+    hash:Buffer.alloc(32, 5).toString('base64'), iterations:310000
+  };
+  const e = entorno();
+  e.contexto.segura = { ...base, updatedAt:10, revision:2, accesoActualizadoEn:10, proteccion };
+  e.contexto.renombreAtrasado = { ...base, nombre:'Centro', updatedAt:20, revision:3 };
+  const fusion = e.plano(e.ejecutar('combinarEntradasCongregaciones([segura], [renombreAtrasado])'));
+  assert.equal(fusion[0].nombre, 'Centro');
+  assert.deepEqual(fusion[0].proteccion, proteccion);
+  assert.equal(fusion[0].accesoActualizadoEn, 10);
+  e.contexto.fusion = fusion;
+  e.contexto.sinClave = { ...fusion[0], updatedAt:30, revision:4, accesoActualizadoEn:30 };
+  delete e.contexto.sinClave.proteccion;
+  const sinClave = e.plano(e.ejecutar('combinarEntradasCongregaciones(fusion, [sinClave])'));
+  assert.equal(sinClave[0].proteccion, undefined);
+  assert.equal(sinClave[0].accesoActualizadoEn, 30);
+});
+
+test('una contraseña dañada bloquea la entrada en lugar de quedar sin protección', () => {
+  const e = entorno({ [llaveRegistro]:JSON.stringify({ version:2, entradas:[{ ...base, proteccion:{ v:7 } }] }) });
+  assert.deepEqual(e.vivas()[0].proteccion, { v:0 });
+  assert.deepEqual(e.registro()[0].proteccion, { v:0 });
+  const malFormato = entorno({ [llaveRegistro]:'{"version":' });
+  assert.deepEqual(malFormato.vivas()[0].proteccion, { v:0 });
+});
+
 test('un respaldo antiguo de la base retirada no contamina a la sobreviviente', () => {
   const e = entorno(); const nueva = e.crear().congregacion;
   const sentinel = '{"7":["SOBREVIVIENTE"]}';

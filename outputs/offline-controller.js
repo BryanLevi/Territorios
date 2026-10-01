@@ -81,7 +81,7 @@
       });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v2');
+        const shellCache = await caches.open('croquis-app-shell-v3');
         shellReady = !!await shellCache.match(new URL('croquis_territorios.html', location.href).href);
       }
       if (group !== congregacionActivaId || (running && running.group === group)) return;
@@ -130,8 +130,8 @@
         navigator.serviceWorker.ready,
         new Promise((_, reject) => setTimeout(() => reject(new Error('La página tardó en prepararse. Recárgala e intenta de nuevo.')), 20000))
       ]);
-      const cache = await caches.open('croquis-app-shell-v2');
-      const required = ['croquis_territorios.html', 'offline-data.js', 'offline-controller.js',
+      const cache = await caches.open('croquis-app-shell-v3');
+      const required = ['croquis_territorios.html', 'offline-data.js', 'offline-controller.js', 'congregation-password.js', 'congregation-access.js',
         '../vendor/leaflet/leaflet.js', '../vendor/leaflet/leaflet.css'];
       const shellComplete = async () => (await Promise.all(required.map(path =>
         cache.match(new URL(path, location.href).href)))).every(Boolean);

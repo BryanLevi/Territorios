@@ -518,7 +518,7 @@ body.print-preview{overflow:hidden}
   @page{size:A4 landscape;margin:0}
   html,body{width:297mm;height:210mm;overflow:hidden;background:#fff}
   body{display:block}
-  .bar,.map-wrap,.map-status,.legend,.welcome-screen,.congregacion-dialog,.privacy-dialog,.offline-dialog{display:none!important}
+  .bar,.map-wrap,.map-status,.legend,.welcome-screen,.congregacion-dialog,.password-dialog,.privacy-dialog,.offline-dialog{display:none!important}
   .print-sheet,.print-sheet.is-open{display:block!important;position:static!important;inset:auto!important;width:297mm;height:210mm;padding:0;background:#fff;overflow:hidden}
   .print-paper{width:297mm;height:210mm;min-width:0;box-shadow:none}
   /* Chrome aplasta a 300 ppp cualquier capa con filter al imprimir, y la
@@ -563,6 +563,9 @@ body.print-preview{overflow:hidden}
               </button>
               <button class="welcome-action" id="welcome-cong-eliminar" type="button" disabled title="Agrega otra congregación antes de eliminar la última" aria-label="Eliminar congregación seleccionada">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 10v7M14 10v7"></path></svg><span>Eliminar</span>
+              </button>
+              <button class="welcome-action" id="welcome-cong-password" type="button" title="Configurar la contraseña de esta congregación" aria-label="Configurar la contraseña de esta congregación" aria-haspopup="dialog" aria-controls="password-dialog">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg><span>Contraseña</span>
               </button>
             </div>
           </div>
@@ -704,6 +707,7 @@ body.print-preview{overflow:hidden}
         <h3>Información sobre tus datos</h3>
         <p>Los cambios se guardan en este navegador. Si usas «Conectar equipo», también se sincronizan en línea; si usas «Guardar GitHub», el respaldo se publica en el repositorio del proyecto. Evita incluir información personal que no quieras compartir.</p>
         <p>«Mi ubicación» muestra tu posición en el mapa con tu permiso, pero no la incluye en los respaldos. Los servicios externos de mapas reciben el área que consultas. Si descargas el mapa sin conexión, las calles y referencias de esa congregación se guardan en este navegador; puedes quitarlas desde «Mapa sin conexión» en su editor.</p>
+        <p>Si pones una contraseña a una congregación, se guarda un verificador de la clave, no la clave escrita. El bloqueo se aplica al entrar desde Inicio; los mapas y respaldos existentes no quedan cifrados.</p>
       </section>
     </div>
     <footer class="privacy-dialog-footer">
@@ -733,6 +737,29 @@ body.print-preview{overflow:hidden}
       <button class="welcome-action welcome-primary" id="congregacion-submit" type="submit">Agregar congregación</button>
     </div>
   </form>
+</dialog>
+<dialog class="password-dialog" id="password-dialog" aria-labelledby="password-dialog-title" aria-describedby="password-dialog-description">
+  <div class="password-dialog-panel">
+    <form id="password-form" novalidate>
+      <div class="password-dialog-head">
+        <span class="password-dialog-kicker">Acceso a congregación</span>
+        <h2 id="password-dialog-title">Contraseña</h2>
+        <p id="password-dialog-description"></p>
+        <strong id="password-dialog-congregation"></strong>
+      </div>
+      <div class="password-dialog-body">
+        <div class="password-field" id="password-current-field"><label id="password-current-label" for="password-current">Contraseña</label><input id="password-current" type="password" autocomplete="current-password" maxlength="128" aria-describedby="password-error" required></div>
+        <div class="password-field" id="password-new-field" hidden><label for="password-new">Nueva contraseña</label><input id="password-new" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="password-error"></div>
+        <div class="password-field" id="password-confirm-field" hidden><label for="password-confirm">Confirmar nueva contraseña</label><input id="password-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" aria-describedby="password-error"></div>
+        <p class="password-error" id="password-error" role="alert" hidden></p>
+      </div>
+      <div class="password-dialog-footer">
+        <button class="welcome-action" id="password-cancel" type="button">Cancelar</button>
+        <button class="welcome-action" id="password-remove" type="button" hidden>Quitar contraseña</button>
+        <button class="welcome-action welcome-primary" id="password-submit" type="submit">Entrar</button>
+      </div>
+    </form>
+  </div>
 </dialog>
 <header class="bar premium-toolbar" aria-label="Panel de edición del croquis">
   <div class="workspace-head">
@@ -1056,6 +1083,7 @@ body.print-preview{overflow:hidden}
 <div id="hojas-agrupadas" aria-hidden="true"></div>
 
 <script src="offline-data.js"></script>
+<script src="congregation-password.js"></script>
 <script>
 const MUNICIPIO = 'Ixhuatlán del Café';
 const ESTADO = 'Veracruz de Ignacio de la Llave';
@@ -1427,16 +1455,30 @@ function congregacionBase(){
   return { id:CONGREGACION_BASE_ID, nombre:'Ixhuatlán del Café', municipio:MUNICIPIO, estado:ESTADO };
 }
 
+function normalizarProteccionCongregacion(valor){
+  if(typeof window !== 'undefined' && window.CroquisPassword) return window.CroquisPassword.normalize(valor);
+  if(!valor || valor.v !== 1 || !Number.isSafeInteger(valor.iterations) || valor.iterations < 310000 || valor.iterations > 1000000) return null;
+  if(typeof valor.salt !== 'string' || !/^[A-Za-z0-9+/]{22}==$/.test(valor.salt)) return null;
+  if(typeof valor.hash !== 'string' || !/^[A-Za-z0-9+/]{43}=$/.test(valor.hash)) return null;
+  return { v:1, salt:valor.salt, hash:valor.hash, iterations:valor.iterations };
+}
+
 function normalizarEntradaCongregacion(c){
   if(!c || typeof c !== 'object') return null;
   const id = String(c.id || '');
   const nombre = String(c.nombre || '').trim();
   if(!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,159}$/.test(id) || ['constructor', 'prototype'].includes(id) || !nombre) return null;
   const numero = valor => Number.isSafeInteger(Number(valor)) && Number(valor) >= 0 ? Number(valor) : 0;
+  // Un verificador desconocido o dañado no debe convertirse en acceso libre.
+  const traeProteccion = Object.prototype.hasOwnProperty.call(c, 'proteccion');
+  const proteccion = normalizarProteccionCongregacion(c.proteccion) || (traeProteccion ? { v:0 } : null);
+  const accesoActualizadoEn = numero(c.accesoActualizadoEn);
   return {
     id, nombre,
     municipio:String(c.municipio || '').trim(),
     estado:String(c.estado || ESTADO).trim() || ESTADO,
+    ...(proteccion ? { proteccion } : {}),
+    ...(accesoActualizadoEn ? { accesoActualizadoEn } : {}),
     updatedAt:numero(c.updatedAt), revision:numero(c.revision), deletedAt:numero(c.deletedAt)
   };
 }
@@ -1466,7 +1508,18 @@ function combinarEntradasCongregaciones(locales, remotas){
       }
       return false;
     };
-    if(!anterior || mayor(prioridad(nueva), prioridad(anterior))) porId.set(nueva.id, nueva);
+    if(!anterior){ porId.set(nueva.id, nueva); return; }
+    const ganadora = mayor(prioridad(nueva), prioridad(anterior)) ? nueva : anterior;
+    // La contraseña tiene su propia fecha: un cambio de nombre desde un
+    // equipo atrasado no debe quitarla por ganar la comparación general.
+    const prioridadAcceso = c => [c.accesoActualizadoEn || 0, c.proteccion ? 1 : 0, JSON.stringify(c.proteccion || null)];
+    const acceso = mayor(prioridadAcceso(nueva), prioridadAcceso(anterior)) ? nueva : anterior;
+    const combinada = { ...ganadora };
+    delete combinada.proteccion;
+    delete combinada.accesoActualizadoEn;
+    if(acceso.proteccion) combinada.proteccion = acceso.proteccion;
+    if(acceso.accesoActualizadoEn) combinada.accesoActualizadoEn = acceso.accesoActualizadoEn;
+    porId.set(nueva.id, combinada);
   });
   return [...porId.values()].sort((a, b) => a.id === CONGREGACION_BASE_ID ? -1 : b.id === CONGREGACION_BASE_ID ? 1 : a.id.localeCompare(b.id));
 }
@@ -1477,7 +1530,9 @@ function cargarRegistroCongregaciones(){
     return entradasDeRegistroCongregaciones(raw ? JSON.parse(raw) : [], true);
   }catch(e){
     console.error('No se pudo leer la lista de congregaciones.', e);
-    return [normalizarEntradaCongregacion(congregacionBase())];
+    const base = normalizarEntradaCongregacion(congregacionBase());
+    base.proteccion = { v:0 }; // El registro podría contener una clave: no abrir por error.
+    return [base];
   }
 }
 
@@ -2350,6 +2405,7 @@ function abrirFormularioCongregacion(modo){
   if(!dialogo || dialogo.open) return;
   const actual = cargarCongregaciones().find(c => c.id === congregacionActivaId);
   if(modo !== 'crear' && !actual) return;
+  if(modo !== 'crear' && actual.proteccion && typeof window !== 'undefined' && !window.CroquisAccess?.canEnter()) return;
   if(modo === 'eliminar' && cargarCongregaciones().length <= 1){
     mostrarEstadoCongregaciones('Agrega otra congregación antes de eliminar la última.', true);
     return;
@@ -2394,6 +2450,11 @@ function enviarFormularioCongregacion(event){
   event.preventDefault();
   const formulario = formularioCongregacion;
   if(!formulario) return;
+  if(formulario.modo !== 'crear' && cargarCongregaciones().find(c => c.id === formulario.id)?.proteccion &&
+      typeof window !== 'undefined' && !window.CroquisAccess?.canEnter()){
+    mostrarErrorCongregacion('Vuelve a escribir la contraseña de esta congregación para modificarla.');
+    return;
+  }
   const previa = congregacionActivaId;
   if(formulario.modo !== 'editar' && map){
     if(draftPoints.length || roadDraftPoints.length || riverDraftPoints.length){
@@ -2430,7 +2491,7 @@ function refrescarCongregacionesEnInicio(){
   lista.forEach(c => {
     const option = document.createElement('option');
     option.value = c.id;
-    option.textContent = c.nombre;
+    option.textContent = c.proteccion ? '🔒 ' + c.nombre : c.nombre;
     sel.appendChild(option);
   });
   sel.value = congregacionActivaId;
@@ -2448,6 +2509,7 @@ function refrescarCongregacionesEnInicio(){
   if(nota) nota.textContent = !lista.length ? 'Agrega una congregación para comenzar.'
     : lista.length === 1 ? 'Cada congregación conserva su trabajo. Agrega otra antes de eliminar la última.'
     : 'Cada congregación conserva sus propios territorios y dibujos.';
+  if(typeof window !== 'undefined') window.CroquisAccess?.refresh();
 }
 
 function boundsPlainFromCorners(a, b){
@@ -2644,6 +2706,7 @@ function deleteCurrentTerritory(){
 
 function hideWelcomeScreen(){
   if(!cargarCongregaciones().some(c => c.id === congregacionActivaId)) return;
+  if(typeof window !== 'undefined' && window.CroquisAccess && !window.CroquisAccess.canEnter()) return;
   $('welcome-screen')?.classList.add('is-hidden');
   document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = false; });
   if(map) setTimeout(() => map.invalidateSize(), 60);
@@ -2651,6 +2714,7 @@ function hideWelcomeScreen(){
 }
 
 function showWelcomeScreen(){
+  if(typeof window !== 'undefined') window.CroquisAccess?.lock();
   cancelDestinationInteraction();
   renderTextLabels(LOCS[currentIndex]);
   if(frameMoveMode) setFrameMoveMode(false, false);
@@ -5775,6 +5839,7 @@ function importBackupPayload(payload){
   setContourEditMode(false, false);
   setTerritoryAddMode(false, false);
   refreshAfterBackupImport(restaurado.anteriorId === congregacionActivaId ? previousNum : null);
+  if(typeof window !== 'undefined') window.CroquisAccess?.enforce();
   setStatus(restaurado.datosActivosOmitidos
     ? 'Respaldo importado. La congregación retirada no se reabrió y el trabajo de la seleccionada se conserva.'
     : 'Respaldo importado. Tus colores, textos y territorios quedaron cargados.', 'warn');
@@ -6096,6 +6161,7 @@ function aplicarRegistroCompartido(entradas, quien){
     return false;
   }
   actualizarVistaCongregacion(anteriorId !== congregacionActivaId);
+  if(typeof window !== 'undefined') window.CroquisAccess?.enforce();
   mostrarEstadoCongregaciones(!congregacionActivaId ? 'Agrega una congregación para comenzar.'
     : (quien || 'El equipo') + ' actualizó la lista de congregaciones.');
   return true;
@@ -9464,10 +9530,7 @@ $('btn-pr')?.addEventListener('click', imprimir);
 $('btn-menu-help')?.addEventListener('click', showWelcomeScreen);
 $('btn-add-territory')?.addEventListener('click', addCustomTerritory);
 $('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
-$('welcome-start')?.addEventListener('click', hideWelcomeScreen);
 $('welcome-cong-nueva')?.addEventListener('click', crearCongregacion);
-$('welcome-cong-renombrar')?.addEventListener('click', renombrarCongregacion);
-$('welcome-cong-eliminar')?.addEventListener('click', confirmarEliminarCongregacion);
 const privacyDialog = $('privacy-dialog');
 $('welcome-privacy-open')?.addEventListener('click', () => {
   if(privacyDialog && !privacyDialog.open) privacyDialog.showModal();
@@ -9493,12 +9556,13 @@ $('welcome-nube')?.addEventListener('click', () => conectarNube(false));
 if(nubeConfigurada() && navigator.onLine) conectarNube(true);
 window.addEventListener('online', () => { if(nubeConfigurada()) conectarNube(true); });
 $('welcome-cong-sel')?.addEventListener('change', event => {
+  if(typeof window !== 'undefined') window.CroquisAccess?.lock();
   if(!activarCongregacion(event.target.value)) refrescarCongregacionesEnInicio();
 });
 refrescarCongregacionesEnInicio();
 document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
 document.addEventListener('keydown', event => {
-  if($('congregacion-dialog')?.open || privacyDialog?.open) return;
+  if($('congregacion-dialog')?.open || $('password-dialog')?.open || privacyDialog?.open) return;
   if(event.key==='Escape' && (destinationAddMode || destinationSession || (!$('destination-panel')?.hidden))){
     event.preventDefault();cancelDestinationInteraction();renderTextLabels(LOCS[currentIndex]);updateColorControls();destinationButton?.focus();return;
   }
@@ -9623,6 +9687,7 @@ if(document.readyState === 'loading'){
   loadLeaflet();
 }
 </script>
+<script src="congregation-access.js"></script>
 <script src="offline-controller.js"></script>
 </body>
 </html>

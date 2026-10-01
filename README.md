@@ -66,6 +66,12 @@ El navegador necesita permiso de ubicacion y una pagina segura (HTTPS o localhos
 
 Las pruebas de ubicacion se ejecutan con `node --test tests/ubicacion.test.cjs`.
 
+## Contraseña por congregación
+
+En Inicio, selecciona una congregación y usa `Contraseña` para crear una clave de al menos 12 caracteres. Al pulsar `Abrir editor`, la página pide la clave; al volver a Inicio o recargar, vuelve a pedirla. Desde el mismo botón se puede cambiar o quitar escribiendo la contraseña actual. La clave no se guarda en texto: se conserva un verificador PBKDF2 con sal aleatoria dentro del registro de congregaciones, que se comparte entre equipos al conectar la sincronización. Una congregación sin contraseña sigue abriéndose directamente.
+
+Este bloqueo controla la entrada desde la interfaz. No cifra los croquis, los mapas descargados ni los respaldos. El repositorio y algunos datos publicados siguen siendo accesibles por separado; para privacidad real hacen falta permisos por congregación en Firebase y retirar los datos protegidos de los archivos públicos.
+
 ## Mapa sin conexion
 
 En Inicio, selecciona la congregacion y abre el editor. Alli pulsa `Mapa sin conexion` para abrir su panel independiente y `Descargar congregacion` mientras tengas internet. Se guardan las calles y referencias de **todos** sus territorios, ademas de los archivos necesarios para abrir la pagina. La descarga muestra el avance y se puede cancelar o reanudar; `Quitar descarga` borra solo los datos del mapa de esa congregacion. Los colores, textos y trazos se conservan en el almacenamiento local habitual. El selector `Mapa descargado` permite verlo tambien con internet y se activa automaticamente al perder la conexion. Cada congregacion muestra por separado su estado de descarga.
