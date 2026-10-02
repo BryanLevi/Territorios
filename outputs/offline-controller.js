@@ -98,7 +98,7 @@
       });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v5');
+        const shellCache = await caches.open('croquis-app-shell-v6');
         shellReady = await shellComplete(shellCache);
       }
       if (group !== congregacionActivaId || (running && running.group === group)) return;
@@ -166,7 +166,7 @@
         navigator.serviceWorker.ready,
         new Promise((_, reject) => setTimeout(() => reject(new Error('La página tardó en prepararse. Recárgala e intenta de nuevo.')), 20000))
       ]);
-      const cache = await caches.open('croquis-app-shell-v5');
+      const cache = await caches.open('croquis-app-shell-v6');
       if (!await shellComplete(cache)) {
         const worker = registration.active;
         if (!worker) throw new Error('No se pudo guardar la página para abrirla sin internet.');

@@ -106,8 +106,8 @@
     element('password-dialog-description').textContent = mode === 'unlock'
       ? 'Escribe la contraseña de esta congregación para abrir su editor.'
       : mode === 'set'
-        ? 'Quienes entren desde Inicio deberán escribir esta contraseña. Usa exactamente 6 dígitos, solo números, y guárdala: la página no puede recuperarla. Los mapas y respaldos existentes no se vuelven privados.'
-        : 'Escribe la contraseña actual para cambiarla o quitarla. La nueva contraseña debe tener exactamente 6 dígitos, solo números.';
+        ? 'Quienes entren desde Inicio deberán escribir esta contraseña. Usa exactamente 4 dígitos, solo números, y guárdala: la página no puede recuperarla. Los mapas y respaldos existentes no se vuelven privados.'
+        : 'Escribe la contraseña actual para cambiarla o quitarla. La nueva contraseña debe tener exactamente 4 dígitos, solo números.';
     element('password-submit').textContent = mode === 'unlock' ? 'Entrar' : mode === 'set' ? 'Guardar contraseña' : 'Cambiar contraseña';
     dialog.showModal();
     element(mode === 'set' ? 'password-new' : 'password-current').focus();
@@ -129,7 +129,7 @@
   function validateNew() {
     const next = element('password-new').value;
     const confirmation = element('password-confirm').value;
-    if (!/^[0-9]{6}$/.test(next)) { error('La contraseña debe tener exactamente 6 dígitos, solo números.', 'password-new'); return null; }
+    if (!/^[0-9]{4}$/.test(next)) { error('La contraseña debe tener exactamente 4 dígitos, solo números.', 'password-new'); return null; }
     if (next !== confirmation) { error('Las contraseñas no coinciden.', 'password-confirm'); return null; }
     return next;
   }
