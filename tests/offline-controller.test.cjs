@@ -209,7 +209,7 @@ test('un servidor fallido deja seguir con los otros territorios y al reanudar so
 
 test('la dirección limpia descarga el paquete y revisa la caché usando la base de recursos original', async () => {
   const app = harness({
-    pageUrl:'https://example.test/Territorios/coquis-territorios-jw/?emulador=1',
+    pageUrl:'https://example.test/Territorios/croquis-territorio-jw/?emulador=1',
     baseURI:'https://example.test/Territorios/outputs/'
   });
   await app.ready();
@@ -219,10 +219,12 @@ test('la dirección limpia descarga el paquete y revisa la caché usando la base
   const cached = new Set(app.calls.shell);
   assert.ok(cached.has('https://example.test/Territorios/outputs/croquis_territorios.html'));
   assert.ok(cached.has('https://example.test/Territorios/outputs/favicon.svg'));
+  assert.ok(cached.has('https://example.test/Territorios/croquis-territorio-jw/'));
+  assert.ok(cached.has('https://example.test/Territorios/croquis-territorio-jw/index.html'));
   assert.ok(cached.has('https://example.test/Territorios/coquis-territorios-jw/'));
   assert.ok(cached.has('https://example.test/Territorios/coquis-territorios-jw/index.html'));
   assert.ok(cached.has('https://example.test/Territorios/vendor/leaflet/leaflet.js'));
-  assert.equal([...cached].some(url => /coquis-territorios-jw\/(?:croquis_territorios|offline-data|favicon)/.test(url)), false);
+  assert.equal([...cached].some(url => /(?:croquis-territorio-jw|coquis-territorios-jw)\/(?:croquis_territorios|offline-data|favicon)/.test(url)), false);
   assert.equal(app.records.size, 1);
   assert.equal(app.calls.download.length, 0);
   assert.equal(app.element('offline-badge').textContent, 'Listo');

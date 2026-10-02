@@ -6,7 +6,7 @@ Creada por Bryan Levi.
 
 ## Uso
 
-La dirección publicada es `https://bryanlevi.github.io/Territorios/coquis-territorios-jw/`. La página principal abre esta dirección y el enlace anterior de `outputs/croquis_territorios.html` sigue funcionando. La publicación genera la ruta nueva desde ese mismo archivo, conservando las bibliotecas, la sincronización y los datos existentes. Para prepararla en un servidor local, ejecuta `node tools/prepare-pages.cjs`; también puedes abrir directamente `outputs/croquis_territorios.html`.
+La dirección publicada es `https://bryanlevi.github.io/Territorios/croquis-territorio-jw/`. La página principal abre esta dirección; la ruta anterior `coquis-territorios-jw/` redirige a ella conservando parámetros y fragmento, y el enlace de `outputs/croquis_territorios.html` sigue funcionando. La publicación genera la ruta nueva desde ese mismo archivo, conservando las bibliotecas, la sincronización y los datos existentes. Para prepararla en un servidor local, ejecuta `node tools/prepare-pages.cjs`; también puedes abrir directamente `outputs/croquis_territorios.html`.
 
 GitHub Pages se publica mediante GitHub Actions (`.github/workflows/pages.yml`), que prepara la ruta antes de subir el sitio. Mantén la fuente de Pages en `GitHub Actions` para conservar esa dirección en cada publicación.
 
