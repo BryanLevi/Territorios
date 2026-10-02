@@ -283,16 +283,19 @@ test('el respaldo e importación conservan centros de recuadro distintos por con
   assert.deepEqual(JSON.parse(otro.valores.get('frame_position_storage_key::' + nueva.id)),centroNueva);
 });
 
-test('la contraseña de una congregación se conserva al renombrar y restaurar un respaldo', () => {
+test('la contraseña y su recuperación se conservan al renombrar y restaurar un respaldo', () => {
   const proteccion = {
     v:1, salt:Buffer.alloc(16, 7).toString('base64'),
-    hash:Buffer.alloc(32, 9).toString('base64'), iterations:310000
+    hash:Buffer.alloc(32, 9).toString('base64'), iterations:310000,
+    recovery:{v:1, salt:Buffer.alloc(16, 11).toString('base64'), hash:Buffer.alloc(32, 13).toString('base64'), iterations:310000}
   };
   const e = entorno({ [llaveRegistro]:JSON.stringify({ version:2, entradas:[{ ...base, proteccion }] }) });
   assert.deepEqual(e.vivas()[0].proteccion, proteccion);
   assert.equal(e.renombrar(base.id, 'Centro').ok, true);
   assert.deepEqual(e.vivas()[0].proteccion, proteccion);
   const payload = e.plano(e.ejecutar('buildBackupPayload()'));
+  assert.deepEqual(payload.congregaciones[0].proteccion, proteccion);
+  assert.deepEqual(payload.registroCongregaciones.entradas[0].proteccion, proteccion);
   const otro = entorno();
   otro.contexto.payload = payload;
   assert.equal(otro.ejecutar('importBackupPayload(payload)'), true);
@@ -302,7 +305,8 @@ test('la contraseña de una congregación se conserva al renombrar y restaurar u
 test('un renombre atrasado no quita la contraseña y una retirada de clave posterior sí lo hace', () => {
   const proteccion = {
     v:1, salt:Buffer.alloc(16, 3).toString('base64'),
-    hash:Buffer.alloc(32, 5).toString('base64'), iterations:310000
+    hash:Buffer.alloc(32, 5).toString('base64'), iterations:310000,
+    recovery:{v:1, salt:Buffer.alloc(16, 17).toString('base64'), hash:Buffer.alloc(32, 19).toString('base64'), iterations:310000}
   };
   const e = entorno();
   e.contexto.segura = { ...base, updatedAt:10, revision:2, accesoActualizadoEn:10, proteccion };
@@ -317,6 +321,69 @@ test('un renombre atrasado no quita la contraseña y una retirada de clave poste
   const sinClave = e.plano(e.ejecutar('combinarEntradasCongregaciones(fusion, [sinClave])'));
   assert.equal(sinClave[0].proteccion, undefined);
   assert.equal(sinClave[0].accesoActualizadoEn, 30);
+});
+
+test('un renombre y un respaldo atrasados no recuperan un código ya rotado', () => {
+  const anterior = {
+    v:1, salt:Buffer.alloc(16, 3).toString('base64'), hash:Buffer.alloc(32, 5).toString('base64'), iterations:310000,
+    recovery:{v:1, salt:Buffer.alloc(16, 7).toString('base64'), hash:Buffer.alloc(32, 9).toString('base64'), iterations:310000}
+  };
+  const rotada = {
+    v:1, salt:Buffer.alloc(16, 11).toString('base64'), hash:Buffer.alloc(32, 13).toString('base64'), iterations:310000,
+    recovery:{v:1, salt:Buffer.alloc(16, 17).toString('base64'), hash:Buffer.alloc(32, 19).toString('base64'), iterations:310000}
+  };
+  const guardada = {...base, updatedAt:30, revision:3, accesoActualizadoEn:30, proteccion:rotada};
+  const vieja = {...base, nombre:'Centro', updatedAt:50, revision:4, accesoActualizadoEn:10, proteccion:anterior};
+  const e = entorno({[llaveRegistro]:JSON.stringify({version:2, entradas:[guardada]})});
+  e.contexto.remotas = [vieja];
+  const fusion = e.plano(e.ejecutar('fusionarRegistro(remotas)'));
+  assert.equal(fusion[0].nombre, 'Centro');
+  assert.deepEqual(fusion[0].proteccion, rotada);
+  assert.equal(fusion[0].accesoActualizadoEn, 30);
+  e.contexto.payload = {registroCongregaciones:{version:2, entradas:[vieja]}, congregacionActiva:base.id, data:{}};
+  assert.equal(e.ejecutar('importBackupPayload(payload)'), true);
+  assert.deepEqual(e.vivas()[0].proteccion, rotada);
+  assert.equal(e.vivas()[0].accesoActualizadoEn, 30);
+});
+
+test('un renombre desde un cliente antiguo conserva recuperación con la misma fecha de acceso', () => {
+  const proteccion = {
+    v:1, salt:Buffer.alloc(16, 3).toString('base64'), hash:Buffer.alloc(32, 5).toString('base64'), iterations:310000,
+    recovery:{v:1, salt:Buffer.alloc(16, 7).toString('base64'), hash:Buffer.alloc(32, 9).toString('base64'), iterations:310000}
+  };
+  const antigua = {...proteccion}; delete antigua.recovery;
+  const e = entorno();
+  e.contexto.actual = [{...base, updatedAt:10, revision:1, accesoActualizadoEn:10, proteccion}];
+  e.contexto.renombre = [{...base, nombre:'Centro', updatedAt:20, revision:2, accesoActualizadoEn:10, proteccion:antigua}];
+  const directo = e.plano(e.ejecutar('combinarEntradasCongregaciones(actual, renombre)'));
+  const inverso = e.plano(e.ejecutar('combinarEntradasCongregaciones(renombre, actual)'));
+  assert.deepEqual(directo, inverso);
+  assert.equal(directo[0].nombre, 'Centro');
+  assert.deepEqual(directo[0].proteccion, proteccion);
+  assert.equal(directo[0].accesoActualizadoEn, 10);
+});
+
+test('publicar el registro comparte el verificador de recuperación sin guardar campos secretos extra', async () => {
+  const recovery = {v:1, salt:Buffer.alloc(16, 7).toString('base64'), hash:Buffer.alloc(32, 9).toString('base64'), iterations:310000};
+  const proteccion = {
+    v:1, salt:Buffer.alloc(16, 3).toString('base64'), hash:Buffer.alloc(32, 5).toString('base64'), iterations:310000,
+    password:'0123', recovery:{...recovery, code:'CODIGO-NO-DEBE-GUARDARSE'}
+  };
+  const e = entorno({[llaveRegistro]:JSON.stringify({version:2, entradas:[{...base, updatedAt:30, accesoActualizadoEn:30, proteccion}]})});
+  let escrito;
+  e.contexto.nubeMock = {db:{}, fs:{
+    doc:() => 'registro',
+    async runTransaction(db, fn){
+      return fn({get:async () => ({data:() => ({lista:JSON.stringify({version:2, entradas:[base]})})}), set(ref,d){escrito=d;}});
+    },
+    onSnapshot:() => () => {}, collection:() => ({})
+  }};
+  e.ejecutar('nube=nubeMock');
+  await e.ejecutar('publicarRegistro()');
+  const publicado = JSON.parse(escrito.lista).entradas[0].proteccion;
+  assert.deepEqual(publicado.recovery, recovery);
+  assert.equal(publicado.password, undefined);
+  assert.doesNotMatch(escrito.lista, /0123|CODIGO-NO-DEBE-GUARDARSE/);
 });
 
 test('una contraseña dañada bloquea la entrada en lugar de quedar sin protección', () => {

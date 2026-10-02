@@ -700,6 +700,18 @@
     box-shadow: var(--shadow-control);
   }
   .password-field input::placeholder { color: var(--color-muted); }
+  .password-field #password-recovery { padding-right: var(--space-md); font-family: ui-monospace, Consolas, monospace; font-size: 14px; }
+  .password-recovery-options { display: grid; gap: var(--space-sm); }
+  .password-recovery-options button { justify-self: start; color: var(--color-accent-deep); }
+  .password-recovery-options p, .password-recovery-card p { margin: 0; font-size: var(--text-control); line-height: 1.5; color: var(--color-muted); }
+  .password-recovery-card { display: grid; gap: var(--space-md); padding: var(--space-lg); border: var(--rule-thin) solid var(--color-rule-strong); border-radius: var(--radius-lg); background: var(--color-accent-soft); }
+  .password-recovery-card label { color: var(--color-ink); font-size: var(--text-control); font-weight: 650; }
+  .password-recovery-card textarea { box-sizing: border-box; width: 100%; min-height: 76px; resize: none; padding: var(--space-md); border: var(--rule-thin) solid var(--color-rule-strong); border-radius: var(--radius-button); background: var(--color-paper); color: var(--color-ink); font: 16px/1.6 ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+  .password-recovery-card textarea:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+  .password-recovery-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+  .password-recovery-actions button { flex: 1 1 auto; }
+  .password-recovery-note { padding: var(--space-md); border-radius: var(--radius-button); background: var(--color-accent-soft); color: var(--color-ink-2)!important; }
+  .password-dialog #password-back { margin-right: auto; }
   .password-field input[aria-invalid="true"], .password-field input[data-state="error"] { border-color: var(--color-error); }
   .password-error {
     margin: 0;

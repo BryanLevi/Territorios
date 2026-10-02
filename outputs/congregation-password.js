@@ -1,4 +1,4 @@
-/* Verificadores de contraseña para congregaciones. La contraseña nunca se guarda. */
+/* Verificadores de contraseña y recuperación. Los secretos nunca se guardan. */
 (function (global) {
   'use strict';
 
@@ -7,6 +7,8 @@
   const MAX_ITERATIONS = 1000000;
   const SALT_BYTES = 16;
   const HASH_BYTES = 32;
+  const RECOVERY_BYTES = 16;
+  const RECOVERY_PREFIX = 'croquis-recovery-v1:';
   const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
   function toBase64(bytes) {
@@ -29,12 +31,26 @@
     return toBase64(bytes) === value ? bytes : null;
   }
 
-  function normalize(record) {
+  function normalizeVerifier(record) {
     if (!record || typeof record !== 'object' || Array.isArray(record)) return null;
     if (record.v !== VERSION || !Number.isSafeInteger(record.iterations) ||
         record.iterations < ITERATIONS || record.iterations > MAX_ITERATIONS) return null;
     if (!fromBase64(record.salt, SALT_BYTES) || !fromBase64(record.hash, HASH_BYTES)) return null;
     return { v:VERSION, salt:record.salt, hash:record.hash, iterations:record.iterations };
+  }
+
+  function normalize(record) {
+    const valid = normalizeVerifier(record);
+    if (!valid) return null;
+    const recovery = normalizeVerifier(record.recovery);
+    if (recovery) valid.recovery = recovery;
+    return valid;
+  }
+
+  function normalizeRecoveryCode(value) {
+    if (typeof value !== 'string' || value.length > 128) return null;
+    const code = value.replace(/[\s-]/g, '').toUpperCase();
+    return /^[0-9A-F]{32}$/.test(code) ? code : null;
   }
 
   function webCrypto() {
@@ -63,7 +79,7 @@
 
   async function verify(password, record) {
     if (typeof password !== 'string' || !password.length) return false;
-    const valid = normalize(record);
+    const valid = normalizeVerifier(record);
     if (!valid) return false;
     const salt = fromBase64(valid.salt, SALT_BYTES);
     const expected = fromBase64(valid.hash, HASH_BYTES);
@@ -73,5 +89,29 @@
     return difference === 0;
   }
 
-  global.CroquisPassword = Object.freeze({ create, verify, normalize });
+  async function createRecovery() {
+    const random = new Uint8Array(RECOVERY_BYTES);
+    webCrypto().getRandomValues(random);
+    const plain = Array.from(random, byte => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+    const record = await create(RECOVERY_PREFIX + plain);
+    return { record, code:plain.match(/.{4}/g).join('-') };
+  }
+
+  async function createWithRecovery(pin) {
+    if (typeof pin !== 'string' || !/^[0-9]{4}$/.test(pin)) {
+      throw new TypeError('La contraseña debe tener exactamente 4 dígitos, solo números.');
+    }
+    const [protection, recovery] = await Promise.all([create(pin), createRecovery()]);
+    protection.recovery = recovery.record;
+    return { protection, code:recovery.code };
+  }
+
+  async function verifyRecovery(code, protection) {
+    const plain = normalizeRecoveryCode(code);
+    const valid = normalize(protection);
+    if (!plain || !valid?.recovery) return false;
+    return verify(RECOVERY_PREFIX + plain, valid.recovery);
+  }
+
+  global.CroquisPassword = Object.freeze({ create, verify, normalize, createRecovery, createWithRecovery, verifyRecovery });
 })(window);

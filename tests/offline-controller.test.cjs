@@ -37,10 +37,13 @@ function harness(options = {}) {
     return elements.get(id);
   };
   const records = new Map();
-  const calls = {fetch:[], download:[], set:[], cache:[], pause:0, resume:0, redraw:0};
+  const calls = {fetch:[], download:[], set:[], cache:[], shell:[], pause:0, resume:0, redraw:0};
   const timers = new Map();
   let timerId = 0;
-  const cache = {match:async url => options.cacheMatch ? options.cacheMatch(url) : {ok:true}};
+  const cache = {match:async url => {
+    calls.shell.push(url);
+    return options.cacheMatch ? options.cacheMatch(url) : {ok:true};
+  }};
   const registration = options.registration || {active:{postMessage() { throw new Error('Unexpected shell download'); }}};
   const dataStore = {
     async get(group, key) { return options.get ? options.get(group, key) : records.get(group + ':' + key) || null; },
@@ -61,7 +64,8 @@ function harness(options = {}) {
     }
   };
   const context = {
-    document:{getElementById:element}, location:{href:'https://example.test/Territorios/outputs/croquis_territorios.html'},
+    document:{getElementById:element, baseURI:options.baseURI},
+    location:{href:options.pageUrl || 'https://example.test/Territorios/outputs/croquis_territorios.html'},
     navigator:{onLine:true, storage:{persist:options.persist || (async () => true)},
       serviceWorker:{register:async () => registration, ready:Promise.resolve(registration)}},
     caches:{open:async () => cache}, isSecureContext:true,
@@ -200,5 +204,26 @@ test('un servidor fallido deja seguir con los otros territorios y al reanudar so
   await app.download();
   assert.equal(app.calls.download.length, 3);
   assert.equal(app.records.size, 2);
+  assert.equal(app.element('offline-badge').textContent, 'Listo');
+});
+
+test('la dirección limpia descarga el paquete y revisa la caché usando la base de recursos original', async () => {
+  const app = harness({
+    pageUrl:'https://example.test/Territorios/coquis-territorios-jw/?emulador=1',
+    baseURI:'https://example.test/Territorios/outputs/'
+  });
+  await app.ready();
+  await app.download();
+  assert.equal(app.calls.fetch.length, 1);
+  assert.equal(app.calls.fetch[0].url, 'https://example.test/Territorios/outputs/offline-map-pack.json');
+  const cached = new Set(app.calls.shell);
+  assert.ok(cached.has('https://example.test/Territorios/outputs/croquis_territorios.html'));
+  assert.ok(cached.has('https://example.test/Territorios/outputs/favicon.svg'));
+  assert.ok(cached.has('https://example.test/Territorios/coquis-territorios-jw/'));
+  assert.ok(cached.has('https://example.test/Territorios/coquis-territorios-jw/index.html'));
+  assert.ok(cached.has('https://example.test/Territorios/vendor/leaflet/leaflet.js'));
+  assert.equal([...cached].some(url => /coquis-territorios-jw\/(?:croquis_territorios|offline-data|favicon)/.test(url)), false);
+  assert.equal(app.records.size, 1);
+  assert.equal(app.calls.download.length, 0);
   assert.equal(app.element('offline-badge').textContent, 'Listo');
 });

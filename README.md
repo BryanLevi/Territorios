@@ -6,7 +6,9 @@ Creada por Bryan Levi.
 
 ## Uso
 
-Abre `index.html` o publica el repositorio con GitHub Pages. La pagina principal redirige al generador ubicado en `outputs/croquis_territorios.html`.
+La dirección publicada es `https://bryanlevi.github.io/Territorios/coquis-territorios-jw/`. La página principal abre esta dirección y el enlace anterior de `outputs/croquis_territorios.html` sigue funcionando. La publicación genera la ruta nueva desde ese mismo archivo, conservando las bibliotecas, la sincronización y los datos existentes. Para prepararla en un servidor local, ejecuta `node tools/prepare-pages.cjs`; también puedes abrir directamente `outputs/croquis_territorios.html`.
+
+GitHub Pages se publica mediante GitHub Actions (`.github/workflows/pages.yml`), que prepara la ruta antes de subir el sitio. Mantén la fuente de Pages en `GitHub Actions` para conservar esa dirección en cada publicación.
 
 ## Congregaciones
 
@@ -73,6 +75,8 @@ Las pruebas de ubicacion se ejecutan con `node --test tests/ubicacion.test.cjs`.
 En Inicio, selecciona una congregación y usa `Contraseña` para crear una clave de exactamente 4 dígitos, solo números (puede empezar por cero). Cada campo tiene un ojo para mostrar u ocultar la contraseña. Al pulsar `Abrir editor`, la página pide la clave; al volver a Inicio o recargar, vuelve a pedirla. Desde el mismo botón se puede cambiar o quitar escribiendo la contraseña actual. Las claves anteriores siguen funcionando y se pueden cambiar por una de 4 dígitos. La clave no se guarda en texto: se conserva un verificador PBKDF2 con sal aleatoria dentro del registro de congregaciones, que se comparte entre equipos al conectar la sincronización. Una congregación sin contraseña sigue abriéndose directamente.
 
 Este bloqueo controla la entrada desde la interfaz. No cifra los croquis, los mapas descargados ni los respaldos. El repositorio y algunos datos publicados siguen siendo accesibles por separado; para privacidad real hacen falta permisos por congregación en Firebase y retirar los datos protegidos de los archivos públicos.
+
+Al crear o cambiar una contraseña se entrega un código de recuperación que puedes copiar o descargar. Guárdalo fuera de la app: solo se muestra en esa ventana y el registro conserva únicamente su verificador. Si olvidas la clave, pulsa `Olvidé mi contraseña`, escribe el código y elige una nueva de 4 dígitos. Se genera otro código y el anterior deja de funcionar. Para congregaciones que ya tienen contraseña, entra en `Cambiar clave`, escribe la actual y pulsa `Activar recuperación`; también puedes renovar el código desde allí sin cambiar la contraseña. Si no se activó la recuperación, el responsable debe usar la contraseña actual para configurarla. El código funciona sin conexión con los datos guardados en ese dispositivo y se comparte su verificador al sincronizar.
 
 ## Flechas y espacio del texto en el PDF
 

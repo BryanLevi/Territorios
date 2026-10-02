@@ -1,14 +1,17 @@
 /* App shell for the croquis. Map tiles and external APIs are never cached here. */
-const APP_CACHE = 'croquis-app-shell-v6';
+const APP_CACHE = 'croquis-app-shell-v7';
 const APP_FILES = [
   './',
   './index.html',
+  './coquis-territorios-jw/',
+  './coquis-territorios-jw/index.html',
   './outputs/croquis_territorios.html',
   './outputs/offline-data.js',
   './outputs/destination-placement.js',
   './outputs/offline-controller.js',
   './outputs/congregation-password.js',
   './outputs/congregation-access.js',
+  './outputs/favicon.svg',
   './tokens.css',
   './outputs/welcome-premium.css',
   './outputs/toolbar-premium.css',

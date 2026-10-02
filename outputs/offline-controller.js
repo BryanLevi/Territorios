@@ -9,7 +9,7 @@
   let shellPromise = null;
   let preparedPackPromise = null;
   const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-data.js', 'offline-controller.js', 'destination-placement.js',
-    'congregation-password.js', 'congregation-access.js', '../tokens.css', 'welcome-premium.css',
+    'congregation-password.js', 'congregation-access.js', 'favicon.svg', '../coquis-territorios-jw/', '../coquis-territorios-jw/index.html', '../tokens.css', 'welcome-premium.css',
     'toolbar-premium.css', 'editor-premium.css', '../vendor/leaflet/leaflet.js', '../vendor/leaflet/leaflet.css',
     '../vendor/leaflet/images/layers.png', '../vendor/leaflet/images/layers-2x.png',
     '../vendor/leaflet/images/marker-icon.png', '../vendor/leaflet/images/marker-icon-2x.png',
@@ -50,7 +50,7 @@
   }
 
   async function shellComplete(cache) {
-    return (await Promise.all(shellFiles.map(path => cache.match(new URL(path, location.href).href)))).every(Boolean);
+    return (await Promise.all(shellFiles.map(path => cache.match(new URL(path, document.baseURI || location.href).href)))).every(Boolean);
   }
 
   function status(message, state) {
@@ -98,7 +98,7 @@
       });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v6');
+        const shellCache = await caches.open('croquis-app-shell-v7');
         shellReady = await shellComplete(shellCache);
       }
       if (group !== congregacionActivaId || (running && running.group === group)) return;
@@ -166,7 +166,7 @@
         navigator.serviceWorker.ready,
         new Promise((_, reject) => setTimeout(() => reject(new Error('La página tardó en prepararse. Recárgala e intenta de nuevo.')), 20000))
       ]);
-      const cache = await caches.open('croquis-app-shell-v6');
+      const cache = await caches.open('croquis-app-shell-v7');
       if (!await shellComplete(cache)) {
         const worker = registration.active;
         if (!worker) throw new Error('No se pudo guardar la página para abrirla sin internet.');
@@ -207,7 +207,7 @@
       if (signal.aborted) onAbort();
       const timer = setTimeout(() => controller.abort(), 8000);
       try {
-        const response = await fetch(new URL('offline-map-pack.json', location.href), {signal:controller.signal});
+        const response = await fetch(new URL('offline-map-pack.json', document.baseURI || location.href), {signal:controller.signal});
         if (!response.ok) return null;
         const pack = await response.json();
         return pack?.version === 1 && Array.isArray(pack.territories) ? pack : null;
