@@ -2,8 +2,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const ROUTE = 'croquis-territorio-jw';
+const ROUTE = 'croquis-territorios-jw';
 const LEGACY_ROUTE = 'coquis-territorios-jw';
+const LEGACY_ROUTES = [LEGACY_ROUTE, 'croquis-territorio-jw'];
 
 function renderCleanPage(source) {
   if (!/<head\b[^>]*>/i.test(source)) throw new Error('El generador no tiene cabecera HTML.');
@@ -41,13 +42,15 @@ function preparePages(root = path.resolve(__dirname, '..')) {
   fs.mkdirSync(directory, { recursive:true });
   const destination = path.join(directory, 'index.html');
   fs.writeFileSync(destination, renderCleanPage(source), 'utf8');
-  const legacyDirectory = path.join(root, LEGACY_ROUTE);
-  fs.mkdirSync(legacyDirectory, { recursive:true });
-  fs.writeFileSync(path.join(legacyDirectory, 'index.html'), renderLegacyRedirect(), 'utf8');
+  for (const route of LEGACY_ROUTES) {
+    const legacyDirectory = path.join(root, route);
+    fs.mkdirSync(legacyDirectory, { recursive:true });
+    fs.writeFileSync(path.join(legacyDirectory, 'index.html'), renderLegacyRedirect(), 'utf8');
+  }
   return destination;
 }
 
-module.exports = { ROUTE, LEGACY_ROUTE, renderCleanPage, renderLegacyRedirect, preparePages };
+module.exports = { ROUTE, LEGACY_ROUTE, LEGACY_ROUTES, renderCleanPage, renderLegacyRedirect, preparePages };
 if (require.main === module) {
   preparePages();
   console.log('Dirección preparada: ' + ROUTE + '/');

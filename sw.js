@@ -1,8 +1,10 @@
 /* App shell for the croquis. Map tiles and external APIs are never cached here. */
-const APP_CACHE = 'croquis-app-shell-v8';
+const APP_CACHE = 'croquis-app-shell-v9';
 const APP_FILES = [
   './',
   './index.html',
+  './croquis-territorios-jw/',
+  './croquis-territorios-jw/index.html',
   './croquis-territorio-jw/',
   './croquis-territorio-jw/index.html',
   './coquis-territorios-jw/',

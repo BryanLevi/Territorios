@@ -154,6 +154,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .runtime-vector-road-label,.runtime-reference-marker,.print-reference-marker{background:transparent!important;border:0!important;box-shadow:none!important;pointer-events:none}
 .runtime-vector-road-label span{position:absolute;left:0;top:0;display:inline-block;transform:translate(-50%,-50%) rotate(var(--road-label-angle,0deg));transform-origin:center;white-space:nowrap;color:#07140d!important;font-family:"Arial Narrow","Segoe UI",Arial,sans-serif;font-size:13px;font-weight:950;line-height:1;background:rgba(255,255,255,.92)!important;border-radius:3px;padding:1px 3px;text-shadow:none!important;box-shadow:0 0 3px rgba(255,255,255,.95),0 1px 2px rgba(0,0,0,.16)}
 .runtime-vector-road-label.is-waterway span{color:#08406e!important;background:rgba(230,244,255,.94)!important}
+.runtime-vector-road-label.is-offline span{color:#24344a!important;font-family:Arial,"Segoe UI",sans-serif;font-weight:600;background:transparent!important;padding:0 2px;box-shadow:none;text-shadow:-1px -1px 0 #fff,0 -1px 0 #fff,1px -1px 0 #fff,-1px 0 0 #fff,1px 0 0 #fff,-1px 1px 0 #fff,0 1px 0 #fff,1px 1px 0 #fff,0 0 3px #fff!important}
 .runtime-vector-road-label.is-plano span{background:rgba(255,255,255,.9)!important;color:#000!important;border-radius:2px;padding:0 2px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .runtime-reference-label,.print-reference-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:4px;transform:translate(-50%,-50%);max-width:260px;padding:0;border:0!important;background:transparent!important;color:#102018!important;font-family:"Segoe UI",Arial,sans-serif;font-weight:950;line-height:1.04;text-align:left;text-transform:uppercase;white-space:normal;filter:none!important;mix-blend-mode:normal!important;text-shadow:none!important}
 .print-reference-label{gap:calc(5px * var(--print-label-scale,1));width:max-content;max-width:calc(360px * var(--print-label-scale,1))}
@@ -3845,7 +3846,7 @@ function drawRuntimeVectorRoads(roadWays){
   vectorRoadLayer.clearLayers();
   if(!Array.isArray(roadWays) || !roadWays.length) return;
   const hasAreas = getColorAreasForLoc(LOCS[currentIndex]).length > 0;
-  const labelOpacity = hasAreas ? VECTOR_ROAD_LABEL_OPACITY : .58;
+  const labelOpacity = currentView === 'offline' ? 1 : hasAreas ? VECTOR_ROAD_LABEL_OPACITY : .58;
   const seenLabels = new Set();
   const placedLabelBoxes = [];
   const waterways = roadWays.filter(isWaterway);
@@ -3871,7 +3872,8 @@ function drawRuntimeVectorRoads(roadWays){
   // El nombre de la calle solo lo ponemos nosotros cuando el mapa de fondo no
   // lo trae. Sobre Google o Carto salia el nombre dos veces, el suyo y el
   // nuestro encima. Los rios se siguen rotulando siempre: esos no los trae.
-  if(fondoSinNombres) streets.forEach(way => {
+  if(currentView === 'offline') drawRuntimeOfflineStreetLabels(streets);
+  else if(fondoSinNombres) streets.forEach(way => {
     const latLngs = Array.isArray(way.latLngs) ? way.latLngs : [];
     if(latLngs.length < 2) return;
 
@@ -3910,40 +3912,155 @@ function drawRuntimeVectorRoads(roadWays){
   drawRuntimeWaterwayLabels(waterways, labelOpacity, seenLabels, placedLabelBoxes);
 }
 
+// Los nombres del mapa descargado salen de las calles guardadas, sin consultar
+// servidores. Se colocan sobre tramos visibles continuos, no solo sobre la
+// pareja de puntos mas larga: una calle curva puede tener muchos puntos juntos.
+function runtimeRoadLabelPriority(kind){
+  if(/^(motorway|trunk|primary|secondary)/.test(kind || '')) return 4;
+  if(/^(tertiary|unclassified)/.test(kind || '')) return 3;
+  if(/^(residential|living_street|road|pedestrian)/.test(kind || '')) return 2;
+  return 1;
+}
+
+function runtimeRoadLabelRuns(points, viewport){
+  const runs = [];
+  let run = null;
+  const clip = (a,b) => {
+    const dx = b.x-a.x, dy = b.y-a.y;
+    let from=0, to=1;
+    const limits=[[-dx,a.x-8],[dx,viewport.x-8-a.x],[-dy,a.y-8],[dy,viewport.y-8-a.y]];
+    for(const [p,q] of limits){
+      if(p===0){ if(q<0) return null; continue; }
+      const ratio=q/p;
+      if(p<0) from=Math.max(from,ratio); else to=Math.min(to,ratio);
+      if(from>to) return null;
+    }
+    return [{x:a.x+from*dx,y:a.y+from*dy},{x:a.x+to*dx,y:a.y+to*dy}];
+  };
+  const finish=() => { if(run?.length>0) runs.push(run); run=null; };
+  for(let i=1;i<points.length;i++){
+    const clipped=clip(points[i-1],points[i]);
+    if(!clipped){ finish(); continue; }
+    const [a,b]=clipped, dx=b.x-a.x, dy=b.y-a.y, length=Math.hypot(dx,dy);
+    if(!length) continue;
+    const angle=Math.atan2(dy,dx)*180/Math.PI;
+    const difference=run ? Math.abs(((angle-run.angle+540)%360)-180) : 0;
+    const last=run?.segments.at(-1)?.b;
+    if(run && (difference>26 || Math.hypot(a.x-last.x,a.y-last.y)>1)) finish();
+    if(!run) run={angle,length:0,segments:[]};
+    run.length+=length;
+    run.segments.push({a,b,length});
+  }
+  finish();
+  return runs;
+}
+
+function planRuntimeRoadLabels(targetMap, ways){
+  if(!targetMap || !Array.isArray(ways)) return [];
+  const viewport=targetMap.getSize(), zoom=Number(targetMap.getZoom()) || 15;
+  if(!viewport?.x || !viewport?.y) return [];
+  const fontSize=zoom>=18 ? 12 : zoom>=16 ? 11.5 : 10.5;
+  const candidates=[];
+  ways.forEach(way => {
+    const name=String(way?.name || '').trim();
+    if(!name || name.length>80 || isWaterway(way)) return;
+    if(zoom<16 && /^(path|footway|steps|cycleway|track)$/.test(way.highway || '')) return;
+    const latLngs=Array.isArray(way.latLngs) ? way.latLngs : [];
+    const points=latLngs.map(point => targetMap.latLngToContainerPoint(point));
+    if(points.some(point => !Number.isFinite(point.x) || !Number.isFinite(point.y))) return;
+    const width=name.length*fontSize*.56+8, height=fontSize+5;
+    const runs=runtimeRoadLabelRuns(points,viewport);
+    runs.forEach(run => {
+      if(run.length<Math.max(30,width*.62)) return;
+      let distance=run.length/2, point=null;
+      for(const segment of run.segments){
+        if(distance>segment.length){ distance-=segment.length; continue; }
+        const ratio=distance/segment.length;
+        point={x:segment.a.x+(segment.b.x-segment.a.x)*ratio,y:segment.a.y+(segment.b.y-segment.a.y)*ratio};
+        break;
+      }
+      if(!point) return;
+      let angle=run.angle;
+      if(angle>90) angle-=180;
+      if(angle<-90) angle+=180;
+      const radians=angle*Math.PI/180;
+      const w=Math.abs(Math.cos(radians))*width+Math.abs(Math.sin(radians))*height;
+      const h=Math.abs(Math.sin(radians))*width+Math.abs(Math.cos(radians))*height;
+      const box={left:point.x-w/2,right:point.x+w/2,top:point.y-h/2,bottom:point.y+h/2};
+      if(box.left<3 || box.top<3 || box.right>viewport.x-3 || box.bottom>viewport.y-3) return;
+      candidates.push({name,key:name.toLocaleLowerCase('es-MX'),fontSize,angle,point,box,
+        priority:runtimeRoadLabelPriority(way.highway),length:run.length});
+    });
+  });
+  candidates.sort((a,b) => b.priority-a.priority || b.length-a.length);
+  const selected=[], names=new Set(), boxes=[];
+  const limit=Math.max(20,Math.min(90,Math.floor(viewport.x*viewport.y/3400)));
+  for(const label of candidates){
+    if(names.has(label.key) || !canPlaceLabel(label.box,boxes,7)) continue;
+    selected.push(label); names.add(label.key); boxes.push(label.box);
+    if(selected.length>=limit) break;
+  }
+  return selected;
+}
+
+function drawRuntimeOfflineStreetLabels(roadWays){
+  if(!map || !vectorRoadLayer || !window.L) return;
+  let labels=vectorRoadLayer._streetLabels;
+  if(!labels || !vectorRoadLayer.hasLayer(labels)){
+    labels=L.layerGroup().addTo(vectorRoadLayer);
+    vectorRoadLayer._streetLabels=labels;
+  }
+  labels.clearLayers();
+  planRuntimeRoadLabels(map,roadWays).forEach(label => {
+    L.marker(map.containerPointToLatLng(label.point),{
+      interactive:false,keyboard:false,pane:'territoryLabelPane',opacity:1,zIndexOffset:900,
+      icon:L.divIcon({className:'runtime-vector-road-label is-offline',
+        html:'<span style="--road-label-angle:'+label.angle.toFixed(1)+'deg;font-size:'+label.fontSize+'px">'+escapeHtml(label.name)+'</span>',
+        iconSize:[0,0],iconAnchor:[0,0]})
+    }).addTo(labels);
+  });
+}
+
 async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
   if(!map || !vectorRoadLayer) return;
   const requestId = ++runtimeRoadRequestId;
-  vectorRoadLayer.clearLayers();
-  if(!loc) return;
+  if(!loc){ vectorRoadLayer.clearLayers(); return; }
   const key = getRuntimeRoadCacheKey(loc);
+  const congregationId = congregacionActivaId;
   if(currentView === 'offline'){
-    const congregationId = congregacionActivaId;
+    if(runtimeRoadCache?.key===key && runtimeRoadCache.congregation===congregationId && runtimeRoadCache.offline){
+      if(vectorRoadLayer._streetLabels && vectorRoadLayer.hasLayer?.(vectorRoadLayer._streetLabels)) drawRuntimeOfflineStreetLabels(runtimeRoadCache.roadWays);
+      else drawRuntimeVectorRoads(runtimeRoadCache.roadWays);
+      return;
+    }
+    vectorRoadLayer.clearLayers();
     const record = window.CroquisOfflineData
       ? await window.CroquisOfflineData.get(congregationId, String(loc.num)).catch(() => null) : null;
-    if(requestId !== runtimeRoadRequestId || congregationId !== congregacionActivaId) return;
+    if(requestId !== runtimeRoadRequestId || congregationId !== congregacionActivaId || currentView !== 'offline' || key !== getRuntimeRoadCacheKey(LOCS[currentIndex])) return;
     if(record && (!window.offlineRecordCovers || window.offlineRecordCovers(loc, record))){
       const ways = unpackRoadWays(record.roads || []);
-      runtimeRoadCache = {key,roadWays:ways};
+      runtimeRoadCache = {key,roadWays:ways,congregation:congregationId,offline:true};
       drawRuntimeVectorRoads(ways);
     }else{
       setStatus('Este territorio aún no tiene calles descargadas. Abre «Mapa sin conexión» y descarga esta congregación con internet.', 'warn');
     }
     return;
   }
-  if(runtimeRoadCache?.key === key && Array.isArray(runtimeRoadCache.roadWays)){
+  vectorRoadLayer.clearLayers();
+  if(runtimeRoadCache?.key === key && runtimeRoadCache.congregation===congregacionActivaId && !runtimeRoadCache.offline && Array.isArray(runtimeRoadCache.roadWays)){
     drawRuntimeVectorRoads(runtimeRoadCache.roadWays);
     return;
   }
   const guardadas = readOverpassCache(loc, 'roads');
   if(guardadas?.length){
-    runtimeRoadCache = { key, roadWays:guardadas };
+    runtimeRoadCache = { key, roadWays:guardadas,congregation:congregacionActivaId };
     drawRuntimeVectorRoads(guardadas);
     return;
   }
   try{
     const roadWays = await fetchRoadWaysForBounds(getRuntimeRoadBounds(loc));
-    if(requestId !== runtimeRoadRequestId) return;
-    runtimeRoadCache = { key, roadWays };
+    if(requestId !== runtimeRoadRequestId || congregationId !== congregacionActivaId || currentView === 'offline' || key !== getRuntimeRoadCacheKey(LOCS[currentIndex])) return;
+    runtimeRoadCache = { key, roadWays,congregation:congregacionActivaId };
     writeOverpassCache(loc, 'roads', roadWays);
     drawRuntimeVectorRoads(roadWays);
   }catch(err){

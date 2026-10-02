@@ -6,7 +6,7 @@ Creada por Bryan Levi.
 
 ## Uso
 
-La dirección publicada es `https://bryanlevi.github.io/Territorios/croquis-territorio-jw/`. La página principal abre esta dirección; la ruta anterior `coquis-territorios-jw/` redirige a ella conservando parámetros y fragmento, y el enlace de `outputs/croquis_territorios.html` sigue funcionando. La publicación genera la ruta nueva desde ese mismo archivo, conservando las bibliotecas, la sincronización y los datos existentes. Para prepararla en un servidor local, ejecuta `node tools/prepare-pages.cjs`; también puedes abrir directamente `outputs/croquis_territorios.html`.
+La dirección publicada es `https://bryanlevi.github.io/Territorios/croquis-territorios-jw/`. La página principal abre esta dirección; las rutas anteriores `coquis-territorios-jw/` y `croquis-territorio-jw/` redirigen a ella conservando parámetros y fragmento, y el enlace de `outputs/croquis_territorios.html` sigue funcionando. La publicación genera la ruta nueva desde ese mismo archivo, conservando las bibliotecas, la sincronización y los datos existentes. Para prepararla en un servidor local, ejecuta `node tools/prepare-pages.cjs`; también puedes abrir directamente `outputs/croquis_territorios.html`.
 
 GitHub Pages se publica mediante GitHub Actions (`.github/workflows/pages.yml`), que prepara la ruta antes de subir el sitio. Mantén la fuente de Pages en `GitHub Actions` para conservar esa dirección en cada publicación.
 
@@ -85,6 +85,8 @@ Al colocar o seleccionar un destino, activa `Ver espacio del texto en el PDF`. L
 La lámina aprovecha casi todo el lado disponible de cada recuadro y mantiene las proporciones del territorio, los contornos y las marcas exteriores. Las referencias se colocan en una esquina con menos interferencias y conservan letras de 8 puntos e iconos de 4 mm, independientemente de la escala del mapa. En la hoja individual usan 9 puntos e iconos de 5 mm. Una lista muy larga usa columnas y se ajusta solo cuando no cabe completa en su recuadro.
 
 ## Mapa sin conexion
+
+El mapa descargado muestra los nombres de calles y carreteras disponibles en los datos guardados. Las letras llevan un halo blanco para mantener el contraste sobre las zonas pintadas y se recolocan al acercar o mover el mapa, sin nuevas peticiones a internet. Las descargas anteriores que ya contienen nombres también los muestran al actualizar la página.
 
 En Inicio, selecciona la congregacion y abre el editor. Alli pulsa `Mapa sin conexion` para abrir su panel independiente y `Descargar congregacion` mientras tengas internet. Se guardan las calles y referencias de **todos** sus territorios, ademas de los archivos necesarios para abrir la pagina. La descarga muestra el avance y se puede cancelar o reanudar; `Quitar descarga` borra solo los datos del mapa de esa congregacion. Los colores, textos y trazos se conservan en el almacenamiento local habitual. El selector `Mapa descargado` permite verlo tambien con internet y se activa automaticamente al perder la conexion. Cada congregacion muestra por separado su estado de descarga.
 

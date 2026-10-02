@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const vm = require('node:vm');
-const { ROUTE, LEGACY_ROUTE, renderCleanPage, renderLegacyRedirect, preparePages } = require('../tools/prepare-pages.cjs');
+const { ROUTE, LEGACY_ROUTE, LEGACY_ROUTES, renderCleanPage, renderLegacyRedirect, preparePages } = require('../tools/prepare-pages.cjs');
 const repo = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(repo, 'outputs/croquis_territorios.html'), 'utf8');
 
@@ -13,8 +13,9 @@ test('la dirección limpia publica el generador completo sin iframe ni una segun
   assert.equal(page.replace('<base href="../outputs/">\n', '').replace(/\r\n/g, '\n'), source.replace(/\r\n/g, '\n'));
   assert.equal((page.match(/<base\b/g) || []).length, 1);
   assert.ok(page.indexOf('<base ') < page.indexOf('<link '));
-  assert.equal(ROUTE, 'croquis-territorio-jw');
+  assert.equal(ROUTE, 'croquis-territorios-jw');
   assert.equal(LEGACY_ROUTE, 'coquis-territorios-jw');
+  assert.deepEqual(LEGACY_ROUTES, ['coquis-territorios-jw', 'croquis-territorio-jw']);
 });
 
 test('la ruta base mantiene scripts, estilos e icono tanto en proyecto como en dominio propio', () => {
@@ -51,7 +52,9 @@ test('preparar la publicación usa la fuente más reciente y se puede repetir', 
   const target = preparePages(root);
   assert.equal(target, path.join(root, ROUTE, 'index.html'));
   assert.equal(fs.readFileSync(target, 'utf8'), renderCleanPage(original));
-  assert.equal(fs.readFileSync(path.join(root, LEGACY_ROUTE, 'index.html'), 'utf8'), renderLegacyRedirect());
+  for (const route of LEGACY_ROUTES) {
+    assert.equal(fs.readFileSync(path.join(root, route, 'index.html'), 'utf8'), renderLegacyRedirect());
+  }
   fs.writeFileSync(file, original.replace('Primero', 'Actualizado'));
   preparePages(root);
   assert.match(fs.readFileSync(target, 'utf8'), /Actualizado/);
@@ -62,9 +65,9 @@ test('la dirección anterior redirige a la nueva conservando parámetros y fragm
   const page = renderLegacyRedirect();
   const script = page.match(/<script>([\s\S]*?)<\/script>/)[1];
   assert.doesNotMatch(page, /<base\b|<iframe\b|offline-data\.js/);
-  for (const project of ['/Territorios/', '/']) {
+  for (const project of ['/Territorios/', '/']) for (const legacy of LEGACY_ROUTES) {
     for (const end of ['/', '/index.html']) {
-      const current = new URL('https://example.test' + project + LEGACY_ROUTE + end + '?emulador=1#inicio');
+      const current = new URL('https://example.test' + project + legacy + end + '?emulador=1#inicio');
       let destination;
       vm.runInNewContext(script, {URL, location:{href:current.href, search:current.search,
         hash:current.hash, replace:url => { destination = new URL(url); }}});
