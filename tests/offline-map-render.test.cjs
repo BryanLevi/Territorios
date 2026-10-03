@@ -165,8 +165,8 @@ test('etiquetas extra son no interactivas y sólo se crean offline, con texto es
     planRuntimeOfflineMapLabels:()=>({roads:[],places:[{point:{x:70,y:70},fontSize:12,width:100,name:'<Barrio>'}],references:[]}),
     escapeHtml:value=>value.replace(/</g,'&lt;').replace(/>/g,'&gt;'),
     L:{divIcon:icon=>icon,marker(point,options){markers.push({point,options});return{addTo(){}};}}});
-  vm.runInContext(extract('refreshRuntimeOfflineMap'),c);c.refreshRuntimeOfflineMap();
+  vm.runInContext(extract('drawRuntimeOfflineMap'),c);c.drawRuntimeOfflineMap();
   assert.equal(markers.length,1);assert.equal(markers[0].options.interactive,false);assert.equal(markers[0].options.keyboard,false);
   assert.match(markers[0].options.icon.html,/&lt;Barrio&gt;/);assert.match(html,/\.runtime-offline-name span\{[^}]*text-shadow:/);
-  c.currentView='g-road';c.refreshRuntimeOfflineMap();assert.equal(markers.length,1);
+  c.currentView='g-road';c.drawRuntimeOfflineMap();assert.equal(markers.length,1);
 });

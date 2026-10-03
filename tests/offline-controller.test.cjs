@@ -179,7 +179,7 @@ test('la actualización comparte la preparación en curso y espera la página nu
   assert.equal(app.calls.set.length, 0);
   assert.equal(app.calls.fetch.length, 0);
   assert.equal(app.calls.prepare.length,1);
-  assert.equal(app.calls.prepare[0].cacheName,'croquis-app-shell-v12');
+  assert.equal(app.calls.prepare[0].cacheName,'croquis-app-shell-v13');
   assert.ok(app.calls.prepare[0].files.includes('offline-shell.js'));
   assert.equal(app.element('offline-download').attributes['aria-busy'],'true');
   waiting.resolve();

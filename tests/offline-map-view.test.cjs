@@ -26,6 +26,7 @@ function harness(online = true) {
       attributionControl:{addAttribution(){}, removeAttribution(){}}},
     tileLayer:null, colorRestoreLayer:null, labelOverlayLayer:null, roadOverlayLayer:null,
     vectorRoadLayer:{}, runtimeRoadCache:{}, runtimeReferenceCache:{}, runtimeOfflineLabelLayer:null,drawRuntimeOfflineDetails(){},tileErrorCount:0,
+    configureRuntimeMapZoom(){}, cancelRuntimeOfflineMapRefresh(){},
     LOCS:[{num:1}], currentIndex:0, MAP_DETAIL_RESTORE_OPACITY:1,
     statusBox:{classList:{contains:() => false}}, setStatus(){}, updateButtons(){},
     getColorAreasForLoc:() => [], getRuntimeRoadTileSource:() => null, getRuntimeLabelTileSource:() => null,

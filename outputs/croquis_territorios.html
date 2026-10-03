@@ -1768,6 +1768,7 @@ let vectorRoadLayer = null;
 let runtimeReferenceLayer = null;
 let runtimeOfflineAreaLayer = null;
 let runtimeOfflineLabelLayer = null;
+let runtimeOfflineRenderFrame = null;
 let manualWhiteRoadLayer = null;
 let manualRiverLayer = null;
 let runtimeRoadCache = null;
@@ -3792,6 +3793,7 @@ function drawRuntimeWaterways(waterways, opacity){
     const weight = waterwayWeight(way.waterway);
     L.polyline(latLngs, {
       pane:'territoryRoadPane',
+      renderer:currentView === 'offline' ? vectorRoadLayer._renderer : undefined,
       color:WATERWAY_CASING_COLOR,
       weight:weight + 3.4,
       opacity:Math.min(1, opacity + .04),
@@ -3801,6 +3803,7 @@ function drawRuntimeWaterways(waterways, opacity){
     }).addTo(vectorRoadLayer);
     L.polyline(latLngs, {
       pane:'territoryRoadPane',
+      renderer:currentView === 'offline' ? vectorRoadLayer._renderer : undefined,
       color:WATERWAY_COLOR,
       weight,
       opacity,
@@ -3868,7 +3871,7 @@ function drawRuntimeVectorRoads(roadWays){
     const major = /^(motorway|trunk|primary|secondary|tertiary)/.test(way.highway || '');
     const path = /^(footway|path|steps|cycleway|track)/.test(way.highway || '');
     const weight = major ? 5 : path ? 1.8 : 3.2;
-    const common = {pane:'territoryRoadPane',interactive:false,lineCap:'round',lineJoin:'round'};
+    const common = {pane:'territoryRoadPane',renderer:vectorRoadLayer._renderer,interactive:false,lineCap:'round',lineJoin:'round'};
     L.polyline(latLngs,{...common,color:'#9ca79d',weight:weight + 2.2,opacity:.82}).addTo(vectorRoadLayer);
     L.polyline(latLngs,{...common,color:path ? '#e7e5d8' : '#fff',weight,
       opacity:.98,dashArray:path ? '4,5' : null}).addTo(vectorRoadLayer);
@@ -4162,7 +4165,28 @@ function runtimeOfflineVisibleReferences(loc){
   return cache.references.filter(ref=>!hidden.has(referenceKey(ref)) && !isCoveredByManualIcon(ref,manual));
 }
 
+function cancelRuntimeOfflineMapRefresh(){
+  if(runtimeOfflineRenderFrame === null) return;
+  cancelAnimationFrame(runtimeOfflineRenderFrame);
+  runtimeOfflineRenderFrame = null;
+}
+
 function refreshRuntimeOfflineMap(){
+  if(!map || currentView !== 'offline' || !LOCS[currentIndex]){
+    cancelRuntimeOfflineMapRefresh();
+    drawRuntimeOfflineMap();
+    return;
+  }
+  // zoomend y moveend, calles y referencias solicitan la misma pintura.
+  // Se resuelve una sola vez en el próximo cuadro, con la vista más reciente.
+  if(runtimeOfflineRenderFrame !== null) return;
+  runtimeOfflineRenderFrame = requestAnimationFrame(() => {
+    runtimeOfflineRenderFrame = null;
+    drawRuntimeOfflineMap();
+  });
+}
+
+function drawRuntimeOfflineMap(){
   const loc=LOCS[currentIndex],cache=runtimeRoadCache;
   if(!map || currentView!=='offline' || !loc){
     runtimeOfflineAreaLayer?.clearLayers();runtimeOfflineLabelLayer?.clearLayers();return;
@@ -7648,6 +7672,10 @@ function initApp(){
   editHandleLayer = L.layerGroup().addTo(map);
   lineEditLayer = L.layerGroup().addTo(map);
   vectorRoadLayer = L.layerGroup().addTo(map);
+  // Un lienzo compartido evita actualizar un elemento SVG por cada tramo al
+  // acercar el mapa offline. Se añade primero para dejar los trazos manuales
+  // encima, incluso después de alternar entre mapas o territorios.
+  vectorRoadLayer._renderer = L.canvas({pane:'territoryRoadPane',padding:.2}).addTo(map);
   runtimeReferenceLayer = L.layerGroup().addTo(map);
   runtimeOfflineAreaLayer=L.layerGroup().addTo(map);
   runtimeOfflineAreaLayer._renderer=L.canvas({pane:'runtimeOfflineDetailPane',padding:.25});
@@ -7692,6 +7720,30 @@ function initApp(){
   window.refreshOfflineCard?.();
 }
 
+function configureRuntimeMapZoom(targetMap, offline){
+  if(!targetMap?.options || typeof targetMap.setView !== 'function') return;
+  if(!targetMap._croquisZoomDefaults){
+    targetMap._croquisZoomDefaults = {
+      zoomAnimation:targetMap.options.zoomAnimation,
+      wheelDebounceTime:targetMap.options.wheelDebounceTime
+    };
+    const originalSetView = targetMap.setView;
+    // Botones, rueda, teclado y fitBounds pasan por esta API pública.
+    // Se conserva la animación del desplazamiento y las opciones del llamador.
+    targetMap.setView = function(center, zoom, options){
+      if(this._croquisOfflineZoom && options !== true && zoom !== undefined && zoom !== this.getZoom()){
+        options = {...(options || {}), zoom:{...(options?.zoom || {}), animate:false}};
+      }
+      return originalSetView.call(this, center, zoom, options);
+    };
+  }
+  targetMap._croquisOfflineZoom = Boolean(offline);
+  // El gesto con dos dedos consulta zoomAnimation al terminar; la rueda usa
+  // el mismo intervalo de entrada que un cuadro de pantalla en modo offline.
+  targetMap.options.zoomAnimation = offline ? false : targetMap._croquisZoomDefaults.zoomAnimation;
+  targetMap.options.wheelDebounceTime = offline ? 16 : targetMap._croquisZoomDefaults.wheelDebounceTime;
+}
+
 function changeView(key, silent){
   if(key !== 'offline'){
     lastOnlineView = key;
@@ -7699,6 +7751,8 @@ function changeView(key, silent){
     if(!navigator.onLine) key = 'offline';
   }
   currentView = key;
+  configureRuntimeMapZoom(map, key === 'offline');
+  cancelRuntimeOfflineMapRefresh();
   drawRuntimeOfflineDetails(null);
   runtimeOfflineLabelLayer?.clearLayers();
   // La descarga es el respaldo del mismo mapa, no otra opción del selector.
@@ -10434,6 +10488,6 @@ if(document.readyState === 'loading'){
 }
 </script>
 <script src="congregation-access.js"></script>
-<script src="offline-controller.js?v=offline-update-1"></script>
+<script src="offline-controller.js?v=offline-zoom-1"></script>
 </body>
 </html>
