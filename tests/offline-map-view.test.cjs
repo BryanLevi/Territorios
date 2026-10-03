@@ -5,14 +5,15 @@ const path = require('node:path');
 const vm = require('node:vm');
 const html = fs.readFileSync(path.join(__dirname, '../outputs/croquis_territorios.html'), 'utf8');
 const changeViewSource = html.slice(html.indexOf('function changeView('), html.indexOf('\nfunction ll2t('));
+const viewSelectionSource = html.slice(html.indexOf("viewSel.addEventListener('change'"), html.indexOf("frameScaleInput.addEventListener('input'"));
 
 function harness(online = true) {
   const calls = {tiles:[], removed:[], refresh:0, roads:0, refs:0};
   let selected = 'g-road';
-  const viewSel = {dataset:{}, title:''};
+  const viewSel = {dataset:{}, title:'', handlers:{}, addEventListener(type, handler) { this.handlers[type] = handler; }};
   Object.defineProperty(viewSel, 'value', {
     get:() => selected,
-    set:value => { selected = ['g-road','g-sat'].includes(value) ? value : ''; }
+    set:value => { selected = ['g-road','g-sat','offline'].includes(value) ? value : ''; }
   });
   const container = {classList:{toggle(name, state) { container[name] = state; }}};
   const context = {
@@ -40,16 +41,18 @@ function harness(online = true) {
   };
   context.window = context;
   vm.runInNewContext(changeViewSource, context);
+  vm.runInNewContext(viewSelectionSource, context);
   return {context, calls, container};
 }
 
-test('perder conexión usa la descarga en el mismo mapa conservando Google en el selector', () => {
+test('perder conexión usa la descarga y refleja el mapa sin conexión en el selector', () => {
   const {context, calls, container} = harness(false);
   const originalMap = context.map;
   context.changeView('g-road', true);
   assert.equal(context.map, originalMap);
   assert.equal(context.currentView, 'offline');
-  assert.equal(context.viewSel.value, 'g-road');
+  assert.equal(context.viewSel.value, 'offline');
+  assert.equal(context.lastOnlineView, 'g-road');
   assert.equal(context.viewSel.dataset.offline, 'true');
   assert.equal(context.offlineAutoView, true);
   assert.equal(container['offline-map'], true);
@@ -64,7 +67,7 @@ test('cambiar la selección sin internet recuerda la vista y no pide teselas', (
   context.changeView('g-sat');
   assert.equal(context.currentView, 'offline');
   assert.equal(context.lastOnlineView, 'g-sat');
-  assert.equal(context.viewSel.value, 'g-sat');
+  assert.equal(context.viewSel.value, 'offline');
   assert.equal(calls.tiles.length, 0);
   context.navigator.onLine = true;
   context.changeView(context.lastOnlineView, true);
@@ -80,7 +83,7 @@ test('ver y cerrar la copia guardada conserva el mapa y retira las capas externa
   context.changeView('g-road', true);
   const externalLayers = calls.tiles.slice();
   context.changeView('offline', true);
-  assert.equal(context.viewSel.value, 'g-road');
+  assert.equal(context.viewSel.value, 'offline');
   assert.equal(context.currentView, 'offline');
   assert.equal(context.tileLayer, null);
   assert(externalLayers.every(layer => calls.removed.includes(layer)));
@@ -91,4 +94,25 @@ test('ver y cerrar la copia guardada conserva el mapa y retira las capas externa
   assert.equal(context.viewSel.value, 'g-road');
   assert.equal(container['offline-map'], false);
   assert.equal(context.map._offlineAttribution, false);
+});
+
+test('elegir la copia offline desde el selector convierte el respaldo automático en una selección manual', () => {
+  const {context, calls} = harness(false);
+  context.changeView('g-sat');
+  assert.equal(context.offlineAutoView, true);
+  assert.equal(context.viewSel.value, 'offline');
+  context.viewSel.handlers.change();
+  assert.equal(context.currentView, 'offline');
+  assert.equal(context.viewSel.value, 'offline');
+  assert.equal(context.lastOnlineView, 'g-sat');
+  assert.equal(context.offlineAutoView, false);
+  assert.equal(calls.tiles.length, 0);
+
+  context.navigator.onLine = true;
+  context.viewSel.value = 'g-sat';
+  context.viewSel.handlers.change();
+  assert.equal(context.currentView, 'g-sat');
+  assert.equal(context.viewSel.value, 'g-sat');
+  assert.equal(context.offlineAutoView, false);
+  assert(calls.tiles.every(layer => layer.url.includes('/satellite/')));
 });

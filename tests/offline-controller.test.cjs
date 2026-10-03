@@ -94,8 +94,8 @@ function harness(options = {}) {
     roadWaysFromOverpass:data => data.elements, referencesFromOverpass:data => data.elements,
     writeOverpassCache(loc, kind, value) { calls.cache.push({group:context.congregacionActivaId, key:loc.num, kind, value}); },
     currentView:'g-road', lastOnlineView:'g-road', offlineAutoView:false, runtimeRoadCache:null, runtimeReferenceCache:null,
-    viewSel:{value:'g-road'},TILES:{'g-road':{name:'Google Calles - principal'},'carto-voyager':{name:'Carto Voyager - detallado'}},
-    changeView(view) { calls.views.push(view); context.currentView=view; context.viewSel.value=view==='offline' ? context.lastOnlineView : view; },
+    viewSel:{value:'g-road'},TILES:{'g-road':{name:'Google Calles - principal'},'g-sat':{name:'Google Satélite - vista previa'}},
+    changeView(view) { calls.views.push(view); context.currentView=view; context.viewSel.value=view; },
     setStatus() {},
     updateRuntimeVectorRoadOverlay() { calls.redraw++; }, updateRuntimeReferenceOverlay() { calls.redraw++; },
     URL, AbortController, DOMException,
@@ -179,7 +179,7 @@ test('la actualización comparte la preparación en curso y espera la página nu
   assert.equal(app.calls.set.length, 0);
   assert.equal(app.calls.fetch.length, 0);
   assert.equal(app.calls.prepare.length,1);
-  assert.equal(app.calls.prepare[0].cacheName,'croquis-app-shell-v13');
+  assert.equal(app.calls.prepare[0].cacheName,'croquis-app-shell-v14');
   assert.ok(app.calls.prepare[0].files.includes('offline-shell.js'));
   assert.equal(app.element('offline-download').attributes['aria-busy'],'true');
   waiting.resolve();
@@ -283,7 +283,6 @@ test('el botón queda verde solo con todos los territorios cubiertos y la págin
   assert.match(app.element('btn-offline').getAttribute('aria-label'),/Descarga completa/);
   assert.equal(app.element('offline-preview').hidden,false);
   assert.match(app.element('offline-status').textContent,/automáticamente/);
-  assert.doesNotMatch(app.element('offline-status').textContent,/selector|Elige «Mapa descargado»/);
 });
 
 test('una página incompleta o un error de caché no marca verde aunque las calles estén guardadas', async () => {
@@ -397,7 +396,7 @@ test('un error al leer o quitar mapas elimina el estado verde y permite revisar 
   assert.match(app.element('offline-status').textContent,/No se pudo quitar/);
 });
 
-test('la vista guardada y la vuelta a Google son reversibles, conservan encuadre y no usan una opción offline', async () => {
+test('elegir la vista guardada persiste al recuperar internet y permite volver a Google sin mover el encuadre', async () => {
   const app=harness();
   await app.ready();
   app.records.set('a:1',savedRecord());
@@ -407,12 +406,23 @@ test('la vista guardada y la vuelta a Google son reversibles, conservan encuadre
   await app.preview();
   await app.ready();
   assert.equal(app.context.currentView,'offline');
-  assert.equal(app.context.offlineAutoView,true);
-  assert.equal(app.context.viewSel.value,'g-road');
+  assert.equal(app.context.offlineAutoView,false);
+  assert.equal(app.context.viewSel.value,'offline');
   assert.equal(app.element('offline-preview-label').textContent,'Volver a Google Calles');
   assert.equal(app.element('offline-preview').getAttribute('aria-pressed'),'true');
   assert.match(app.element('offline-status').textContent,/Estás viendo las calles y nombres guardados/);
   assert.equal(green(app),true);
+  app.context.navigator.onLine=false;
+  app.networkHandlers.offline();
+  await app.ready();
+  app.context.navigator.onLine=true;
+  app.networkHandlers.online();
+  await app.ready();
+  assert.equal(app.context.currentView,'offline');
+  assert.equal(app.context.viewSel.value,'offline');
+  assert.equal(app.context.lastOnlineView,'g-road');
+  assert.deepEqual(app.calls.views,['offline']);
+  assert.equal(app.calls.fetch.length,0);
   await app.preview();
   await app.ready();
   assert.equal(app.context.currentView,'g-road');
@@ -421,27 +431,28 @@ test('la vista guardada y la vuelta a Google son reversibles, conservan encuadre
   assert.equal(JSON.stringify(app.context.map),before);
 });
 
-test('perder internet usa la copia guardada y recuperarlo vuelve a la base seleccionada sin elegir offline', async () => {
+test('el respaldo automático se refleja en el selector y recuperarlo vuelve a la última base en línea', async () => {
   const app=harness();
   await app.ready();
   app.records.set('a:1',savedRecord());
   await app.context.refreshOfflineCard();
-  app.context.currentView='carto-voyager';
-  app.context.viewSel.value='carto-voyager';
+  app.context.currentView='g-sat';
+  app.context.viewSel.value='g-sat';
   app.context.navigator.onLine=false;
   app.networkHandlers.offline();
   await app.ready();
   assert.equal(app.context.currentView,'offline');
-  assert.equal(app.context.lastOnlineView,'carto-voyager');
-  assert.equal(app.context.viewSel.value,'carto-voyager');
+  assert.equal(app.context.lastOnlineView,'g-sat');
+  assert.equal(app.context.viewSel.value,'offline');
+  assert.equal(app.context.offlineAutoView,true);
   assert.equal(green(app),true);
   assert.equal(app.element('offline-preview').disabled,true);
   app.context.navigator.onLine=true;
   app.networkHandlers.online();
   await app.ready();
-  assert.equal(app.context.currentView,'carto-voyager');
-  assert.equal(app.context.viewSel.value,'carto-voyager');
-  assert.deepEqual(app.calls.views,['offline','carto-voyager']);
+  assert.equal(app.context.currentView,'g-sat');
+  assert.equal(app.context.viewSel.value,'g-sat');
+  assert.deepEqual(app.calls.views,['offline','g-sat']);
 });
 
 test('un clic de vista previa pendiente no abre la descarga de otra congregación', async () => {

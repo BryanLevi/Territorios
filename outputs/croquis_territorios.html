@@ -569,9 +569,9 @@ body.print-preview{overflow:hidden}
 }
 </style>
 <link rel="stylesheet" href="../tokens.css?v=blue-bubbles-1">
-<link rel="stylesheet" href="./toolbar-premium.css?v=frame-move-1">
+<link rel="stylesheet" href="./toolbar-premium.css?v=offline-selector-1">
 <link rel="stylesheet" href="./welcome-premium.css?v=footer-outside-1">
-<link rel="stylesheet" href="./editor-premium.css?v=offline-ready-1">
+<link rel="stylesheet" href="./editor-premium.css?v=offline-selector-1">
 </head>
 <body>
 <section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
@@ -870,10 +870,16 @@ body.print-preview{overflow:hidden}
   </div>
   <div class="field campo-mapa">
     <label for="view-sel">Mapa</label>
+    <div class="map-choice-controls">
     <select id="view-sel" disabled>
       <option value="g-road" selected>Google Calles - principal</option>
       <option value="g-sat">Google Satélite - vista previa</option>
+      <option value="offline">Mapa sin conexión</option>
     </select>
+    <button class="btn ghost" id="btn-offline" type="button" title="Descargar o actualizar los mapas de esta congregación para usarlos sin internet" aria-label="Descargar o actualizar mapa sin conexión" aria-haspopup="dialog" aria-controls="offline-dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg>
+    </button>
+    </div>
   </div>
   <div class="field frame-field">
     <label for="frame-scale">Recuadro</label>
@@ -1011,10 +1017,6 @@ body.print-preview{overflow:hidden}
   <p class="ubicacion-estado sr-only" id="ubicacion-estado" role="status" aria-live="polite" hidden></p>
   </div>
   <div class="bar-group grupo-doc">
-  <button class="btn ghost" id="btn-offline" type="button" title="Preparar los mapas de esta congregación para usarlos sin internet" aria-label="Mapa sin conexión de esta congregación" aria-haspopup="dialog" aria-controls="offline-dialog">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg>
-    Mapa sin conexión
-  </button>
   <button class="btn secondary" id="btn-agrupar" type="button" disabled title="Descargar un territorio o varios juntos" aria-label="Agrupar y descargar PDF">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path></svg>
     Descargar PDF
@@ -4247,7 +4249,7 @@ async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
       drawRuntimeVectorRoads(ways);
       refreshRuntimeOfflineMap();
     }else{
-      setStatus('Este territorio aún no tiene calles descargadas. Abre «Mapa sin conexión» y descarga esta congregación con internet.', 'warn');
+      setStatus('Este territorio aún no tiene calles descargadas. Usa el botón de descarga junto al selector de mapas para guardar esta congregación con internet.', 'warn');
     }
     return;
   }
@@ -7625,7 +7627,10 @@ function initApp(){
   // Una congregacion recien creada no tiene ni un territorio todavia, asi que
   // el centro de arranque no puede darse por hecho.
   const centroInicial = LOCS[0] || congregacionBase();
-  map = L.map('map', { zoomControl:true, attributionControl:true })
+  map = L.map('map', {
+    zoomControl:true, attributionControl:true,
+    zoomAnimation:false, fadeAnimation:false, wheelDebounceTime:16
+  })
     .setView([centroInicial.lat ?? 19.048889, centroInicial.lon ?? -96.981944], 17);
   registrarCentradoUbicacion();
   map.createPane('runtimeOfflineDetailPane');
@@ -7755,8 +7760,7 @@ function changeView(key, silent){
   cancelRuntimeOfflineMapRefresh();
   drawRuntimeOfflineDetails(null);
   runtimeOfflineLabelLayer?.clearLayers();
-  // La descarga es el respaldo del mismo mapa, no otra opción del selector.
-  viewSel.value = key === 'offline' ? lastOnlineView : key;
+  viewSel.value = key;
   viewSel.dataset.offline = String(key === 'offline');
   viewSel.title = key === 'offline' ? 'Mostrando la copia guardada en este dispositivo' : '';
   const src = TILES[key] || TILES.osm;
@@ -10181,7 +10185,11 @@ function pedirUbicacion(){
 $('btn-ubicacion').addEventListener('click', pedirUbicacion);
 $('btn-ubicacion-stop').addEventListener('click', () => apagarUbicacion('Ubicación apagada.'));
 locSel.addEventListener('change', () => goTo(locSel.value));
-viewSel.addEventListener('change', () => changeView(viewSel.value));
+viewSel.addEventListener('change', () => {
+  // Una elección manual de la copia guardada se mantiene al volver internet.
+  offlineAutoView = false;
+  changeView(viewSel.value);
+});
 frameScaleInput.addEventListener('input', () => setFrameScaleForCurrent(frameScaleInput.value));
 frameResetButton.addEventListener('click', resetFrameForCurrent);
 frameMoveButton.addEventListener('click', () => setFrameMoveMode(!frameMoveMode));
@@ -10488,6 +10496,6 @@ if(document.readyState === 'loading'){
 }
 </script>
 <script src="congregation-access.js"></script>
-<script src="offline-controller.js?v=offline-zoom-1"></script>
+<script src="offline-controller.js?v=offline-selector-1"></script>
 </body>
 </html>

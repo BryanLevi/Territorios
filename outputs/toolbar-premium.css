@@ -136,7 +136,9 @@
   }
   .premium-toolbar .territory-actions .btn-rotulo { font-size: 11px; }
   .premium-toolbar .territory-actions .btn svg { width: 16px; height: 16px; flex: 0 0 16px; }
-  .premium-toolbar .campo-mapa { flex: 0 1 230px; min-width: 165px; }
+  .premium-toolbar .campo-mapa { flex: 0 1 280px; min-width: 220px; }
+  .premium-toolbar .map-choice-controls { display: flex; align-items: center; gap: var(--space-xs); width: 100%; min-width: 0; }
+  .premium-toolbar .map-choice-controls select { flex: 1 1 auto; min-width: 0; }
   .premium-toolbar select, .premium-toolbar .text-input {
     height: var(--control-height);
     min-height: var(--control-height);
@@ -418,7 +420,8 @@
   .premium-toolbar.tools-collapsed .grow label { display: block; }
   .premium-toolbar #btn-tools-toggle { position: absolute; top: var(--space-md); right: 0; display: inline-flex; order: 0; width: var(--control-height); min-width: var(--control-height); max-width: var(--control-height); padding: 0; font-size: 0; flex: 0 0 var(--control-height); }
   .premium-toolbar #btn-tools-toggle svg { width: 20px; height: 20px; }
-  .premium-toolbar .campo-mapa { flex: 1 1 155px; min-width: 0; }
+  .premium-toolbar .campo-mapa,
+  .premium-toolbar.tools-collapsed .campo-mapa { display: flex; flex: 1 1 220px; min-width: 0; }
   .premium-toolbar .frame-field { flex: 1 1 250px; min-width: 0; }
   .premium-toolbar .frame-control { width: 100%; }
   .premium-toolbar .frame-control input[type=range] { min-width: 0; }
@@ -458,8 +461,7 @@
   .premium-toolbar.tools-collapsed #tools-panel,
   .premium-toolbar.tools-collapsed .frame-field,
   .premium-toolbar.tools-collapsed .grupo-terr,
-  .premium-toolbar.tools-collapsed .grupo-sync,
-  .premium-toolbar.tools-collapsed .campo-mapa { display: none; }
+  .premium-toolbar.tools-collapsed .grupo-sync { display: none; }
   .premium-toolbar.tools-collapsed .brand span { display: inline; }
   .premium-toolbar .brand .brand-mark, .premium-toolbar.tools-collapsed .brand .brand-mark { display: inline-flex; }
   .premium-toolbar.tools-collapsed .brand .brand-credit { display: block; }
