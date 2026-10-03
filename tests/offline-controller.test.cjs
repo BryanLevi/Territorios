@@ -42,7 +42,7 @@ function harness(options = {}) {
     return elements.get(id);
   };
   const records = new Map();
-  const calls = {fetch:[], download:[], set:[], cache:[], shell:[], views:[], pause:0, resume:0, redraw:0};
+  const calls = {fetch:[], download:[], set:[], cache:[], shell:[], prepare:[], views:[], pause:0, resume:0, redraw:0};
   const networkHandlers = {};
   const timers = new Map();
   let timerId = 0;
@@ -79,7 +79,12 @@ function harness(options = {}) {
     navigator:{onLine:true, storage:{persist:options.persist || (async () => true)},
       serviceWorker:{register:async () => registration, ready:Promise.resolve(registration)}},
     caches:{open:async () => cache}, isSecureContext:true,
-    CroquisOfflineData:dataStore, CroquisOfflineDetails:mapDetails, addEventListener(type, fn) { networkHandlers[type] = fn; },
+    CroquisOfflineData:dataStore, CroquisOfflineDetails:mapDetails,
+    CroquisOfflineShell:{async prepare(settings) {
+      calls.prepare.push(settings);
+      return options.prepareShell ? options.prepareShell(settings) : true;
+    }},
+    addEventListener(type, fn) { networkHandlers[type] = fn; },
     pauseOnlineMapRequests() { calls.pause++; }, resumeOnlineMapRequests() { calls.resume++; },
     congregacionActivaId:'a', congregacionActual:() => ({nombre:context.congregacionActivaId}),
     LOCS:options.territories || [{num:1, nombre:'Primero'}], map:{}, DETAIL_ZOOM:16,
@@ -163,29 +168,25 @@ test('cambiar congregación durante la escritura no contamina la caché de la nu
   assert.equal(app.calls.redraw, 0);
 });
 
-test('la actualización espera al trabajador nuevo aunque ready siga teniendo el anterior', {timeout:1000}, async () => {
-  let shellReady = false, oldMessages = 0, newMessages = 0;
-  const listeners = new Set();
-  const worker = {
-    state:'installing', addEventListener(type, fn) { listeners.add(fn); }, removeEventListener(type, fn) { listeners.delete(fn); },
-    postMessage(message, ports) { newMessages++; shellReady = true; ports[0].dispatch({ok:true}); }
-  };
-  const registration = {active:{postMessage() { oldMessages++; }}, installing:worker};
-  const app = harness({registration, cacheMatch:() => shellReady ? {ok:true} : undefined});
+test('la actualización comparte la preparación en curso y espera la página nueva antes de guardar mapas', {timeout:1000}, async () => {
+  let shellReady = false;
+  const waiting=deferred();
+  const app = harness({cacheMatch:() => shellReady ? {ok:true} : undefined,
+    prepareShell:async()=>{await waiting.promise;shellReady=true;return true;}});
   await app.ready();
   const pending = app.download();
   await tick();
   assert.equal(app.calls.set.length, 0);
-  assert.equal(oldMessages, 0);
-  registration.active = worker;
-  registration.installing = null;
-  worker.state = 'activated';
-  [...listeners].forEach(fn => fn());
+  assert.equal(app.calls.fetch.length, 0);
+  assert.equal(app.calls.prepare.length,1);
+  assert.equal(app.calls.prepare[0].cacheName,'croquis-app-shell-v12');
+  assert.ok(app.calls.prepare[0].files.includes('offline-shell.js'));
+  assert.equal(app.element('offline-download').attributes['aria-busy'],'true');
+  waiting.resolve();
   await pending;
-  assert.equal(oldMessages, 0);
-  assert.equal(newMessages, 1);
   assert.equal(app.records.size, 1);
   assert.equal(app.element('offline-badge').textContent, 'Listo');
+  assert.equal(app.element('offline-download').attributes['aria-busy'],'false');
   assert.equal(app.calls.redraw, 2);
 });
 
@@ -250,6 +251,22 @@ test('la dirección limpia descarga el paquete y revisa la caché usando la base
 
 const savedRecord = () => ({bounds:{...broad}, roads:[], refs:[], details:{areas:[],places:[]}, detailVersion:2, savedAt:Date.now()});
 const green = app => app.element('btn-offline').classList.contains('is-offline-ready');
+
+test('la caché nueva completa no marca verde hasta comprobar que su versión está activa', async () => {
+  const verified=deferred();
+  const app=harness({prepareShell:()=>verified.promise});
+  app.records.set('a:1',savedRecord());
+  await app.ready();
+  assert.equal(green(app),false);
+  assert.equal(app.element('offline-preview').hidden,true);
+  verified.resolve(true);
+  await tick();
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),true);
+  assert.equal(app.element('offline-preview').hidden,false);
+  assert.equal(app.calls.fetch.length,0);
+  assert.equal(app.calls.set.length,0);
+});
 
 test('el botón queda verde solo con todos los territorios cubiertos y la página completa', async () => {
   const app = harness({territories:[{num:1,nombre:'Uno'},{num:2,nombre:'Dos'}]});
@@ -486,7 +503,73 @@ test('actualizar guarda detalles y nombres completos conservando las calles y re
   assert.deepEqual(updated.roads,entry.roads);
   assert.deepEqual(updated.refs,entry.refs);
   assert.equal(app.calls.download.length,0);
+  assert.equal(app.calls.fetch[0].opts.cache,'no-store');
   assert.equal(green(app),true);
+});
+
+test('el fallo al preparar la página permanece visible al reabrir y no borra los mapas anteriores', async () => {
+  let failed=true;
+  const app=harness({prepareShell:async()=>{
+    if(failed) throw new Error('No se pudo actualizar la página sin conexión.');
+    return true;
+  }});
+  await app.ready();
+  const old=legacyRecord();
+  app.records.set('a:1',old);
+  await app.download();
+  const message=app.element('offline-status').textContent;
+  assert.match(message,/No se pudo actualizar la página/);
+  assert.equal(app.calls.fetch.length,0);
+  assert.equal(app.calls.set.length,0);
+  assert.equal(app.records.get('a:1'),old);
+  await app.context.refreshOfflineCard();
+  await app.context.refreshOfflineCard();
+  assert.equal(app.element('offline-status').textContent,message);
+  assert.equal(app.element('offline-badge').textContent,'Actualización pendiente');
+  assert.equal(app.element('offline-download').disabled,false);
+  failed=false;
+  await app.download();
+  assert.equal(app.records.get('a:1').detailVersion,2);
+  assert.equal(green(app),true);
+  assert.equal(app.element('offline-badge').textContent,'Listo');
+});
+
+test('los avisos de un intento fallido no pasan a otra congregación ni a un recuadro diferente', async () => {
+  const app=harness({prepareShell:async()=>{throw new Error('Preparación antigua fallida');}});
+  await app.ready();
+  app.records.set('a:1',legacyRecord());
+  await app.download();
+  assert.match(app.element('offline-status').textContent,/Preparación antigua fallida/);
+  app.context.LOCS[0].bounds={south:20,west:-98,north:20.01,east:-97.99};
+  await app.context.refreshOfflineCard();
+  assert.doesNotMatch(app.element('offline-status').textContent,/Preparación antigua fallida/);
+  await app.download();
+  app.context.congregacionActivaId='b';
+  await app.context.refreshOfflineCard();
+  assert.doesNotMatch(app.element('offline-status').textContent,/Preparación antigua fallida/);
+});
+
+test('cancelar mientras se prepara la actualización libera controles y no inicia el paquete al terminar la preparación', async () => {
+  const waiting=deferred();
+  const app=harness({prepareShell:async()=>{await waiting.promise;return true;}});
+  await app.ready();
+  const old=legacyRecord();
+  app.records.set('a:1',old);
+  const operation=app.download();
+  await tick();
+  app.cancel();
+  await operation;
+  assert.equal(app.element('offline-download').disabled,false);
+  assert.equal(app.calls.fetch.length,0);
+  assert.equal(app.calls.set.length,0);
+  assert.equal(app.records.get('a:1'),old);
+  waiting.resolve();
+  await tick();
+  await app.context.refreshOfflineCard();
+  assert.equal(app.calls.fetch.length,0);
+  assert.equal(app.calls.set.length,0);
+  assert.equal(app.element('offline-badge').textContent,'Pausado');
+  assert.match(app.element('offline-status').textContent,/Descarga pausada/);
 });
 
 test('una actualización fallida conserva la copia antigua y sus referencias', async () => {

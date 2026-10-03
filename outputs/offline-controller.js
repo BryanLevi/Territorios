@@ -5,14 +5,17 @@
   const $offline = id => document.getElementById(id);
   const dataStore = window.CroquisOfflineData;
   const mapDetails = window.CroquisOfflineDetails;
+  const offlineShell = window.CroquisOfflineShell;
   const offlineDialog = $offline('offline-dialog');
   let running = null;
   let removingGroup = null;
   let shellPromise = null;
+  let shellVerified = false;
   let preparedPackPromise = null;
   let refreshVersion = 0;
+  let downloadNotice = null;
   let readiness = {group:null, signature:'', ready:false, usable:false};
-  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-map-details.js', 'offline-data.js', 'offline-controller.js', 'destination-placement.js',
+  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-shell.js', 'offline-map-details.js', 'offline-data.js', 'offline-controller.js', 'destination-placement.js',
     'congregation-password.js', 'congregation-access.js', 'favicon.svg',
     '../croquis-territorios-jw/', '../croquis-territorios-jw/index.html', '../croquis-territorio-jw/', '../croquis-territorio-jw/index.html', '../coquis-territorios-jw/', '../coquis-territorios-jw/index.html', '../tokens.css', 'welcome-premium.css',
     'toolbar-premium.css', 'editor-premium.css', '../vendor/leaflet/leaflet.js', '../vendor/leaflet/leaflet.css',
@@ -116,6 +119,7 @@
 
   function controls(active, hasRecords) {
     $offline('offline-download').disabled = active || removingGroup === congregacionActivaId || !navigator.onLine || !LOCS.length;
+    $offline('offline-download').setAttribute('aria-busy', String(active));
     $offline('offline-cancel').hidden = !active;
     $offline('offline-remove').hidden = active || !hasRecords;
     $offline('offline-remove').disabled = active || removingGroup === congregacionActivaId;
@@ -132,6 +136,7 @@
     try {
       const required = requiredTerritories();
       const signature = JSON.stringify(required);
+      if (downloadNotice && (downloadNotice.group !== group || downloadNotice.signature !== signature)) downloadNotice = null;
       if (readiness.group !== group || readiness.signature !== signature || running || removingGroup === group) setReadiness(false, group, signature, running || removingGroup === group ? 'loading' : '');
       else setReadiness(readiness.ready, group, signature, '', readiness.usable);
       if (removingGroup === group) return;
@@ -146,8 +151,8 @@
       });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v11');
-        shellReady = await shellComplete(shellCache);
+        const shellCache = await caches.open('croquis-app-shell-v12');
+        shellReady = shellVerified && await shellComplete(shellCache);
       }
       if (version !== refreshVersion || group !== congregacionActivaId || (running && running.group === group)) return;
       if (signature !== JSON.stringify(requiredTerritories())) { setReadiness(false, group, '', ''); return; }
@@ -189,6 +194,11 @@
         status(navigator.onLine ? 'Prepara los mapas mientras tengas internet.' :
           'Conéctate a internet para descargar los mapas.');
       }
+      if (readiness.ready) downloadNotice = null;
+      if (downloadNotice?.group === group && downloadNotice.signature === signature) {
+        badge(downloadNotice.state === 'error' ? 'Actualización pendiente' : 'Pausado', downloadNotice.state);
+        status(downloadNotice.message, downloadNotice.state);
+      }
     } catch (error) {
       if (version !== refreshVersion || group !== congregacionActivaId) return;
       setReadiness(false, group, '', 'error');
@@ -199,51 +209,13 @@
   }
 
   async function ensureShell() {
-    if (!('serviceWorker' in navigator) || !('caches' in window) || !window.isSecureContext) {
-      throw new Error('Para guardar la página, ábrela con HTTPS en este navegador.');
+    if (!offlineShell?.prepare) throw new Error('Recarga la página con internet para recibir la corrección de la descarga.');
+    if (!shellPromise) {
+      shellVerified = false;
+      shellPromise = offlineShell.prepare({
+        baseURI:document.baseURI || location.href, cacheName:'croquis-app-shell-v12', files:shellFiles
+      }).then(() => { shellVerified = true; return true; }).finally(() => { shellPromise = null; });
     }
-    if (!shellPromise) shellPromise = (async () => {
-      const registered = await navigator.serviceWorker.register('../sw.js', { scope:'../' });
-      const updating = registered.installing || registered.waiting;
-      // Durante una actualización, ready puede devolver todavía el trabajador
-      // anterior. Esperamos al nuevo antes de pedirle que complete su caché.
-      if (updating && updating.state !== 'activated') {
-        await new Promise((resolve, reject) => {
-          const finish = error => {
-            clearTimeout(timer);
-            updating.removeEventListener('statechange', changed);
-            error ? reject(error) : resolve();
-          };
-          const changed = () => {
-            if (updating.state === 'activated') finish();
-            else if (updating.state === 'redundant') finish(new Error('No se pudo actualizar la página sin conexión. Recarga e intenta de nuevo.'));
-          };
-          const timer = setTimeout(() => finish(new Error('La página tardó en actualizarse. Recárgala e intenta de nuevo.')), 20000);
-          updating.addEventListener('statechange', changed);
-          changed();
-        });
-      }
-      const registration = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('La página tardó en prepararse. Recárgala e intenta de nuevo.')), 20000))
-      ]);
-      const cache = await caches.open('croquis-app-shell-v11');
-      if (!await shellComplete(cache)) {
-        const worker = registration.active;
-        if (!worker) throw new Error('No se pudo guardar la página para abrirla sin internet.');
-        await new Promise((resolve, reject) => {
-          const channel = new MessageChannel();
-          const timer = setTimeout(() => reject(new Error('La página tardó demasiado en guardarse.')), 30000);
-          channel.port1.onmessage = event => {
-            clearTimeout(timer);
-            event.data?.ok ? resolve() : reject(new Error(event.data?.message || 'No se pudo guardar la página.'));
-          };
-          worker.postMessage({type:'CACHE_SHELL'}, [channel.port2]);
-        });
-        if (!await shellComplete(cache)) throw new Error('No se pudo guardar la página para abrirla sin internet.');
-      }
-      return true;
-    })().finally(() => { shellPromise = null; });
     return shellPromise;
   }
 
@@ -268,7 +240,9 @@
       if (signal.aborted) onAbort();
       const timer = setTimeout(() => controller.abort(), 20000);
       try {
-        const response = await fetch(new URL('offline-map-pack.json?v=details-2', document.baseURI || location.href), {signal:controller.signal});
+        const response = await fetch(new URL('offline-map-pack.json?v=details-2', document.baseURI || location.href), {
+          signal:controller.signal, cache:'no-store'
+        });
         if (!response.ok) return null;
         const pack = await response.json();
         return pack?.version === 2 && Array.isArray(pack.territories) ? pack : null;
@@ -312,6 +286,8 @@
       status(error.message || 'Revisa el recuadro de los territorios.', 'error');
       return;
     }
+    const downloadSignature = JSON.stringify(territories.map(({key, bounds}) => ({key, bounds})));
+    downloadNotice = null;
     const controller = new AbortController();
     let timeLimit = false;
     const downloadTimer = setTimeout(() => { timeLimit = true; controller.abort(); }, 180000);
@@ -401,7 +377,8 @@
           : 'Descarga pausada. Los territorios ya guardados se conservan; puedes reanudarla.', ''];
       } else {
         badge('Incompleto', 'error');
-        finalNotice = [(error?.message || 'No se completó la descarga.') + ' Vuelve a intentarlo para continuar.', 'error'];
+        const message = error?.message || 'No se completó la descarga.';
+        finalNotice = [message + (/vuelve a intentar(?:lo)?/i.test(message) ? '' : ' Vuelve a intentarlo para continuar.'), 'error'];
       }
     } finally {
       clearTimeout(downloadTimer);
@@ -415,8 +392,10 @@
       }
       await refresh();
       if (finalNotice && group === congregacionActivaId) {
+        downloadNotice = {group, signature:downloadSignature, message:finalNotice[0], state:finalNotice[1]};
         if (finalNotice[1] === 'error') setReadiness(false, group, readiness.group === group ? readiness.signature : '', 'error',
           readiness.group === group && readiness.usable);
+        badge(finalNotice[1] === 'error' ? 'Actualización pendiente' : 'Pausado', finalNotice[1]);
         status(finalNotice[0], finalNotice[1]);
       }
     }
@@ -425,6 +404,7 @@
   async function removeAll() {
     if (running || removingGroup || !dataStore) return;
     const group = congregacionActivaId;
+    downloadNotice = null;
     removingGroup = group;
     refreshVersion++;
     setReadiness(false, group, '', 'loading');

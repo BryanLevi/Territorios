@@ -1,5 +1,5 @@
 /* App shell for the croquis. Map tiles and external APIs are never cached here. */
-const APP_CACHE = 'croquis-app-shell-v11';
+const APP_CACHE = 'croquis-app-shell-v12';
 const APP_FILES = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const APP_FILES = [
   './coquis-territorios-jw/index.html',
   './outputs/croquis_territorios.html',
   './outputs/offline-map-details.js',
+  './outputs/offline-shell.js',
   './outputs/offline-data.js',
   './outputs/destination-placement.js',
   './outputs/offline-controller.js',
@@ -52,14 +53,22 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('message', event => {
-  if(event.data?.type !== 'CACHE_SHELL') return;
+  const type=event.data?.type;
+  if(!['CHECK_SHELL','CACHE_SHELL','ACTIVATE_SHELL'].includes(type)) return;
+  const reply=data=>event.ports[0]?.postMessage({...data,cacheName:APP_CACHE});
+  if(event.data.cacheName!==APP_CACHE){reply({ok:false,message:'La página todavía usa otra versión. Recarga y vuelve a intentar.'});return;}
+  if(type==='CHECK_SHELL'){reply({ok:true});return;}
+  if(type==='ACTIVATE_SHELL'){
+    event.waitUntil(self.skipWaiting().then(()=>reply({ok:true}),error=>reply({ok:false,message:error.message})));
+    return;
+  }
   event.waitUntil((async () => {
     try{
       const cache = await caches.open(APP_CACHE);
       await cache.addAll(APP_URLS.map(url => new Request(url.href, { cache:'reload' })));
-      event.ports[0]?.postMessage({ ok:true });
+      reply({ok:true});
     }catch(error){
-      event.ports[0]?.postMessage({ ok:false, message:error.message });
+      reply({ok:false,message:error.message});
     }
   })());
 });
