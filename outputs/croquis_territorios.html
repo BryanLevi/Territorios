@@ -2999,10 +2999,12 @@ function restoreLastUndoSnapshot(){
   selectedIconIndex = null;
   setContourEditMode(false, false);
   const locIndex = LOCS.findIndex(loc => String(loc.num) === String(snapshot.locNum));
+  // Restaurar los dibujos no reencuadra el mapa: el usuario conserva su
+  // zoom y posición actuales, incluso si se movió después de guardar.
   if(locIndex >= 0){
-    goTo(locIndex, true);
+    goTo(locIndex, true, false);
   }else if(Number.isFinite(Number(snapshot.index)) && LOCS[Number(snapshot.index)]){
-    goTo(Number(snapshot.index), true);
+    goTo(Number(snapshot.index), true, false);
   }else{
     renderColorAreas(LOCS[currentIndex]);
     renderTextLabels(LOCS[currentIndex]);
@@ -10496,6 +10498,6 @@ if(document.readyState === 'loading'){
 }
 </script>
 <script src="congregation-access.js"></script>
-<script src="offline-controller.js?v=offline-selector-1"></script>
+<script src="offline-controller.js?v=undo-view-1"></script>
 </body>
 </html>
