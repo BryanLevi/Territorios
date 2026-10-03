@@ -4,6 +4,9 @@
 @media screen {
   .premium-toolbar #btn-offline { border-color: var(--color-rule-strong); background: var(--color-accent-soft); color: var(--color-accent-deep); }
   .premium-toolbar #btn-offline:hover { background: var(--color-accent-soft-hover); color: var(--color-accent-hover); }
+  .premium-toolbar #btn-offline.is-offline-ready { border-color: var(--color-success); background: var(--color-success); color: #fff; }
+  .premium-toolbar #btn-offline.is-offline-ready:hover { background: var(--color-success); color: #fff; filter: brightness(1.08); }
+  .premium-toolbar #btn-offline.is-offline-ready::after { content: "✓"; display: inline-grid; place-items: center; width: 17px; height: 17px; flex: 0 0 17px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 11px; font-weight: 700; line-height: 1; }
   .premium-toolbar #btn-offline svg { width: 17px; height: 17px; }
   .map-wrap.is-frame-moving > #info-card { display: none !important; }
   .linear-edit-handle { cursor: grab; background: transparent; border: 0; border-radius: 50%; }

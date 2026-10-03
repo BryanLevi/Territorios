@@ -6,8 +6,11 @@
   const dataStore = window.CroquisOfflineData;
   const offlineDialog = $offline('offline-dialog');
   let running = null;
+  let removingGroup = null;
   let shellPromise = null;
   let preparedPackPromise = null;
+  let refreshVersion = 0;
+  let readiness = {group:null, signature:'', ready:false};
   const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-data.js', 'offline-controller.js', 'destination-placement.js',
     'congregation-password.js', 'congregation-access.js', 'favicon.svg',
     '../croquis-territorios-jw/', '../croquis-territorios-jw/index.html', '../croquis-territorio-jw/', '../croquis-territorio-jw/index.html', '../coquis-territorios-jw/', '../coquis-territorios-jw/index.html', '../tokens.css', 'welcome-premium.css',
@@ -51,7 +54,38 @@
   }
 
   async function shellComplete(cache) {
-    return (await Promise.all(shellFiles.map(path => cache.match(new URL(path, document.baseURI || location.href).href)))).every(Boolean);
+    return (await Promise.all(shellFiles.map(path => cache.match(new URL(path, document.baseURI || location.href).href)))).every(response => response && response.ok !== false);
+  }
+
+  function requiredTerritories() {
+    return LOCS.map(loc => ({key:String(loc.num), bounds:territoryBounds(loc)}));
+  }
+
+  function setReadiness(ready, group, signature, state = '') {
+    readiness = {group, signature, ready};
+    const button = $offline('btn-offline');
+    if (button) {
+      button.classList.toggle('is-offline-ready', ready);
+      button.dataset.offlineState = ready ? 'ready' : state || 'incomplete';
+      const description = ready ? 'Descarga completa de esta congregación, lista para usar sin internet.'
+        : state === 'loading' ? 'Comprobando o completando la descarga de esta congregación.'
+          : state === 'error' ? 'La descarga no está completa. Abre para revisarla.'
+            : 'Abre para preparar o revisar los mapas de esta congregación.';
+      button.title = 'Mapa sin conexión. ' + description;
+      button.setAttribute('aria-label', 'Mapa sin conexión. ' + description);
+    }
+    const preview = $offline('offline-preview');
+    if (preview) {
+      const savedView = currentView === 'offline';
+      preview.hidden = !ready && !savedView;
+      preview.disabled = !!running || removingGroup === group || !map || (savedView && !navigator.onLine);
+      let onlineName = 'Google Calles';
+      if (typeof TILES !== 'undefined' && typeof lastOnlineView !== 'undefined') onlineName = (TILES[lastOnlineView]?.name || onlineName).split(' - ')[0];
+      (preview.querySelector('span') || preview).textContent = savedView ? 'Volver a ' + onlineName : 'Ver mapa guardado';
+      preview.title = savedView ? (navigator.onLine ? 'Volver al mapa en línea sin cambiar tu encuadre.' : 'Conéctate para volver al mapa en línea.')
+        : 'Ver las calles y nombres guardados en este dispositivo, sin cambiar tu encuadre.';
+      preview.setAttribute('aria-pressed', String(savedView));
+    }
   }
 
   function status(message, state) {
@@ -75,34 +109,39 @@
   }
 
   function controls(active, hasRecords) {
-    $offline('offline-download').disabled = active || !navigator.onLine || !LOCS.length;
+    $offline('offline-download').disabled = active || removingGroup === congregacionActivaId || !navigator.onLine || !LOCS.length;
     $offline('offline-cancel').hidden = !active;
     $offline('offline-remove').hidden = active || !hasRecords;
+    $offline('offline-remove').disabled = active || removingGroup === congregacionActivaId;
   }
 
   async function refresh() {
     if (!dataStore) return;
+    const version = ++refreshVersion;
     const group = congregacionActivaId;
     const name = congregacionActual().nombre;
     if ($offline('offline-dialog-congregation')) $offline('offline-dialog-congregation').textContent = name;
     if (running && running.group !== group) running.controller.abort();
     const territories = LOCS.slice();
     try {
+      const required = requiredTerritories();
+      const signature = JSON.stringify(required);
+      if (readiness.group !== group || readiness.signature !== signature || running || removingGroup === group) setReadiness(false, group, signature, running || removingGroup === group ? 'loading' : '');
+      else setReadiness(readiness.ready, group, signature);
+      if (removingGroup === group) return;
       const records = await dataStore.list(group);
-      if (group !== congregacionActivaId || (running && running.group === group)) return;
+      if (version !== refreshVersion || group !== congregacionActivaId || (running && running.group === group)) return;
       const found = new Map(records.map(record => [record.key, record.data]));
       let complete = 0;
-      territories.forEach(loc => {
-        try {
-          if (completeRecord(found.get(String(loc.num)), territoryBounds(loc))) complete++;
-        } catch (error) { /* El botón mostrará el error al intentar descargar. */ }
-      });
+      required.forEach(territory => { if (completeRecord(found.get(territory.key), territory.bounds)) complete++; });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v9');
+        const shellCache = await caches.open('croquis-app-shell-v10');
         shellReady = await shellComplete(shellCache);
       }
-      if (group !== congregacionActivaId || (running && running.group === group)) return;
+      if (version !== refreshVersion || group !== congregacionActivaId || (running && running.group === group)) return;
+      if (signature !== JSON.stringify(requiredTerritories())) { setReadiness(false, group, '', ''); return; }
+      setReadiness(territories.length > 0 && complete === territories.length && shellReady, group, signature);
       controls(false, records.length > 0);
       if (running && running.group !== group) $offline('offline-download').disabled = true;
       const downloadLabel = $offline('offline-download').querySelector('span');
@@ -120,7 +159,9 @@
       } else if (complete === territories.length) {
         badge('Listo', 'ready');
         status(complete + (complete === 1 ? ' territorio disponible' : ' territorios disponibles') +
-          ' sin internet. Elige «Mapa descargado» en el selector Mapa.', 'ready');
+          (currentView === 'offline'
+            ? ' sin internet. Estás viendo las calles y nombres guardados en este dispositivo.'
+            : ' sin internet. Al perder conexión, el mapa usará esta copia automáticamente. También puedes tocar «Ver mapa guardado».'), 'ready');
       } else if (complete > 0) {
         badge(complete + ' de ' + territories.length, 'loading');
         progress(complete, territories.length);
@@ -131,7 +172,8 @@
           'Conéctate a internet para descargar los mapas.');
       }
     } catch (error) {
-      if (group !== congregacionActivaId) return;
+      if (version !== refreshVersion || group !== congregacionActivaId) return;
+      setReadiness(false, group, '', 'error');
       controls(false, false);
       badge('No disponible', 'error');
       status(error.message || 'No se pudo consultar la descarga.', 'error');
@@ -167,7 +209,7 @@
         navigator.serviceWorker.ready,
         new Promise((_, reject) => setTimeout(() => reject(new Error('La página tardó en prepararse. Recárgala e intenta de nuevo.')), 20000))
       ]);
-      const cache = await caches.open('croquis-app-shell-v9');
+      const cache = await caches.open('croquis-app-shell-v10');
       if (!await shellComplete(cache)) {
         const worker = registration.active;
         if (!worker) throw new Error('No se pudo guardar la página para abrirla sin internet.');
@@ -230,7 +272,7 @@
   }
 
   async function downloadAll() {
-    if (running) return;
+    if (running || removingGroup) return;
     if (!dataStore || !map || !LOCS.length) {
       status('Primero abre el editor y agrega un territorio.', 'error');
       return;
@@ -244,6 +286,7 @@
     try {
       territories = LOCS.map(loc => ({loc, key:String(loc.num), bounds:territoryBounds(loc)}));
     } catch (error) {
+      setReadiness(false, group, '', 'error');
       status(error.message || 'Revisa el recuadro de los territorios.', 'error');
       return;
     }
@@ -251,6 +294,8 @@
     let timeLimit = false;
     const downloadTimer = setTimeout(() => { timeLimit = true; controller.abort(); }, 180000);
     running = {group, controller};
+    refreshVersion++;
+    setReadiness(false, group, '', 'loading');
     window.pauseOnlineMapRequests?.();
     preparedPackPromise = null;
     let finalNotice = null;
@@ -320,7 +365,7 @@
       } else {
         badge('Listo', 'ready');
         status('Listo: ' + done + (done === 1 ? ' territorio guardado' : ' territorios guardados') +
-          '. Los colores, dibujos y tu ubicación se verán en el mapa descargado.', 'ready');
+          '. El mapa usará las calles guardadas cuando no haya internet; tus colores, dibujos y ubicación seguirán visibles.', 'ready');
       }
     } catch (error) {
       if (error?.name === 'AbortError') {
@@ -342,15 +387,24 @@
         updateRuntimeReferenceOverlay();
       }
       await refresh();
-      if (finalNotice && group === congregacionActivaId) status(finalNotice[0], finalNotice[1]);
+      if (finalNotice && group === congregacionActivaId) {
+        if (finalNotice[1] === 'error') setReadiness(false, group, '', 'error');
+        status(finalNotice[0], finalNotice[1]);
+      }
     }
   }
 
   async function removeAll() {
-    if (running || !dataStore) return;
+    if (running || removingGroup || !dataStore) return;
     const group = congregacionActivaId;
+    removingGroup = group;
+    refreshVersion++;
+    setReadiness(false, group, '', 'loading');
+    controls(false, true);
     try {
       await dataStore.clear(group);
+      removingGroup = null;
+      if (group !== congregacionActivaId) { refresh(); return; }
       if (currentView === 'offline') {
         runtimeRoadCache = null;
         runtimeReferenceCache = null;
@@ -359,7 +413,33 @@
       }
       await refresh();
       status('Se quitaron los mapas de esta congregación. Tus colores y dibujos permanecen guardados.');
-    } catch (error) { status(error.message || 'No se pudo quitar la descarga.', 'error'); }
+    } catch (error) {
+      removingGroup = null;
+      if (group !== congregacionActivaId) { refresh(); return; }
+      controls(false, true);
+      setReadiness(false, group, '', 'error');
+      status(error.message || 'No se pudo quitar la descarga.', 'error');
+    }
+  }
+
+  async function previewSavedMap() {
+    if (running || !map) return;
+    const group = congregacionActivaId;
+    const requestedView = currentView;
+    if (currentView === 'offline') {
+      if (!navigator.onLine) return;
+      offlineAutoView = false;
+      changeView(lastOnlineView || 'g-road', true);
+    } else {
+      await refresh();
+      if (group !== congregacionActivaId || currentView !== requestedView || !readiness.ready || readiness.group !== group) return;
+      lastOnlineView = currentView;
+      offlineAutoView = true;
+      changeView('offline', true);
+      setStatus('Mostrando las calles y nombres guardados en este dispositivo.', '');
+    }
+    offlineDialog?.close();
+    refresh();
   }
 
   function networkChange() {
@@ -368,12 +448,10 @@
     if (!navigator.onLine && currentView !== 'offline') {
       lastOnlineView = currentView;
       offlineAutoView = true;
-      viewSel.value = 'offline';
       changeView('offline', true);
       setStatus('Sin internet. Mostrando el mapa descargado; Mi ubicación usa la señal del dispositivo.', 'warn');
     } else if (navigator.onLine && offlineAutoView && currentView === 'offline') {
       offlineAutoView = false;
-      viewSel.value = lastOnlineView;
       changeView(lastOnlineView, true);
     }
     refresh();
@@ -382,6 +460,7 @@
   $offline('offline-download')?.addEventListener('click', downloadAll);
   $offline('offline-cancel')?.addEventListener('click', () => running?.controller.abort());
   $offline('offline-remove')?.addEventListener('click', removeAll);
+  $offline('offline-preview')?.addEventListener('click', previewSavedMap);
   $offline('btn-offline')?.addEventListener('click', () => {
     if (!offlineDialog || offlineDialog.open) return;
     $offline('offline-dialog-congregation').textContent = congregacionActual().nombre;

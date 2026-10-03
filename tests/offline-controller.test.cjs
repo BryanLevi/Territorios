@@ -27,17 +27,22 @@ function bounds(a, b) {
 function harness(options = {}) {
   const elements = new Map();
   const element = id => {
+    const classes = new Set();
     if (!elements.has(id)) elements.set(id, {
-      textContent:'', dataset:{}, hidden:false, disabled:false, value:0, handlers:{},
-      classList:{contains:() => id === 'welcome-screen'},
+      textContent:'', dataset:{}, hidden:false, disabled:false, value:0, handlers:{}, attributes:{},
+      classList:{contains:name => classes.has(name) || (id === 'welcome-screen' && name === 'is-hidden'),
+        toggle(name, value) { if (value) classes.add(name); else classes.delete(name); }},
       addEventListener(type, fn) { this.handlers[type] = fn; },
       querySelector() { return element(id + '-label'); },
+      setAttribute(name, value) { this.attributes[name] = String(value); },
+      getAttribute(name) { return this.attributes[name]; },
       focus() {}, showModal() { this.open = true; }, close() { this.open = false; }
     });
     return elements.get(id);
   };
   const records = new Map();
-  const calls = {fetch:[], download:[], set:[], cache:[], shell:[], pause:0, resume:0, redraw:0};
+  const calls = {fetch:[], download:[], set:[], cache:[], shell:[], views:[], pause:0, resume:0, redraw:0};
+  const networkHandlers = {};
   const timers = new Map();
   let timerId = 0;
   const cache = {match:async url => {
@@ -53,10 +58,14 @@ function harness(options = {}) {
       records.set(group + ':' + key, record);
     },
     async list(group) {
+      if (options.list) return options.list(group, records);
       return [...records].filter(([key]) => key.startsWith(group + ':'))
         .map(([key, data]) => ({key:key.slice(group.length + 1), data}));
     },
-    async clear() {},
+    async clear(group) {
+      if (options.clear) await options.clear(group);
+      [...records.keys()].filter(key => key.startsWith(group + ':')).forEach(key => records.delete(key));
+    },
     async download(required, opts) {
       calls.download.push({required, opts});
       if (options.download) return options.download(required, opts, calls.download.length);
@@ -69,7 +78,7 @@ function harness(options = {}) {
     navigator:{onLine:true, storage:{persist:options.persist || (async () => true)},
       serviceWorker:{register:async () => registration, ready:Promise.resolve(registration)}},
     caches:{open:async () => cache}, isSecureContext:true,
-    CroquisOfflineData:dataStore, addEventListener() {},
+    CroquisOfflineData:dataStore, addEventListener(type, fn) { networkHandlers[type] = fn; },
     pauseOnlineMapRequests() { calls.pause++; }, resumeOnlineMapRequests() { calls.resume++; },
     congregacionActivaId:'a', congregacionActual:() => ({nombre:context.congregacionActivaId}),
     LOCS:options.territories || [{num:1, nombre:'Primero'}], map:{}, DETAIL_ZOOM:16,
@@ -78,7 +87,10 @@ function harness(options = {}) {
     packRoadWays:ways => ways, unpackRoadWays:ways => ways,
     roadWaysFromOverpass:data => data.elements, referencesFromOverpass:data => data.elements,
     writeOverpassCache(loc, kind, value) { calls.cache.push({group:context.congregacionActivaId, key:loc.num, kind, value}); },
-    currentView:'google', runtimeRoadCache:null, runtimeReferenceCache:null,
+    currentView:'g-road', lastOnlineView:'g-road', offlineAutoView:false, runtimeRoadCache:null, runtimeReferenceCache:null,
+    viewSel:{value:'g-road'},TILES:{'g-road':{name:'Google Calles - principal'},'carto-voyager':{name:'Carto Voyager - detallado'}},
+    changeView(view) { calls.views.push(view); context.currentView=view; context.viewSel.value=view==='offline' ? context.lastOnlineView : view; },
+    setStatus() {},
     updateRuntimeVectorRoadOverlay() { calls.redraw++; }, updateRuntimeReferenceOverlay() { calls.redraw++; },
     URL, AbortController, DOMException,
     setTimeout(fn, delay) { const id = ++timerId; timers.set(id, {fn, delay}); return id; },
@@ -91,9 +103,11 @@ function harness(options = {}) {
   };
   context.window = context;
   vm.runInNewContext(source, context);
-  return {context, calls, records, element, timers,
+  return {context, calls, records, element, timers, networkHandlers,
     download:() => element('offline-download').handlers.click(),
     cancel:() => element('offline-cancel').handlers.click(),
+    preview:() => element('offline-preview').handlers.click(),
+    remove:() => element('offline-remove').handlers.click(),
     ready:async () => { await tick(); await context.refreshOfflineCard(); }
   };
 }
@@ -230,4 +244,205 @@ test('la dirección limpia descarga el paquete y revisa la caché usando la base
   assert.equal(app.records.size, 1);
   assert.equal(app.calls.download.length, 0);
   assert.equal(app.element('offline-badge').textContent, 'Listo');
+});
+
+const savedRecord = () => ({bounds:{...broad}, roads:[], refs:[], savedAt:Date.now()});
+const green = app => app.element('btn-offline').classList.contains('is-offline-ready');
+
+test('el botón queda verde solo con todos los territorios cubiertos y la página completa', async () => {
+  const app = harness({territories:[{num:1,nombre:'Uno'},{num:2,nombre:'Dos'}]});
+  await app.ready();
+  assert.equal(green(app),false);
+  app.records.set('a:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),false);
+  assert.equal(app.element('offline-preview').hidden,true);
+  app.records.set('a:2',savedRecord());
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),true);
+  assert.equal(app.element('btn-offline').dataset.offlineState,'ready');
+  assert.match(app.element('btn-offline').getAttribute('aria-label'),/Descarga completa/);
+  assert.equal(app.element('offline-preview').hidden,false);
+  assert.match(app.element('offline-status').textContent,/automáticamente/);
+  assert.doesNotMatch(app.element('offline-status').textContent,/selector|Elige «Mapa descargado»/);
+});
+
+test('una página incompleta o un error de caché no marca verde aunque las calles estén guardadas', async () => {
+  let shellReady=true;
+  const app=harness({cacheMatch:()=>shellReady ? {ok:true} : {ok:false}});
+  await app.ready();
+  app.records.set('a:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),true);
+  shellReady=false;
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),false);
+  assert.equal(app.element('offline-badge').textContent,'Por completar');
+  assert.equal(app.element('offline-preview').hidden,true);
+});
+
+test('al mover el recuadro fuera de la descarga se quita verde antes de terminar la comprobación', async () => {
+  const app=harness();
+  await app.ready();
+  app.records.set('a:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),true);
+  app.context.LOCS[0].bounds={south:20,west:-98,north:20.01,east:-97.99};
+  const checking=app.context.refreshOfflineCard();
+  assert.equal(green(app),false);
+  await checking;
+  assert.equal(green(app),false);
+  assert.equal(app.element('offline-badge').textContent,'Sin descargar');
+});
+
+test('cambiar congregación limpia verde inmediatamente y una lectura anterior no lo restaura', async () => {
+  const pending=deferred();
+  let delayNext=false;
+  const app=harness({list:(group,records)=>{
+    if(delayNext){delayNext=false;return pending.promise;}
+    return [...records].filter(([key])=>key.startsWith(group+':')).map(([key,data])=>({key:key.slice(group.length+1),data}));
+  }});
+  await app.ready();
+  app.records.set('a:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),true);
+  delayNext=true;
+  const previous=app.context.refreshOfflineCard();
+  app.context.congregacionActivaId='b';
+  const checking=app.context.refreshOfflineCard();
+  assert.equal(green(app),false);
+  await checking;
+  pending.resolve([{key:'1',data:savedRecord()}]);
+  await previous;
+  assert.equal(green(app),false);
+  assert.equal(app.element('offline-dialog-congregation').textContent,'b');
+});
+
+test('una lectura vieja de la misma congregación no restaura verde después de quitar su descarga', async () => {
+  const pending=deferred();
+  let delayNext=false;
+  const app=harness({list:(group,records)=>{
+    if(delayNext){delayNext=false;return pending.promise;}
+    return [...records].filter(([key])=>key.startsWith(group+':')).map(([key,data])=>({key:key.slice(group.length+1),data}));
+  }});
+  await app.ready();
+  app.records.set('a:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  delayNext=true;
+  const previous=app.context.refreshOfflineCard();
+  await app.remove();
+  assert.equal(green(app),false);
+  pending.resolve([{key:'1',data:savedRecord()}]);
+  await previous;
+  assert.equal(green(app),false);
+  assert.equal(app.records.size,0);
+});
+
+test('durante la eliminación ni una nueva comprobación ni la vista previa dejan verde el botón', async () => {
+  const removing=deferred();
+  const app=harness({clear:()=>removing.promise});
+  await app.ready();
+  app.records.set('a:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  const operation=app.remove();
+  assert.equal(green(app),false);
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),false);
+  assert.equal(app.element('offline-download').disabled,true);
+  assert.equal(app.element('offline-remove').disabled,true);
+  removing.resolve();
+  await operation;
+  assert.equal(green(app),false);
+});
+
+test('un error al leer o quitar mapas elimina el estado verde y permite revisar la descarga', async () => {
+  let failed=false;
+  const app=harness({list:(group,records)=>{
+    if(failed) throw new Error('No se pudo leer el dispositivo');
+    return [...records].filter(([key])=>key.startsWith(group+':')).map(([key,data])=>({key:key.slice(group.length+1),data}));
+  },clear:()=>{throw new Error('No se pudo quitar');}});
+  await app.ready();
+  app.records.set('a:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),true);
+  failed=true;
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),false);
+  assert.equal(app.element('btn-offline').dataset.offlineState,'error');
+  failed=false;
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),true);
+  await app.remove();
+  assert.equal(green(app),false);
+  assert.equal(app.element('offline-download').disabled,false);
+  assert.match(app.element('offline-status').textContent,/No se pudo quitar/);
+});
+
+test('la vista guardada y la vuelta a Google son reversibles, conservan encuadre y no usan una opción offline', async () => {
+  const app=harness();
+  await app.ready();
+  app.records.set('a:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  app.context.map={center:{lat:19.049,lng:-96.982},zoom:17};
+  const before=JSON.stringify(app.context.map);
+  await app.preview();
+  await app.ready();
+  assert.equal(app.context.currentView,'offline');
+  assert.equal(app.context.offlineAutoView,true);
+  assert.equal(app.context.viewSel.value,'g-road');
+  assert.equal(app.element('offline-preview-label').textContent,'Volver a Google Calles');
+  assert.equal(app.element('offline-preview').getAttribute('aria-pressed'),'true');
+  assert.match(app.element('offline-status').textContent,/Estás viendo las calles y nombres guardados/);
+  assert.equal(green(app),true);
+  await app.preview();
+  await app.ready();
+  assert.equal(app.context.currentView,'g-road');
+  assert.equal(app.context.offlineAutoView,false);
+  assert.equal(app.element('offline-preview-label').textContent,'Ver mapa guardado');
+  assert.equal(JSON.stringify(app.context.map),before);
+});
+
+test('perder internet usa la copia guardada y recuperarlo vuelve a la base seleccionada sin elegir offline', async () => {
+  const app=harness();
+  await app.ready();
+  app.records.set('a:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  app.context.currentView='carto-voyager';
+  app.context.viewSel.value='carto-voyager';
+  app.context.navigator.onLine=false;
+  app.networkHandlers.offline();
+  await app.ready();
+  assert.equal(app.context.currentView,'offline');
+  assert.equal(app.context.lastOnlineView,'carto-voyager');
+  assert.equal(app.context.viewSel.value,'carto-voyager');
+  assert.equal(green(app),true);
+  assert.equal(app.element('offline-preview').disabled,true);
+  app.context.navigator.onLine=true;
+  app.networkHandlers.online();
+  await app.ready();
+  assert.equal(app.context.currentView,'carto-voyager');
+  assert.equal(app.context.viewSel.value,'carto-voyager');
+  assert.deepEqual(app.calls.views,['offline','carto-voyager']);
+});
+
+test('un clic de vista previa pendiente no abre la descarga de otra congregación', async () => {
+  const pending=deferred();
+  let delayNext=false;
+  const app=harness({list:(group,records)=>{
+    if(delayNext){delayNext=false;return pending.promise;}
+    return [...records].filter(([key])=>key.startsWith(group+':')).map(([key,data])=>({key:key.slice(group.length+1),data}));
+  }});
+  await app.ready();
+  app.records.set('a:1',savedRecord());
+  app.records.set('b:1',savedRecord());
+  await app.context.refreshOfflineCard();
+  delayNext=true;
+  const click=app.preview();
+  app.context.congregacionActivaId='b';
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),true);
+  pending.resolve([{key:'1',data:savedRecord()}]);
+  await click;
+  assert.equal(app.context.currentView,'g-road');
+  assert.equal(app.calls.views.length,0);
 });
