@@ -166,7 +166,7 @@ function overlayEntorno(offline = false){
   const contexto = vm.createContext({
     map:{}, runtimeReferenceLayer:{clearLayers:() => { limpiezas++; }},
     runtimeReferenceRequestId:0, runtimeReferenceCache:null,
-    congregacionActivaId:'principal', currentView:offline ? 'offline' : 'online',
+    congregacionActivaId:'principal', currentView:offline ? 'offline' : 'online',LOCS:[{num:1}],currentIndex:0,
     getRuntimeRoadCacheKey:loc => String(loc.num),
     getRuntimeRoadBounds:loc => ({territorio:loc.num}),
     readOverpassCache:() => null,

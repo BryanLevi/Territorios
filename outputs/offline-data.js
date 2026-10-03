@@ -10,6 +10,7 @@
     'https://overpass.private.coffee/api/interpreter'
   ];
   const REFERENCE_KEYS = ['amenity', 'shop', 'tourism', 'leisure', 'historic', 'healthcare'];
+  const DETAIL_KEYS = ['building','landuse','natural','leisure','waterway','place'];
   const ROAD_KINDS = 'motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|road|track|path|footway|steps|cycleway|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link';
   const WATER_KINDS = 'river|stream|canal|ditch|drain';
   const REQUEST_TIMEOUT_MS = 25000;
@@ -172,14 +173,17 @@
 
   function buildQuery(bounds) {
     const box = plainBounds(bounds);
-    // Dos conjuntos y dos salidas dentro de UNA petición. Las calles conservan
-    // su geometría; los lugares, su punto central. Luego se separan por tipo.
+    // Una sola petición conserva calles, áreas completas (incluidos miembros
+    // outer/inner de relaciones) y localidades. No descarga teselas de Google.
     return '[out:json][timeout:20];' +
       '(way["highway"~"^(' + ROAD_KINDS + ')$"](' + box + ');' +
       'way["waterway"~"^(' + WATER_KINDS + ')$"](' + box + ');)->.roads;' +
-      '(nw[~"^(amenity|shop|tourism|leisure|historic|healthcare)$"~"."](' + box + ');)->.places;' +
+      '(nwr[~"^(amenity|shop|tourism|leisure|historic|healthcare)$"~"."](' + box + ');)->.places;' +
+      '(wr[~"^(building|landuse|natural|leisure|waterway)$"~"."](' + box + ');' +
+      'nwr["place"~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|locality|isolated_dwelling)$"](' + box + ');)->.details;' +
       '.roads out geom;' +
-      '.places out center tags;';
+      '.places out center tags;' +
+      '.details out geom;';
   }
 
   function remainingTime(deadline) {
@@ -303,10 +307,12 @@
   function splitElements(elements) {
     const roads = [];
     const references = [];
+    const details = [];
     const referenceIds = new Set();
     for (const element of elements) {
       if (!element || typeof element !== 'object') continue;
       const tags = element && element.tags || {};
+      if (DETAIL_KEYS.some(key => tags[key])) details.push(element);
       if (element.type === 'way' && Array.isArray(element.geometry) && element.geometry.length >= 2 &&
           (tags.highway || tags.waterway)) {
         roads.push(element);
@@ -319,7 +325,7 @@
       referenceIds.add(id);
       references.push(element);
     }
-    return { roadElements: roads, referenceElements: references };
+    return { roadElements: roads, referenceElements: references, detailElements: details };
   }
 
   async function download(bounds, options) {
@@ -344,7 +350,7 @@
         try {
           notify(options, {phase:attempt ? 'retry' : 'request', endpoint, part, total,
             message:attempt ? 'Probando otro servidor de mapas…' :
-              total > 1 ? 'Guardando zona ' + part + ' de ' + total + '…' : 'Consultando calles y referencias…'});
+              total > 1 ? 'Guardando zona ' + part + ' de ' + total + '…' : 'Consultando calles, áreas y referencias…'});
           attempt++;
           const elements = await requestOverpass(endpoint, query, signal, deadline);
           endpointState.set(endpoint, {lastSuccess:Date.now(), cooldownUntil:0});

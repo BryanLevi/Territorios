@@ -121,7 +121,12 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 /* z-index propio: aisla los paneles de Leaflet (llegan a 700) para que no tapen la barra */
 .map-wrap{position:relative;z-index:0;flex:1;min-height:0;background:#dbe4df}
 #map{position:absolute;inset:0;width:100%;height:100%}
-#map.offline-map{background:#eaf1f8}
+#map.offline-map{background:#f3f1e8}
+.runtime-offline-name{background:none!important;border:0!important;pointer-events:none!important;box-shadow:none!important}
+.runtime-offline-name span{position:absolute;left:0;top:0;transform:translate(-50%,-50%);display:block;width:max-content;max-width:180px;color:#354a50;font-family:Arial,"Segoe UI",sans-serif;font-weight:500;line-height:1.18;text-align:center;white-space:normal;overflow-wrap:break-word;text-shadow:-1px -1px 0 #fff,0 -1px 0 #fff,1px -1px 0 #fff,-1px 0 0 #fff,1px 0 0 #fff,-1px 1px 0 #fff,0 1px 0 #fff,1px 1px 0 #fff,0 0 3px #fff;pointer-events:none}
+.runtime-offline-name.is-place span{color:#475449;font-weight:650;letter-spacing:.02em}
+.runtime-offline-name.is-poi span{color:#435568}
+.runtime-offline-detail-pane{pointer-events:none!important;mix-blend-mode:normal}
 .map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-icon-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container,.map-wrap.is-river-pencil .leaflet-container{cursor:crosshair}
 .map-wrap.is-contour-editing .leaflet-container{cursor:default}
 .contour-handle{cursor:grab}
@@ -703,7 +708,7 @@ body.print-preview{overflow:hidden}
           <div class="offline-card-title"><span class="offline-card-kicker">Disponible por congregación</span><h3 id="offline-title">Todos los territorios</h3></div>
           <span class="offline-card-badge" id="offline-badge">Sin descargar</span>
         </div>
-        <p class="offline-card-copy">Descarga las calles y referencias de esta congregación. Tus colores y dibujos se conservan en este dispositivo.</p>
+        <p class="offline-card-copy">Guarda calles, lugares, edificios y áreas verdes disponibles de esta congregación. Tus colores y dibujos se conservan en este dispositivo.</p>
         <div class="offline-card-actions">
           <button id="offline-download" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11m-4-4 4 4 4-4"></path><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path></svg><span>Descargar congregación</span></button>
           <button id="offline-cancel" type="button" hidden>Cancelar</button>
@@ -1157,7 +1162,8 @@ body.print-preview{overflow:hidden}
 
 <div id="hojas-agrupadas" aria-hidden="true"></div>
 
-<script src="offline-data.js?v=offline-pack-1"></script>
+<script src="offline-map-details.js?v=details-2"></script>
+<script src="offline-data.js?v=details-2"></script>
 <script src="destination-placement.js?v=placement-1"></script>
 <script src="congregation-password.js"></script>
 <script>
@@ -1759,6 +1765,8 @@ let labelOverlayLayer = null;
 let roadOverlayLayer = null;
 let vectorRoadLayer = null;
 let runtimeReferenceLayer = null;
+let runtimeOfflineAreaLayer = null;
+let runtimeOfflineLabelLayer = null;
 let manualWhiteRoadLayer = null;
 let manualRiverLayer = null;
 let runtimeRoadCache = null;
@@ -2345,7 +2353,7 @@ function limpiarMapaSinTerritorios(){
   clearSelectedLine();
   if(ringLayer && map){ map.removeLayer(ringLayer); ringLayer = null; }
   [colorLayer, draftLayer, textLayer, manualIconLayer, editHandleLayer, colorRestoreLayer,
-   labelOverlayLayer, roadOverlayLayer, vectorRoadLayer, runtimeReferenceLayer,
+   labelOverlayLayer, roadOverlayLayer, vectorRoadLayer, runtimeReferenceLayer, runtimeOfflineAreaLayer, runtimeOfflineLabelLayer,
    manualWhiteRoadLayer, manualRiverLayer].forEach(capa => capa?.clearLayers?.());
   selectedAreaIndex = null;
   selectedTextIndex = null;
@@ -3860,8 +3868,8 @@ function drawRuntimeVectorRoads(roadWays){
     const path = /^(footway|path|steps|cycleway|track)/.test(way.highway || '');
     const weight = major ? 5 : path ? 1.8 : 3.2;
     const common = {pane:'territoryRoadPane',interactive:false,lineCap:'round',lineJoin:'round'};
-    L.polyline(latLngs,{...common,color:'#657d99',weight:weight + 2.2,opacity:.82}).addTo(vectorRoadLayer);
-    L.polyline(latLngs,{...common,color:path ? '#d8e4f1' : '#fff',weight,
+    L.polyline(latLngs,{...common,color:'#9ca79d',weight:weight + 2.2,opacity:.82}).addTo(vectorRoadLayer);
+    L.polyline(latLngs,{...common,color:path ? '#e7e5d8' : '#fff',weight,
       opacity:.98,dashArray:path ? '4,5' : null}).addTo(vectorRoadLayer);
   });
   // El rio lo dibujamos solo cuando el mapa de fondo no lo trae, que en la
@@ -4004,7 +4012,175 @@ function planRuntimeRoadLabels(targetMap, ways){
   return selected;
 }
 
-function drawRuntimeOfflineStreetLabels(roadWays){
+function runtimeOfflineAreaStyle(kind){
+  const colors={building:['#d4cfc4','#b5b0a7'],park:['#dce9c9','#c7d8b6'],forest:['#d1e1c6','#c3d5b7'],
+    grass:['#e2ebd0','#d5e0c0'],farmland:['#eee8d0','#dfdbc3'],residential:['#eae7df','#e0dcd3'],
+    industrial:['#e5e2df','#d7d2cd'],water:['#c5e0e4','#add0d8']};
+  const color=colors[kind] || colors.residential;
+  return {pane:'runtimeOfflineDetailPane',interactive:false,bubblingMouseEvents:false,
+    fillColor:color[0],color:color[1],fillOpacity:kind==='building'?.92:.86,
+    weight:kind==='building'?.7:.5,opacity:.75,fillRule:'evenodd'};
+}
+
+function prepareRuntimeOfflineAreas(details){
+  if(!details || !Array.isArray(details.areas)) return [];
+  return details.areas.filter(area=>Array.isArray(area?.rings?.[0]) && area.rings[0].length>=4).map(area=>{
+    let south=Infinity,north=-Infinity,west=Infinity,east=-Infinity;
+    for(const point of area.rings[0]){south=Math.min(south,point[0]);north=Math.max(north,point[0]);west=Math.min(west,point[1]);east=Math.max(east,point[1]);}
+    return {area,bounds:{south,north,west,east}};
+  }).filter(item=>Object.values(item.bounds).every(Number.isFinite))
+    .sort((a,b)=>(a.area.kind==='building')-(b.area.kind==='building'));
+}
+
+function runtimeOfflineAreaVisible(targetMap,item){
+  const size=targetMap.getSize(),box=item.bounds;
+  const a=targetMap.latLngToContainerPoint([box.north,box.west]);
+  const b=targetMap.latLngToContainerPoint([box.south,box.east]);
+  const left=Math.min(a.x,b.x),right=Math.max(a.x,b.x),top=Math.min(a.y,b.y),bottom=Math.max(a.y,b.y);
+  if(right<-40 || left>size.x+40 || bottom<-40 || top>size.y+40) return false;
+  if(item.area.kind==='building'){
+    const zoom=Number(targetMap.getZoom());
+    if(zoom<15) return false;
+    // Los edificios diminutos no forman una mancha al alejarse; vuelven al acercar.
+    return (right-left)*(bottom-top)>=(zoom>=17 ? 3 : zoom>=16 ? 6 : 12);
+  }
+  return true;
+}
+
+function drawRuntimeOfflineDetails(details){
+  if(!map || !runtimeOfflineAreaLayer) return;
+  if(runtimeOfflineAreaLayer._source!==details){
+    runtimeOfflineAreaLayer.clearLayers();
+    runtimeOfflineAreaLayer._source=details;
+    runtimeOfflineAreaLayer._areas=prepareRuntimeOfflineAreas(details);
+    runtimeOfflineAreaLayer._shapes=new Map();
+  }
+  const shapes=runtimeOfflineAreaLayer._shapes;
+  if(!shapes) return;
+  for(const item of runtimeOfflineAreaLayer._areas || []){
+    const visible=currentView==='offline' && runtimeOfflineAreaVisible(map,item);
+    let shape=shapes.get(item.area.id);
+    if(visible){
+      if(!shape){
+        shape=L.polygon(item.area.rings,{...runtimeOfflineAreaStyle(item.area.kind),renderer:runtimeOfflineAreaLayer._renderer});
+        shape._offlineDetailKind=item.area.kind;
+        shapes.set(item.area.id,shape);
+      }
+      if(!runtimeOfflineAreaLayer.hasLayer(shape)) shape.addTo(runtimeOfflineAreaLayer);
+    }else if(shape && runtimeOfflineAreaLayer.hasLayer(shape)) runtimeOfflineAreaLayer.removeLayer(shape);
+  }
+}
+
+function runtimeOfflinePoint(targetMap,lat,lng){
+  if(!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return null;
+  const point=targetMap.latLngToContainerPoint([Number(lat),Number(lng)]);
+  return Number.isFinite(point?.x) && Number.isFinite(point?.y) ? point : null;
+}
+
+function runtimeOfflineNameBox(point,width,height){
+  return {left:point.x-width/2,right:point.x+width/2,top:point.y-height/2,bottom:point.y+height/2};
+}
+
+function runtimeOfflinePlaceOffsets(kind){
+  const offsets=[[0,0],[0,-18],[0,18]];
+  // Un nombre de localidad abarca una zona: busca un hueco cercano cuando su
+  // centro contiene números e iconos, sin cambiar las coordenadas del lugar.
+  if(kind==='city' || kind==='town') for(const distance of [36,54,72,96]){
+    offsets.push([0,-distance],[0,distance],[-distance,0],[distance,0],
+      [-distance,-distance],[distance,-distance],[-distance,distance],[distance,distance]);
+  }
+  return offsets;
+}
+
+function runtimeOfflineReservedLabels(loc){
+  if(!map || !loc) return [];
+  const boxes=[];
+  const add=(lat,lng,width,height)=>{const point=runtimeOfflinePoint(map,lat,lng);if(point)boxes.push(runtimeOfflineNameBox(point,width,height));};
+  for(const label of getTextLabelsForLoc(loc)){
+    const font=label.type==='destino' ? 13 : label.type==='carretera' ? TAM_CARRETERA_PANTALLA : Math.max(13,Math.min(38,Number(label.size)||22));
+    const lines=String(label.text||'').split(/\n|\//);
+    add(label.lat,label.lng,Math.max(16,...lines.map(line=>line.length*font*.61))+16,lines.length*(font+3)+8);
+  }
+  for(const icon of getManualIconsForLoc(loc)) add(icon.lat,icon.lng,32*referenceZoomScale(),32*referenceZoomScale());
+  return boxes;
+}
+
+function planRuntimeOfflineMapLabels(targetMap,ways,references,places,reserved=[]){
+  const result={roads:[],places:[],references:[]};
+  if(!targetMap) return result;
+  const size=targetMap.getSize(),zoom=Number(targetMap.getZoom())||15;
+  const inside=box=>box.left>=5 && box.top>=5 && box.right<=size.x-5 && box.bottom<=size.y-5;
+  const boxes=reserved.slice(),candidates=[],seen=new Set();
+  const iconSize=zoom>=18?31:zoom>=17?27:zoom>=16?23:zoom>=15?19:16;
+  const refs=(Array.isArray(references)?references:[]).map(ref=>({ref,point:runtimeOfflinePoint(targetMap,ref.lat,ref.lng)}))
+    .filter(item=>item.point && item.point.x>=-iconSize && item.point.x<=size.x+iconSize && item.point.y>=-iconSize && item.point.y<=size.y+iconSize);
+  // Los iconos siguen en su lugar: ningún nombre debe escribir sobre ellos.
+  refs.forEach(item=>boxes.push(runtimeOfflineNameBox(item.point,iconSize,iconSize)));
+  const minZoom={city:10,town:11,village:13,hamlet:14,suburb:14,neighbourhood:15,quarter:15,locality:15,isolated_dwelling:16};
+  const placeFonts={city:19,town:17,village:15,hamlet:13,suburb:12.5,neighbourhood:12,quarter:12,locality:11.5,isolated_dwelling:11};
+  for(const place of Array.isArray(places)?places:[]){
+    const name=String(place?.name||'').trim(),point=runtimeOfflinePoint(targetMap,place.lat,place.lng);
+    if(!name || name.length>90 || !point || zoom<(minZoom[place.kind]??15)) continue;
+    const fontSize=(placeFonts[place.kind]||12)+(zoom>=17?.5:0),width=Math.min(240,Math.max(30,name.length*fontSize*.6+8));
+    const height=Math.ceil(name.length*fontSize*.6/width)*(fontSize*1.18)+4;
+    candidates.push({type:'places',name,key:'place:'+name.toLocaleLowerCase('es-MX'),fontSize,width,height,point,
+      priority:100+(place.kind==='city'?5:place.kind==='town'?4:place.kind==='village'?3:0),offsets:runtimeOfflinePlaceOffsets(place.kind)});
+  }
+  const stableWays=(ways || []).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  for(const road of planRuntimeRoadLabels(targetMap,stableWays)) candidates.push({...road,type:'roads',priority:70+road.priority,offsets:[[0,0]]});
+  if(zoom>=15) for(const {ref,point} of refs){
+    const name=referenceLabelText(ref);
+    if(!name || name.length>90) continue;
+    const fontSize=zoom>=17?11.5:zoom>=16?11:10.5,width=Math.min(168,Math.max(24,name.length*fontSize*.62+8));
+    const height=Math.ceil(name.length*fontSize*.62/width)*(fontSize*1.18)+4;
+    const gap=iconSize/2+5;
+    candidates.push({type:'references',name,key:'ref:'+referenceKey(ref),fontSize,width,height,point,priority:50,
+      offsets:[[gap+width/2,0],[0,-gap-height/2],[0,gap+height/2],[-gap-width/2,0]]});
+  }
+  candidates.sort((a,b)=>b.priority-a.priority || String(a.key).localeCompare(String(b.key)));
+  const limit=Math.max(18,Math.min(150,Math.floor(size.x*size.y/2700)));
+  let count=0;
+  for(const candidate of candidates){
+    if(seen.has(candidate.key)) continue;
+    for(const offset of candidate.offsets){
+      const point={x:candidate.point.x+offset[0],y:candidate.point.y+offset[1]};
+      const box=candidate.type==='roads' ? candidate.box : runtimeOfflineNameBox(point,candidate.width,candidate.height);
+      if(!inside(box) || !canPlaceLabel(box,boxes,5)) continue;
+      result[candidate.type].push({...candidate,point,box});
+      boxes.push(box);seen.add(candidate.key);count++;break;
+    }
+    if(count>=limit) break;
+  }
+  return result;
+}
+
+function runtimeOfflineVisibleReferences(loc){
+  const cache=runtimeReferenceCache;
+  if(!cache?.offline || cache.key!=='ref:'+getRuntimeRoadCacheKey(loc) || cache.congregationId!==congregacionActivaId) return [];
+  const hidden=getHiddenReferencesForLoc(loc),manual=getManualIconsForLoc(loc);
+  return cache.references.filter(ref=>!hidden.has(referenceKey(ref)) && !isCoveredByManualIcon(ref,manual));
+}
+
+function refreshRuntimeOfflineMap(){
+  const loc=LOCS[currentIndex],cache=runtimeRoadCache;
+  if(!map || currentView!=='offline' || !loc){
+    runtimeOfflineAreaLayer?.clearLayers();runtimeOfflineLabelLayer?.clearLayers();return;
+  }
+  const valid=cache?.offline && cache.key===getRuntimeRoadCacheKey(loc) && cache.congregation===congregacionActivaId;
+  const details=valid?cache.details:null;
+  drawRuntimeOfflineDetails(details);
+  const plan=planRuntimeOfflineMapLabels(map,valid?cache.roadWays:[],runtimeOfflineVisibleReferences(loc),details?.places || [],runtimeOfflineReservedLabels(loc));
+  if(valid) drawRuntimeOfflineStreetLabels(cache.roadWays,plan.roads);
+  if(!runtimeOfflineLabelLayer) return;
+  runtimeOfflineLabelLayer.clearLayers();
+  for(const [kind,labels] of [['place',plan.places],['poi',plan.references]]) for(const label of labels){
+    L.marker(map.containerPointToLatLng(label.point),{interactive:false,keyboard:false,pane:'territoryLabelPane',
+      icon:L.divIcon({className:'runtime-offline-name is-'+kind,iconSize:[0,0],iconAnchor:[0,0],
+        html:'<span style="font-size:'+label.fontSize+'px;width:'+label.width+'px;max-width:'+label.width+'px">'+escapeHtml(label.name)+'</span>'})}).addTo(runtimeOfflineLabelLayer);
+  }
+}
+
+function drawRuntimeOfflineStreetLabels(roadWays,planned=null){
   if(!map || !vectorRoadLayer || !window.L) return;
   let labels=vectorRoadLayer._streetLabels;
   if(!labels || !vectorRoadLayer.hasLayer(labels)){
@@ -4012,7 +4188,7 @@ function drawRuntimeOfflineStreetLabels(roadWays){
     vectorRoadLayer._streetLabels=labels;
   }
   labels.clearLayers();
-  planRuntimeRoadLabels(map,roadWays).forEach(label => {
+  (planned || planRuntimeRoadLabels(map,roadWays)).forEach(label => {
     L.marker(map.containerPointToLatLng(label.point),{
       interactive:false,keyboard:false,pane:'territoryLabelPane',opacity:1,zIndexOffset:900,
       icon:L.divIcon({className:'runtime-vector-road-label is-offline',
@@ -4025,28 +4201,32 @@ function drawRuntimeOfflineStreetLabels(roadWays){
 async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
   if(!map || !vectorRoadLayer) return;
   const requestId = ++runtimeRoadRequestId;
-  if(!loc){ vectorRoadLayer.clearLayers(); return; }
+  if(!loc){ vectorRoadLayer.clearLayers();drawRuntimeOfflineDetails(null);runtimeOfflineLabelLayer?.clearLayers();return; }
   const key = getRuntimeRoadCacheKey(loc);
   const congregationId = congregacionActivaId;
   if(currentView === 'offline'){
     if(runtimeRoadCache?.key===key && runtimeRoadCache.congregation===congregationId && runtimeRoadCache.offline){
-      if(vectorRoadLayer._streetLabels && vectorRoadLayer.hasLayer?.(vectorRoadLayer._streetLabels)) drawRuntimeOfflineStreetLabels(runtimeRoadCache.roadWays);
-      else drawRuntimeVectorRoads(runtimeRoadCache.roadWays);
+      if(!vectorRoadLayer._streetLabels || !vectorRoadLayer.hasLayer?.(vectorRoadLayer._streetLabels)) drawRuntimeVectorRoads(runtimeRoadCache.roadWays);
+      refreshRuntimeOfflineMap();
       return;
     }
     vectorRoadLayer.clearLayers();
+    drawRuntimeOfflineDetails(null);runtimeOfflineLabelLayer?.clearLayers();
     const record = window.CroquisOfflineData
       ? await window.CroquisOfflineData.get(congregationId, String(loc.num)).catch(() => null) : null;
     if(requestId !== runtimeRoadRequestId || congregationId !== congregacionActivaId || currentView !== 'offline' || key !== getRuntimeRoadCacheKey(LOCS[currentIndex])) return;
     if(record && (!window.offlineRecordCovers || window.offlineRecordCovers(loc, record))){
       const ways = unpackRoadWays(record.roads || []);
-      runtimeRoadCache = {key,roadWays:ways,congregation:congregationId,offline:true};
+      const details=window.CroquisOfflineDetails?.valid(record.details) ? record.details : null;
+      runtimeRoadCache = {key,roadWays:ways,details,congregation:congregationId,offline:true};
       drawRuntimeVectorRoads(ways);
+      refreshRuntimeOfflineMap();
     }else{
       setStatus('Este territorio aún no tiene calles descargadas. Abre «Mapa sin conexión» y descarga esta congregación con internet.', 'warn');
     }
     return;
   }
+  drawRuntimeOfflineDetails(null);runtimeOfflineLabelLayer?.clearLayers();
   vectorRoadLayer.clearLayers();
   if(runtimeRoadCache?.key === key && runtimeRoadCache.congregation===congregacionActivaId && !runtimeRoadCache.offline && Array.isArray(runtimeRoadCache.roadWays)){
     drawRuntimeVectorRoads(runtimeRoadCache.roadWays);
@@ -4346,9 +4526,17 @@ function canPlaceLabel(box, placedBoxes, pad = 5){
 
 function drawRuntimeReferences(references){
   if(!runtimeReferenceLayer || !window.L) return;
-  runtimeReferenceLayer.clearLayers();
   actualizarPanelReferencias();
-  if(!Array.isArray(references) || !references.length) return;
+  const loc=LOCS[currentIndex];
+  const offlineSignature=currentView==='offline' ? JSON.stringify([congregacionActivaId,String(loc?.num),referenceZoomScale(),
+    [...getHiddenReferencesForLoc(loc)],getManualIconsForLoc(loc)]) : '';
+  if(currentView==='offline' && runtimeReferenceLayer._offlineSource===references && runtimeReferenceLayer._offlineSignature===offlineSignature){
+    refreshRuntimeOfflineMap();return;
+  }
+  runtimeReferenceLayer.clearLayers();
+  runtimeReferenceLayer._offlineSource=currentView==='offline'?references:null;
+  runtimeReferenceLayer._offlineSignature=offlineSignature;
+  if(!Array.isArray(references) || !references.length){if(currentView==='offline')refreshRuntimeOfflineMap();return;}
   const hasAreas = getColorAreasForLoc(LOCS[currentIndex]).length > 0;
   const opacity = hasAreas ? 1 : .9;
   const ocultas = getHiddenReferencesForLoc(LOCS[currentIndex]);
@@ -4356,7 +4544,7 @@ function drawRuntimeReferences(references){
   // Antes se ocultaba el que se encimara con otro, asi que al alejarse
   // desaparecian. Ahora se dibujan todos y lo que cambia es el tamano.
   const escala = referenceZoomScale();
-  references.slice(0, 140).filter(ref => !ocultas.has(referenceKey(ref)) && !isCoveredByManualIcon(ref, iconosPropios)).forEach(ref => {
+  (currentView==='offline'?references:references.slice(0,140)).filter(ref => !ocultas.has(referenceKey(ref)) && !isCoveredByManualIcon(ref, iconosPropios)).forEach(ref => {
     const lat = Number(ref.lat);
     const lng = Number(ref.lng);
     const text = referenceLabelText(ref);
@@ -4378,27 +4566,35 @@ function drawRuntimeReferences(references){
       selectReference(ref);
     });
   });
+  if(currentView==='offline') refreshRuntimeOfflineMap();
 }
 
 async function updateRuntimeReferenceOverlay(loc = LOCS[currentIndex]){
   if(!map || !runtimeReferenceLayer) return;
   const requestId = ++runtimeReferenceRequestId;
-  runtimeReferenceLayer.clearLayers();
-  if(!loc) return;
+  if(!loc){runtimeReferenceLayer.clearLayers();return;}
   const congregationId = congregacionActivaId;
   const key = 'ref:' + getRuntimeRoadCacheKey(loc);
+  const view=currentView;
   if(currentView === 'offline'){
+    if(runtimeReferenceCache?.key===key && runtimeReferenceCache.congregationId===congregationId && runtimeReferenceCache.offline){
+      drawRuntimeReferences(runtimeReferenceCache.references);return;
+    }
+    runtimeReferenceLayer.clearLayers();
+    runtimeReferenceLayer._offlineSource=null;
     const record = window.CroquisOfflineData
       ? await window.CroquisOfflineData.get(congregationId, String(loc.num)).catch(() => null) : null;
-    if(requestId !== runtimeReferenceRequestId || congregationId !== congregacionActivaId) return;
+    if(requestId !== runtimeReferenceRequestId || congregationId !== congregacionActivaId || currentView!==view || key!=='ref:'+getRuntimeRoadCacheKey(LOCS[currentIndex])) return;
     if(record && (!window.offlineRecordCovers || window.offlineRecordCovers(loc, record))){
       const references = dedupeReferences(record.refs || []);
-      runtimeReferenceCache = {key, congregationId, references};
+      runtimeReferenceCache = {key, congregationId, references,offline:true};
       drawRuntimeReferences(references);
     }
     return;
   }
-  if(runtimeReferenceCache?.key === key && runtimeReferenceCache.congregationId === congregationId && Array.isArray(runtimeReferenceCache.references)){
+  runtimeReferenceLayer.clearLayers();
+  runtimeReferenceLayer._offlineSource=null;
+  if(runtimeReferenceCache?.key === key && runtimeReferenceCache.congregationId === congregationId && !runtimeReferenceCache.offline && Array.isArray(runtimeReferenceCache.references)){
     drawRuntimeReferences(runtimeReferenceCache.references);
     return;
   }
@@ -4410,7 +4606,7 @@ async function updateRuntimeReferenceOverlay(loc = LOCS[currentIndex]){
   }
   try{
     const references = await fetchReferencesForBounds(getRuntimeRoadBounds(loc));
-    if(requestId !== runtimeReferenceRequestId || congregationId !== congregacionActivaId) return;
+    if(requestId !== runtimeReferenceRequestId || congregationId !== congregacionActivaId || currentView!==view || key!=='ref:'+getRuntimeRoadCacheKey(LOCS[currentIndex])) return;
     runtimeReferenceCache = { key, congregationId, references };
     writeOverpassCache(loc, 'refs', references);
     drawRuntimeReferences(references);
@@ -7407,6 +7603,10 @@ function initApp(){
   map = L.map('map', { zoomControl:true, attributionControl:true })
     .setView([centroInicial.lat ?? 19.048889, centroInicial.lon ?? -96.981944], 17);
   registrarCentradoUbicacion();
+  map.createPane('runtimeOfflineDetailPane');
+  map.getPane('runtimeOfflineDetailPane').style.zIndex=300;
+  map.getPane('runtimeOfflineDetailPane').style.pointerEvents='none';
+  map.getPane('runtimeOfflineDetailPane').classList.add('runtime-offline-detail-pane');
   map.createPane('territoryColorPane');
   map.getPane('territoryColorPane').style.zIndex = 350;
   map.createPane('territoryRestorePane');
@@ -7448,6 +7648,9 @@ function initApp(){
   lineEditLayer = L.layerGroup().addTo(map);
   vectorRoadLayer = L.layerGroup().addTo(map);
   runtimeReferenceLayer = L.layerGroup().addTo(map);
+  runtimeOfflineAreaLayer=L.layerGroup().addTo(map);
+  runtimeOfflineAreaLayer._renderer=L.canvas({pane:'runtimeOfflineDetailPane',padding:.25});
+  runtimeOfflineLabelLayer=L.layerGroup().addTo(map);
   manualWhiteRoadLayer = L.layerGroup().addTo(map);
   manualRiverLayer = L.layerGroup().addTo(map);
   map.on('click', handleColorMapClick);
@@ -7495,6 +7698,8 @@ function changeView(key, silent){
     if(!navigator.onLine) key = 'offline';
   }
   currentView = key;
+  drawRuntimeOfflineDetails(null);
+  runtimeOfflineLabelLayer?.clearLayers();
   // La descarga es el respaldo del mismo mapa, no otra opción del selector.
   viewSel.value = key === 'offline' ? lastOnlineView : key;
   viewSel.dataset.offline = String(key === 'offline');
@@ -10228,6 +10433,6 @@ if(document.readyState === 'loading'){
 }
 </script>
 <script src="congregation-access.js"></script>
-<script src="offline-controller.js?v=offline-ready-1"></script>
+<script src="offline-controller.js?v=details-2"></script>
 </body>
 </html>

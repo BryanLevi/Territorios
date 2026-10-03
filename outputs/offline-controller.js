@@ -4,14 +4,15 @@
 
   const $offline = id => document.getElementById(id);
   const dataStore = window.CroquisOfflineData;
+  const mapDetails = window.CroquisOfflineDetails;
   const offlineDialog = $offline('offline-dialog');
   let running = null;
   let removingGroup = null;
   let shellPromise = null;
   let preparedPackPromise = null;
   let refreshVersion = 0;
-  let readiness = {group:null, signature:'', ready:false};
-  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-data.js', 'offline-controller.js', 'destination-placement.js',
+  let readiness = {group:null, signature:'', ready:false, usable:false};
+  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-map-details.js', 'offline-data.js', 'offline-controller.js', 'destination-placement.js',
     'congregation-password.js', 'congregation-access.js', 'favicon.svg',
     '../croquis-territorios-jw/', '../croquis-territorios-jw/index.html', '../croquis-territorio-jw/', '../croquis-territorio-jw/index.html', '../coquis-territorios-jw/', '../coquis-territorios-jw/index.html', '../tokens.css', 'welcome-premium.css',
     'toolbar-premium.css', 'editor-premium.css', '../vendor/leaflet/leaflet.js', '../vendor/leaflet/leaflet.css',
@@ -53,6 +54,10 @@
     return Array.isArray(record?.roads) && Array.isArray(record?.refs) && covers(record.bounds, required);
   }
 
+  function detailedRecord(record, required) {
+    return completeRecord(record, required) && !!mapDetails && record.detailVersion === mapDetails.VERSION && mapDetails.valid(record.details);
+  }
+
   async function shellComplete(cache) {
     return (await Promise.all(shellFiles.map(path => cache.match(new URL(path, document.baseURI || location.href).href)))).every(response => response && response.ok !== false);
   }
@@ -61,13 +66,14 @@
     return LOCS.map(loc => ({key:String(loc.num), bounds:territoryBounds(loc)}));
   }
 
-  function setReadiness(ready, group, signature, state = '') {
-    readiness = {group, signature, ready};
+  function setReadiness(ready, group, signature, state = '', usable = ready) {
+    readiness = {group, signature, ready, usable};
     const button = $offline('btn-offline');
     if (button) {
       button.classList.toggle('is-offline-ready', ready);
       button.dataset.offlineState = ready ? 'ready' : state || 'incomplete';
       const description = ready ? 'Descarga completa de esta congregación, lista para usar sin internet.'
+        : usable ? 'Tu descarga anterior sigue disponible. Abre para actualizarla con más detalles.'
         : state === 'loading' ? 'Comprobando o completando la descarga de esta congregación.'
           : state === 'error' ? 'La descarga no está completa. Abre para revisarla.'
             : 'Abre para preparar o revisar los mapas de esta congregación.';
@@ -77,7 +83,7 @@
     const preview = $offline('offline-preview');
     if (preview) {
       const savedView = currentView === 'offline';
-      preview.hidden = !ready && !savedView;
+      preview.hidden = !usable && !savedView;
       preview.disabled = !!running || removingGroup === group || !map || (savedView && !navigator.onLine);
       let onlineName = 'Google Calles';
       if (typeof TILES !== 'undefined' && typeof lastOnlineView !== 'undefined') onlineName = (TILES[lastOnlineView]?.name || onlineName).split(' - ')[0];
@@ -127,26 +133,32 @@
       const required = requiredTerritories();
       const signature = JSON.stringify(required);
       if (readiness.group !== group || readiness.signature !== signature || running || removingGroup === group) setReadiness(false, group, signature, running || removingGroup === group ? 'loading' : '');
-      else setReadiness(readiness.ready, group, signature);
+      else setReadiness(readiness.ready, group, signature, '', readiness.usable);
       if (removingGroup === group) return;
       const records = await dataStore.list(group);
       if (version !== refreshVersion || group !== congregacionActivaId || (running && running.group === group)) return;
       const found = new Map(records.map(record => [record.key, record.data]));
-      let complete = 0;
-      required.forEach(territory => { if (completeRecord(found.get(territory.key), territory.bounds)) complete++; });
+      let complete = 0, available = 0;
+      required.forEach(territory => {
+        const record = found.get(territory.key);
+        if (completeRecord(record, territory.bounds)) available++;
+        if (detailedRecord(record, territory.bounds)) complete++;
+      });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v10');
+        const shellCache = await caches.open('croquis-app-shell-v11');
         shellReady = await shellComplete(shellCache);
       }
       if (version !== refreshVersion || group !== congregacionActivaId || (running && running.group === group)) return;
       if (signature !== JSON.stringify(requiredTerritories())) { setReadiness(false, group, '', ''); return; }
-      setReadiness(territories.length > 0 && complete === territories.length && shellReady, group, signature);
+      setReadiness(territories.length > 0 && complete === territories.length && shellReady, group, signature, '',
+        territories.length > 0 && available === territories.length && shellReady);
       controls(false, records.length > 0);
       if (running && running.group !== group) $offline('offline-download').disabled = true;
       const downloadLabel = $offline('offline-download').querySelector('span');
       if (downloadLabel) downloadLabel.textContent = territories.length && complete === territories.length
-        ? (shellReady ? 'Comprobar descarga' : 'Completar descarga') : complete ? 'Continuar descarga' : 'Descargar congregación';
+        ? (shellReady ? 'Comprobar descarga' : 'Completar descarga')
+        : available > complete ? 'Actualizar mapa' : complete ? 'Continuar descarga' : 'Descargar congregación';
       $offline('offline-progress-wrap').hidden = complete === 0 || complete === territories.length;
       if (!territories.length) {
         badge('Sin territorios', '');
@@ -162,6 +174,12 @@
           (currentView === 'offline'
             ? ' sin internet. Estás viendo las calles y nombres guardados en este dispositivo.'
             : ' sin internet. Al perder conexión, el mapa usará esta copia automáticamente. También puedes tocar «Ver mapa guardado».'), 'ready');
+      } else if (available > complete) {
+        badge('Actualización disponible', 'loading');
+        status(navigator.onLine
+          ? 'Tus mapas anteriores siguen disponibles. Toca «Actualizar mapa» para guardar edificios, áreas verdes y más nombres.'
+          : 'Tus mapas anteriores siguen disponibles. Conéctate y toca «Actualizar mapa» para agregar más detalles.');
+        if (downloadLabel) downloadLabel.textContent = 'Actualizar mapa';
       } else if (complete > 0) {
         badge(complete + ' de ' + territories.length, 'loading');
         progress(complete, territories.length);
@@ -209,7 +227,7 @@
         navigator.serviceWorker.ready,
         new Promise((_, reject) => setTimeout(() => reject(new Error('La página tardó en prepararse. Recárgala e intenta de nuevo.')), 20000))
       ]);
-      const cache = await caches.open('croquis-app-shell-v10');
+      const cache = await caches.open('croquis-app-shell-v11');
       if (!await shellComplete(cache)) {
         const worker = registration.active;
         if (!worker) throw new Error('No se pudo guardar la página para abrirla sin internet.');
@@ -248,12 +266,12 @@
       const onAbort = () => controller.abort();
       signal.addEventListener('abort', onAbort, {once:true});
       if (signal.aborted) onAbort();
-      const timer = setTimeout(() => controller.abort(), 8000);
+      const timer = setTimeout(() => controller.abort(), 20000);
       try {
-        const response = await fetch(new URL('offline-map-pack.json', document.baseURI || location.href), {signal:controller.signal});
+        const response = await fetch(new URL('offline-map-pack.json?v=details-2', document.baseURI || location.href), {signal:controller.signal});
         if (!response.ok) return null;
         const pack = await response.json();
-        return pack?.version === 1 && Array.isArray(pack.territories) ? pack : null;
+        return pack?.version === 2 && Array.isArray(pack.territories) ? pack : null;
       } catch (error) {
         if (signal.aborted) throw new DOMException('Descarga cancelada.', 'AbortError');
         return null;
@@ -266,7 +284,7 @@
   }
 
   function preparedRecord(pack, territory) {
-    const usable = entry => Array.isArray(entry?.roads) && Array.isArray(entry?.refs) && covers(entry.bounds, territory.bounds);
+    const usable = entry => detailedRecord(entry, territory.bounds);
     return pack?.territories.find(entry => entry.key === territory.key && usable(entry))
       || pack?.territories.find(usable) || null;
   }
@@ -275,6 +293,10 @@
     if (running || removingGroup) return;
     if (!dataStore || !map || !LOCS.length) {
       status('Primero abre el editor y agrega un territorio.', 'error');
+      return;
+    }
+    if (!mapDetails) {
+      status('Recarga la página con internet para recibir la mejora del mapa.', 'error');
       return;
     }
     if (!navigator.onLine) {
@@ -314,7 +336,7 @@
         checkActive(controller.signal, group);
         const existing = await dataStore.get(group, territory.key);
         checkActive(controller.signal, group);
-        if (!completeRecord(existing, territory.bounds)) {
+        if (!detailedRecord(existing, territory.bounds)) {
           const name = displayTerritoryName(territory.loc);
           if (pack === undefined) {
             status('Preparando los mapas de la congregación…', 'loading');
@@ -325,7 +347,8 @@
           let record;
           if (prepared) {
             status('Guardando ' + name + ' en este dispositivo…', 'loading');
-            record = {roads:prepared.roads, refs:prepared.refs, bounds:prepared.bounds, savedAt:Date.now()};
+            record = {roads:prepared.roads, refs:prepared.refs, details:prepared.details,
+              detailVersion:mapDetails.VERSION, bounds:prepared.bounds, savedAt:Date.now()};
           } else {
             status('Descargando ' + name + ' (' + (done + 1) + ' de ' + territories.length + ')…', 'loading');
             try {
@@ -338,8 +361,12 @@
               record = {
                 roads:packRoadWays(roadWaysFromOverpass({elements:elements.roadElements})),
                 refs:referencesFromOverpass({elements:elements.referenceElements}),
+                details:mapDetails.fromElements(elements.detailElements), detailVersion:mapDetails.VERSION,
                 bounds:territory.bounds, savedAt:Date.now()
               };
+              if (!Array.isArray(elements.detailElements) || !mapDetails.valid(record.details)) {
+                throw new Error('La respuesta no incluyó todos los detalles del mapa. La descarga anterior se conserva.');
+              }
             } catch (error) {
               checkActive(controller.signal, group);
               if (error?.name === 'AbortError') throw error;
@@ -360,12 +387,12 @@
       }
       if (failed.length) {
         finalNotice = [done ? 'Se guardaron ' + done + ' de ' + territories.length + ' territorios. Faltan: '
-          + failed.map(item => item.name).join(', ') + '. Toca «Continuar descarga» para reintentar solo los pendientes.'
-          : failed[0].message + ' Los mapas no se completaron. Toca «Descargar congregación» para reintentar.', 'error'];
+          + failed.map(item => item.name).join(', ') + '. Vuelve a intentarlo para completar solo los pendientes.'
+          : failed[0].message + ' Los mapas no se completaron. Vuelve a intentarlo para continuar.', 'error'];
       } else {
         badge('Listo', 'ready');
         status('Listo: ' + done + (done === 1 ? ' territorio guardado' : ' territorios guardados') +
-          '. El mapa usará las calles guardadas cuando no haya internet; tus colores, dibujos y ubicación seguirán visibles.', 'ready');
+          '. El mapa usará los detalles guardados cuando no haya internet; tus colores, dibujos y ubicación seguirán visibles.', 'ready');
       }
     } catch (error) {
       if (error?.name === 'AbortError') {
@@ -374,7 +401,7 @@
           : 'Descarga pausada. Los territorios ya guardados se conservan; puedes reanudarla.', ''];
       } else {
         badge('Incompleto', 'error');
-        finalNotice = [(error?.message || 'No se completó la descarga.') + ' Toca «Descargar congregación» para continuar.', 'error'];
+        finalNotice = [(error?.message || 'No se completó la descarga.') + ' Vuelve a intentarlo para continuar.', 'error'];
       }
     } finally {
       clearTimeout(downloadTimer);
@@ -388,7 +415,8 @@
       }
       await refresh();
       if (finalNotice && group === congregacionActivaId) {
-        if (finalNotice[1] === 'error') setReadiness(false, group, '', 'error');
+        if (finalNotice[1] === 'error') setReadiness(false, group, readiness.group === group ? readiness.signature : '', 'error',
+          readiness.group === group && readiness.usable);
         status(finalNotice[0], finalNotice[1]);
       }
     }
@@ -432,7 +460,7 @@
       changeView(lastOnlineView || 'g-road', true);
     } else {
       await refresh();
-      if (group !== congregacionActivaId || currentView !== requestedView || !readiness.ready || readiness.group !== group) return;
+      if (group !== congregacionActivaId || currentView !== requestedView || !readiness.usable || readiness.group !== group) return;
       lastOnlineView = currentView;
       offlineAutoView = true;
       changeView('offline', true);

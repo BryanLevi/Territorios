@@ -143,3 +143,30 @@ test('cancelar o perder internet detiene la consulta activa sin probar otros ser
   await assert.rejects(online.api.download(bounds), /perdió la conexión/);
   assert.equal(online.calls.length, 1);
 });
+
+test('una descarga conserva áreas con geometría, huecos y localidades además de calles y referencias',async()=>{
+  const ring=[{lat:19.01,lon:-96.99},{lat:19.02,lon:-96.99},{lat:19.02,lon:-96.98},{lat:19.01,lon:-96.98},{lat:19.01,lon:-96.99}];
+  const forest={type:'relation',id:20,tags:{type:'multipolygon',natural:'wood'},members:[{type:'way',ref:21,role:'outer',geometry:ring}]};
+  const building={type:'way',id:22,tags:{building:'yes'},geometry:ring};
+  const town={type:'node',id:23,tags:{place:'town',name:'Ixhuatlán del Café'},lat:19.015,lon:-96.985};
+  const app=harness(call=>{
+    assert.match(call.query,/wr\[~"\^\(building\|landuse\|natural\|leisure\|waterway\)/);
+    assert.match(call.query,/nwr\["place"/);
+    assert.match(call.query,/\.details out geom;/);
+    return response([road(1),forest,building,town]);
+  });
+  const result=await app.api.download(bounds);
+  assert.equal(result.roadElements.length,1);
+  assert.equal(result.detailElements.length,3);
+  assert.equal(result.detailElements[0].members[0].geometry.length,5);
+  assert.equal(result.detailElements[2].tags.name,'Ixhuatlán del Café');
+});
+
+test('divide y une áreas compartidas sin duplicar una relación ni perder sus miembros geométricos',async()=>{
+  const forest={type:'relation',id:20,tags:{type:'multipolygon',natural:'wood'},members:[{type:'way',ref:21,role:'outer',geometry:[{lat:19,lon:-97},{lat:19.02,lon:-97}]}]};
+  const app=harness((call,count)=>count<=2 ? failure(504) : response([forest,{type:'node',id:count,tags:{place:'hamlet',name:'Pueblo '+count},lat:19.01,lon:-96.99}]));
+  const result=await app.api.download(bounds);
+  assert.equal(result.detailElements.filter(element=>element.type==='relation').length,1);
+  assert.equal(result.detailElements.find(element=>element.type==='relation').members[0].geometry.length,2);
+  assert.equal(result.detailElements.filter(element=>element.type==='node').length,4);
+});

@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const detailsApi = require('../outputs/offline-map-details.js');
 const repo = path.resolve(__dirname, '..');
 const boundsFile = process.argv[2];
 const checkpointFile = process.argv[3];
@@ -43,24 +44,27 @@ vm.runInNewContext(fs.readFileSync(path.join(repo,'outputs/offline-data.js'),'ut
 (async () => {
   const entries = fs.existsSync(checkpointFile) ? JSON.parse(fs.readFileSync(checkpointFile,'utf8')) : [];
   for (const territory of snapshot.territories) {
-    if (entries.some(entry => entry.key === territory.key && JSON.stringify(entry.bounds) === JSON.stringify(territory.bounds))) continue;
+    if (entries.some(entry => entry.key === territory.key && JSON.stringify(entry.bounds) === JSON.stringify(territory.bounds) && entry.detailVersion===detailsApi.VERSION && detailsApi.valid(entry.details))) continue;
     const began = Date.now();
     const rawFile = rawDirectory && path.join(rawDirectory, territory.key + '.json');
     const elements = rawFile && fs.existsSync(rawFile) ? JSON.parse(fs.readFileSync(rawFile,'utf8')) : await runtime.CroquisOfflineData.download(territory.bounds, {
       onProgress:event => console.log(territory.name + ': ' + event.message)
     });
-    const record = {...territory,
+    if (!Array.isArray(elements.detailElements)) throw new Error('The source lacks complete map details: ' + territory.name);
+    const details = detailsApi.fromElements(elements.detailElements);
+    if (!detailsApi.valid(details)) throw new Error('Invalid map details: ' + territory.name);
+    const record = {...territory,detailVersion:detailsApi.VERSION,details,
       roads:app.packRoadWays(app.roadWaysFromOverpass({elements:elements.roadElements})),
       refs:app.referencesFromOverpass({elements:elements.referenceElements}), savedAt:Date.now()};
     const index = entries.findIndex(entry => entry.key === territory.key);
     if (index < 0) entries.push(record); else entries[index] = record;
     fs.writeFileSync(checkpointFile,JSON.stringify(entries));
-    console.log(JSON.stringify({key:record.key,name:record.name,roads:record.roads.length,refs:record.refs.length,seconds:(Date.now()-began)/1000}));
+    console.log(JSON.stringify({key:record.key,name:record.name,roads:record.roads.length,refs:record.refs.length,areas:details.areas.length,places:details.places.length,seconds:(Date.now()-began)/1000}));
     await new Promise(resolve => setTimeout(resolve,1000));
   }
   const territories = snapshot.territories.map(territory => entries.find(entry => entry.key === territory.key));
   if (territories.some(entry => !entry)) throw new Error('Incomplete map pack.');
-  const pack = {version:1,generatedAt:Date.now(),attribution:'© OpenStreetMap contributors',
+  const pack = {version:detailsApi.VERSION,generatedAt:Date.now(),attribution:'© OpenStreetMap contributors',
     license:'https://www.openstreetmap.org/copyright',territories};
   const output = path.join(repo,'outputs/offline-map-pack.json');
   fs.writeFileSync(output,JSON.stringify(pack));

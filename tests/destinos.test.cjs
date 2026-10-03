@@ -272,7 +272,7 @@ test('cancelar destino conserva el zoom desactivado mientras otro modo todavía 
 
 test('una congregación sin territorios retira flechas y borradores de la vista sin borrar datos guardados', () => {
   const e = entorno();e.guardar([destino()]);const original=plano(e.c.textLabelSettings),controles=controlesDestino(e);
-  for(const name of ['ringLayer','colorLayer','draftLayer','textLayer','manualIconLayer','editHandleLayer','colorRestoreLayer','labelOverlayLayer','roadOverlayLayer','vectorRoadLayer','runtimeReferenceLayer','manualWhiteRoadLayer','manualRiverLayer'])e.c[name]=null;
+  for(const name of ['ringLayer','colorLayer','draftLayer','textLayer','manualIconLayer','editHandleLayer','colorRestoreLayer','labelOverlayLayer','roadOverlayLayer','vectorRoadLayer','runtimeReferenceLayer','runtimeOfflineAreaLayer','runtimeOfflineLabelLayer','manualWhiteRoadLayer','manualRiverLayer'])e.c[name]=null;
   e.c.map._directionLayer={clearLayers:()=>controles.eventos.push('flechas')};
   e.c.congregacionActual=()=>({nombre:'Congregación vacía'});e.c.updateFrameControls=e.c.updateButtons=()=>{};
   e.c.destinationAddMode=true;e.c.destinationSession={points:destino().points};e.c.LOCS=[];

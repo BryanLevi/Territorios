@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const mapDetails = require('../outputs/offline-map-details.js');
 
 const source = fs.readFileSync(path.join(__dirname, '../outputs/offline-controller.js'), 'utf8');
 const frame = {south:19, west:-97, north:19.01, east:-96.99};
@@ -69,7 +70,7 @@ function harness(options = {}) {
     async download(required, opts) {
       calls.download.push({required, opts});
       if (options.download) return options.download(required, opts, calls.download.length);
-      return {roadElements:[], referenceElements:[]};
+      return {roadElements:[], referenceElements:[], detailElements:[]};
     }
   };
   const context = {
@@ -78,7 +79,7 @@ function harness(options = {}) {
     navigator:{onLine:true, storage:{persist:options.persist || (async () => true)},
       serviceWorker:{register:async () => registration, ready:Promise.resolve(registration)}},
     caches:{open:async () => cache}, isSecureContext:true,
-    CroquisOfflineData:dataStore, addEventListener(type, fn) { networkHandlers[type] = fn; },
+    CroquisOfflineData:dataStore, CroquisOfflineDetails:mapDetails, addEventListener(type, fn) { networkHandlers[type] = fn; },
     pauseOnlineMapRequests() { calls.pause++; }, resumeOnlineMapRequests() { calls.resume++; },
     congregacionActivaId:'a', congregacionActual:() => ({nombre:context.congregacionActivaId}),
     LOCS:options.territories || [{num:1, nombre:'Primero'}], map:{}, DETAIL_ZOOM:16,
@@ -98,7 +99,7 @@ function harness(options = {}) {
     MessageChannel:class { constructor() { this.port1 = {}; this.port2 = {dispatch:data => this.port1.onmessage({data})}; } },
     fetch:async (url, opts) => {
       calls.fetch.push({url:String(url), opts});
-      return {ok:true, json:async () => options.pack || {version:1, territories:[{key:'1', bounds:broad, roads:[], refs:[]}]}};
+      return {ok:true, json:async () => options.pack || {version:2, territories:[{key:'1', bounds:broad, roads:[], refs:[], detailVersion:2, details:{areas:[],places:[]}}]}};
     }
   };
   context.window = context;
@@ -189,9 +190,9 @@ test('la actualización espera al trabajador nuevo aunque ready siga teniendo el
 });
 
 test('un territorio con la misma clave pero otra zona usa la descarga correcta en lugar del paquete', async () => {
-  const app = harness({pack:{version:1, territories:[
-    {key:'1', bounds:{south:18, west:-98, north:18.1, east:-97.9}, roads:[{wrong:true}], refs:[]},
-    {key:'2', bounds:{south:'18', west:-98, north:21, east:-96}, roads:[], refs:[]}
+  const app = harness({pack:{version:2, territories:[
+    {key:'1', bounds:{south:18, west:-98, north:18.1, east:-97.9}, roads:[{wrong:true}], refs:[],detailVersion:2,details:{areas:[],places:[]}},
+    {key:'2', bounds:{south:'18', west:-98, north:21, east:-96}, roads:[], refs:[],detailVersion:2,details:{areas:[],places:[]}}
   ]}});
   await app.ready();
   await app.download();
@@ -202,10 +203,10 @@ test('un territorio con la misma clave pero otra zona usa la descarga correcta e
 });
 
 test('un servidor fallido deja seguir con los otros territorios y al reanudar solo descarga el pendiente', async () => {
-  const app = harness({territories:[{num:1, nombre:'Primero'}, {num:2, nombre:'Segundo'}], pack:{version:1, territories:[]},
+  const app = harness({territories:[{num:1, nombre:'Primero'}, {num:2, nombre:'Segundo'}], pack:{version:2, territories:[]},
     download:(required, opts, count) => {
       if (count === 1) throw new Error('Servidor ocupado');
-      return {roadElements:[], referenceElements:[]};
+      return {roadElements:[], referenceElements:[], detailElements:[]};
     }
   });
   await app.ready();
@@ -229,10 +230,11 @@ test('la dirección limpia descarga el paquete y revisa la caché usando la base
   await app.ready();
   await app.download();
   assert.equal(app.calls.fetch.length, 1);
-  assert.equal(app.calls.fetch[0].url, 'https://example.test/Territorios/outputs/offline-map-pack.json');
+  assert.equal(app.calls.fetch[0].url, 'https://example.test/Territorios/outputs/offline-map-pack.json?v=details-2');
   const cached = new Set(app.calls.shell);
   assert.ok(cached.has('https://example.test/Territorios/outputs/croquis_territorios.html'));
   assert.ok(cached.has('https://example.test/Territorios/outputs/favicon.svg'));
+  assert.ok(cached.has('https://example.test/Territorios/outputs/offline-map-details.js'));
   assert.ok(cached.has('https://example.test/Territorios/croquis-territorios-jw/'));
   assert.ok(cached.has('https://example.test/Territorios/croquis-territorios-jw/index.html'));
   assert.ok(cached.has('https://example.test/Territorios/croquis-territorio-jw/'));
@@ -246,7 +248,7 @@ test('la dirección limpia descarga el paquete y revisa la caché usando la base
   assert.equal(app.element('offline-badge').textContent, 'Listo');
 });
 
-const savedRecord = () => ({bounds:{...broad}, roads:[], refs:[], savedAt:Date.now()});
+const savedRecord = () => ({bounds:{...broad}, roads:[], refs:[], details:{areas:[],places:[]}, detailVersion:2, savedAt:Date.now()});
 const green = app => app.element('btn-offline').classList.contains('is-offline-ready');
 
 test('el botón queda verde solo con todos los territorios cubiertos y la página completa', async () => {
@@ -445,4 +447,132 @@ test('un clic de vista previa pendiente no abre la descarga de otra congregació
   await click;
   assert.equal(app.context.currentView,'g-road');
   assert.equal(app.calls.views.length,0);
+});
+
+function legacyRecord() {
+  return {bounds:{...broad},roads:[{n:'Calle guardada',h:'residential',p:[[19,-97],[19.001,-97]]}],
+    refs:[{name:'Escuela guardada',kind:'Escuela',lat:19,lng:-97}],savedAt:123};
+}
+
+test('una descarga antigua sigue visible y ofrece actualizar sin borrar ni marcar la mejora como lista', async () => {
+  const app=harness();
+  await app.ready();
+  const old=legacyRecord();
+  app.records.set('a:1',old);
+  await app.context.refreshOfflineCard();
+  assert.equal(green(app),false);
+  assert.equal(app.element('offline-badge').textContent,'Actualización disponible');
+  assert.equal(app.element('offline-download-label').textContent,'Actualizar mapa');
+  assert.equal(app.context.offlineRecordCovers(app.context.LOCS[0],old),true);
+  assert.equal(app.element('offline-preview').hidden,false);
+  await app.preview();
+  assert.equal(app.context.currentView,'offline');
+  assert.equal(app.records.get('a:1'),old);
+  assert.equal(app.calls.set.length,0);
+  assert.equal(app.calls.download.length,0);
+});
+
+test('actualizar guarda detalles y nombres completos conservando las calles y referencias del paquete', async () => {
+  const entry={key:'1',bounds:broad,roads:legacyRecord().roads,refs:legacyRecord().refs,detailVersion:2,
+    details:{areas:[{id:'way/1',kind:'building',name:'Escuela',rings:[[[19,-97],[19.001,-97],[19.001,-96.999],[19,-97]]]}],
+      places:[{name:'Centro',kind:'neighbourhood',lat:19,lng:-97}]}};
+  const app=harness({pack:{version:2,territories:[entry]}});
+  await app.ready();
+  app.records.set('a:1',legacyRecord());
+  await app.download();
+  const updated=app.records.get('a:1');
+  assert.equal(updated.detailVersion,2);
+  assert.deepEqual(updated.details,entry.details);
+  assert.deepEqual(updated.roads,entry.roads);
+  assert.deepEqual(updated.refs,entry.refs);
+  assert.equal(app.calls.download.length,0);
+  assert.equal(green(app),true);
+});
+
+test('una actualización fallida conserva la copia antigua y sus referencias', async () => {
+  const app=harness({pack:{version:1,territories:[]},download:()=>{throw new Error('Servidor ocupado');}});
+  await app.ready();
+  const old=legacyRecord();
+  app.records.set('a:1',old);
+  await app.download();
+  assert.equal(app.records.get('a:1'),old);
+  assert.equal(app.calls.set.length,0);
+  assert.equal(app.context.offlineRecordCovers(app.context.LOCS[0],old),true);
+  assert.match(app.element('offline-status').textContent,/Servidor ocupado/);
+  assert.equal(green(app),false);
+  assert.equal(app.element('offline-preview').hidden,false);
+  await app.preview();
+  assert.equal(app.context.currentView,'offline');
+});
+
+test('cancelar una actualización no reemplaza la copia antigua por datos pendientes', async () => {
+  const waiting=deferred(),began=deferred();
+  const app=harness({pack:{version:2,territories:[]},download:()=>{began.resolve();return waiting.promise;}});
+  await app.ready();
+  const old=legacyRecord();
+  app.records.set('a:1',old);
+  const operation=app.download();
+  await began.promise;
+  app.cancel();
+  waiting.resolve({roadElements:[],referenceElements:[],detailElements:[]});
+  await operation;
+  assert.equal(app.records.get('a:1'),old);
+  assert.equal(app.calls.set.length,0);
+  assert.match(app.element('offline-status').textContent,/Descarga pausada/);
+  assert.equal(app.element('offline-preview').hidden,false);
+});
+
+test('si no hay espacio para actualizar, la copia anterior permanece disponible', async () => {
+  const app=harness({set:()=>{throw new DOMException('No hay espacio suficiente para guardar el mapa.','QuotaExceededError');}});
+  await app.ready();
+  const old=legacyRecord();
+  app.records.set('a:1',old);
+  await app.download();
+  assert.equal(app.records.get('a:1'),old);
+  assert.equal(app.element('offline-preview').hidden,false);
+  assert.equal(green(app),false);
+  assert.match(app.element('offline-status').textContent,/No hay espacio/);
+  await app.preview();
+  assert.equal(app.context.currentView,'offline');
+});
+
+test('una respuesta sin la capa de detalles no se guarda sobre una descarga válida', async () => {
+  const app=harness({pack:{version:2,territories:[]},download:()=>({roadElements:[],referenceElements:[]})});
+  await app.ready();
+  const old=legacyRecord();
+  app.records.set('a:1',old);
+  await app.download();
+  assert.equal(app.records.get('a:1'),old);
+  assert.equal(app.calls.set.length,0);
+  assert.equal(green(app),false);
+  assert.match(app.element('offline-status').textContent,/no incluyó todos los detalles/);
+  assert.equal(app.element('offline-preview').hidden,false);
+});
+
+test('un contorno multipolígono incompleto no reemplaza la descarga anterior', async () => {
+  const app=harness({pack:{version:2,territories:[]},download:()=>({roadElements:[],referenceElements:[],
+    detailElements:[{type:'relation',id:10,tags:{type:'multipolygon',landuse:'forest'},
+      members:[{type:'way',ref:11,role:'outer',geometry:[{lat:19,lon:-97},{lat:19.01,lon:-97}]}]}]})});
+  await app.ready();
+  const old=legacyRecord();
+  app.records.set('a:1',old);
+  await app.download();
+  assert.equal(app.records.get('a:1'),old);
+  assert.equal(app.calls.set.length,0);
+  assert.equal(app.element('offline-preview').hidden,false);
+  assert.equal(green(app),false);
+});
+
+test('continuar una actualización omite los territorios ya detallados y mantiene el resto', async () => {
+  const app=harness({territories:[{num:1,nombre:'Uno'},{num:2,nombre:'Dos'}],pack:{version:2,territories:[]}});
+  await app.ready();
+  const upgraded=savedRecord();
+  app.records.set('a:1',upgraded);
+  app.records.set('a:2',legacyRecord());
+  await app.download();
+  assert.equal(app.records.get('a:1'),upgraded);
+  assert.equal(app.calls.download.length,1);
+  assert.deepEqual(app.calls.set.map(call=>call.key),['2']);
+  assert.equal(app.records.get('a:2').detailVersion,2);
+  assert.equal(green(app),true);
 });

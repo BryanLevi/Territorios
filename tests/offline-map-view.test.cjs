@@ -25,7 +25,7 @@ function harness(online = true) {
     map:{getContainer:() => container, removeLayer:layer => calls.removed.push(layer),
       attributionControl:{addAttribution(){}, removeAttribution(){}}},
     tileLayer:null, colorRestoreLayer:null, labelOverlayLayer:null, roadOverlayLayer:null,
-    vectorRoadLayer:{}, runtimeRoadCache:{}, runtimeReferenceCache:{}, tileErrorCount:0,
+    vectorRoadLayer:{}, runtimeRoadCache:{}, runtimeReferenceCache:{}, runtimeOfflineLabelLayer:null,drawRuntimeOfflineDetails(){},tileErrorCount:0,
     LOCS:[{num:1}], currentIndex:0, MAP_DETAIL_RESTORE_OPACITY:1,
     statusBox:{classList:{contains:() => false}}, setStatus(){}, updateButtons(){},
     getColorAreasForLoc:() => [], getRuntimeRoadTileSource:() => null, getRuntimeLabelTileSource:() => null,

@@ -110,7 +110,7 @@ test('zoom y desplazamiento reutilizan los datos sin borrar las calles ni leer o
   const context=vm.createContext({map:{},vectorRoadLayer:{_streetLabels:{},hasLayer:()=>true,clearLayers(){clears++;}},runtimeRoadRequestId:0,
     LOCS:[{num:1}],currentIndex:0,currentView:'offline',congregacionActivaId:'a',
     runtimeRoadCache:{key:'1',congregation:'a',offline:true,roadWays:[{name:'Libertad'}]},
-    getRuntimeRoadCacheKey:loc=>String(loc.num),drawRuntimeOfflineStreetLabels:()=>labels++,
+    getRuntimeRoadCacheKey:loc=>String(loc.num),refreshRuntimeOfflineMap:()=>labels++,
     window:{CroquisOfflineData:{get:async()=>{reads++;return null;}}}});
   vm.runInContext(extract('updateRuntimeVectorRoadOverlay'),context);
   await context.updateRuntimeVectorRoadOverlay();
@@ -126,7 +126,7 @@ test('una descarga que termina después de cambiar congregación, territorio o b
     const context=vm.createContext({map:{},vectorRoadLayer:{clearLayers(){}},runtimeRoadRequestId:0,
       LOCS:[{num:1},{num:2}],currentIndex:0,currentView:'offline',congregacionActivaId:'a',runtimeRoadCache:null,
       getRuntimeRoadCacheKey:loc=>String(loc.num),unpackRoadWays:ways=>ways,
-      drawRuntimeVectorRoads:()=>drawn++,setStatus(){},
+      drawRuntimeVectorRoads:()=>drawn++,drawRuntimeOfflineDetails(){},runtimeOfflineLabelLayer:null,setStatus(){},
       window:{CroquisOfflineData:{get:()=>new Promise(done=>{resolve=done;})}}});
     vm.runInContext(extract('updateRuntimeVectorRoadOverlay'),context);
     const pending=context.updateRuntimeVectorRoadOverlay();
@@ -145,7 +145,7 @@ test('si se vació la capa, la caché restaura calles y nombres juntos al volver
   const context=vm.createContext({map:{},vectorRoadLayer:{_streetLabels:{},hasLayer:()=>false,clearLayers(){}},
     runtimeRoadRequestId:0,LOCS:[{num:1}],currentIndex:0,currentView:'offline',congregacionActivaId:'a',
     runtimeRoadCache:{key:'1',congregation:'a',offline:true,roadWays:[{name:'Libertad'}]},
-    getRuntimeRoadCacheKey:loc=>String(loc.num),drawRuntimeOfflineStreetLabels:()=>assert.fail('No hay capa de calles'),
+    getRuntimeRoadCacheKey:loc=>String(loc.num),refreshRuntimeOfflineMap(){},
     drawRuntimeVectorRoads:ways=>{restored++;assert.equal(ways[0].name,'Libertad');},
     window:{CroquisOfflineData:{get:async()=>{reads++;return null;}}}});
   vm.runInContext(extract('updateRuntimeVectorRoadOverlay'),context);
