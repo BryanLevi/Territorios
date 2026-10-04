@@ -31,7 +31,8 @@ const funciones = [
   'clampFrameScale', 'getFrameScaleForLoc', 'scaleBoundsPlain', 'translateFrameBoundsPlain',
   'getPrintBoundsPlain', 'getBaseBoundsPlain', 'boundsAroundCenter', 'calcBoundsPlain', 'll2t', 't2ll',
   'getExportBoundsPlain', 'getColorAreasBoundsPlain', 'getRuntimeRoadCacheKey',
-  'cloneData', 'stateFingerprint', 'getCurrentSnapshot', 'pushUndoSnapshot', 'saveUndoHistory', 'restoreLastUndoSnapshot',
+  'cloneData', 'stateFingerprint', 'loadUndoHistory', 'loadRedoHistory', 'getCurrentSnapshot', 'pushUndoSnapshot',
+  'saveUndoHistory', 'getInverseHistorySnapshot', 'restoreEditHistorySnapshot', 'restoreLastUndoSnapshot', 'restoreLastRedoSnapshot',
   'setFramePositionForLoc', 'resetFrameForCurrent', 'isFrameMoveSessionCurrent',
   'nubeEditando', 'publicarTerritorio', 'aplicarTerritorioRemoto'
 ].map(funcion).join('\n');
@@ -47,7 +48,7 @@ function entorno({guardados = {}, cuota = false} = {}){
   const contexto = vm.createContext({
     DETAIL_ZOOM:20, DETAIL_PAD:2, PRINT_ASPECT:297 / 189, COLOR_BOUNDS_PAD:.06,
     FRAME_SCALE_MIN:55, FRAME_SCALE_MAX:180, FRAME_SCALE_STEP:5, UNDO_HISTORY_LIMIT:80,
-    FRAME_POSITION_STORAGE_KEY:'posiciones', UNDO_HISTORY_STORAGE_KEY:'undo',
+    FRAME_POSITION_STORAGE_KEY:'posiciones', UNDO_HISTORY_STORAGE_KEY:'undo', REDO_HISTORY_STORAGE_KEY:'redo',
     congregacionActivaId:'congregacion-a', currentIndex:0,
     LOCS:[
       {num:'custom-1', lat:19.01, lon:-97.015, printBounds:{south:19, north:19.02, west:-97.03, east:-97}},
@@ -62,7 +63,7 @@ function entorno({guardados = {}, cuota = false} = {}){
     colorAreaSettings:{'custom-1':[{color:'#1257c5', points:[[19,-97],[19.02,-97],[19.01,-96.98]]}]},
     textLabelSettings:{'custom-1':[{text:'Zona', lat:19.01, lng:-97}]},
     manualIconSettings:{}, whiteRoadSettings:{}, manualRiverSettings:{},
-    undoHistory:[], suppressUndoSnapshot:false,
+    undoHistory:[], redoHistory:[], suppressUndoSnapshot:false,
     selectedAreaIndex:null, selectedTextIndex:null, selectedIconIndex:null,
     almacen:{
       getItem(clave){ return valores.get(clave + '::' + contexto.congregacionActivaId) ?? null; },
@@ -75,6 +76,7 @@ function entorno({guardados = {}, cuota = false} = {}){
     },
     console:{error:noOp},
     clearHeavyUndoStorage(){ llamadas.push('clear-heavy-undo'); },
+    clearLegacyUndoStorage:noOp,
     setStatus:(texto, tipo) => avisos.push({texto, tipo}),
     getColorAreasForLoc:loc => contexto.colorAreaSettings[String(loc?.num)] || [],
     getExportColorAreasForLoc:loc => contexto.colorAreaSettings[String(loc?.num)] || [],
@@ -236,6 +238,17 @@ test('Deshacer recupera el centro anterior y persiste sin desplazar los dibujos'
   assert.deepEqual(copia(e.contexto.framePositionSettings),{});
   assert.deepEqual(JSON.parse(e.valores.get('posiciones::congregacion-a')),{});
   assert.deepEqual(copia(e.contexto.colorAreaSettings),dibujos);
+});
+
+test('Rehacer recupera y persiste el centro movido sin cambiar escala ni dibujos', () => {
+  const e = entorno(), c = e.contexto, drawings = copia(c.colorAreaSettings);
+  c.frameScaleSettings['custom-1'] = 145;
+  assert.equal(e.mover({lat:20,lng:-98}),true);
+  const moved = e.bounds(); e.undo(); assert.notDeepEqual(e.bounds(),moved);
+  c.redoHistory = c.loadRedoHistory(); assert.equal(c.restoreLastRedoSnapshot(),true);
+  assert.deepEqual(e.bounds(),moved);
+  assert.deepEqual(JSON.parse(e.valores.get('posiciones::congregacion-a')),{'custom-1':{lat:20,lng:-98}});
+  assert.equal(c.frameScaleSettings['custom-1'],145); assert.deepEqual(copia(c.colorAreaSettings),drawings);
 });
 
 test('un undo antiguo sin campo de posición conserva el marco movido', () => {

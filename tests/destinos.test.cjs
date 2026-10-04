@@ -29,7 +29,8 @@ function funcion(nombre){
 const funciones = [
   'normalizeDestinationPoint', 'normalizeDestinationLabel', 'normalizeTextLabelsForLoc', 'normalizeTextLabelSettings',
   'loadTextLabelSettings', 'saveTextLabelSettings', 'getTextLabelsForLoc', 'setTextLabelsForLoc',
-  'cloneData', 'stateFingerprint', 'getCurrentSnapshot', 'pushUndoSnapshot', 'saveUndoHistory', 'restoreLastUndoSnapshot',
+  'cloneData', 'stateFingerprint', 'loadUndoHistory', 'loadRedoHistory', 'getCurrentSnapshot', 'pushUndoSnapshot',
+  'saveUndoHistory', 'getInverseHistorySnapshot', 'restoreEditHistorySnapshot', 'restoreLastUndoSnapshot', 'restoreLastRedoSnapshot',
   'buildBackupPayload', 'getBackupData', 'publicarTerritorio', 'aplicarTerritorioRemoto',
   'directionAnnotationGeometry', 'directionInteractionAllowed', 'updateDestinationAnnotation', 'deleteDestinationAnnotation', 'ajustarDobleClic'
 ].map(funcion).join('\n');
@@ -41,12 +42,12 @@ function entorno(guardados = {}){
   let fallos = 0;
   const noOp = () => {}, vacio = () => [];
   const c = vm.createContext({
-    TEXT_LABELS_STORAGE_KEY:'textos', UNDO_HISTORY_STORAGE_KEY:'undo', UNDO_HISTORY_LIMIT:80,
+    TEXT_LABELS_STORAGE_KEY:'textos', UNDO_HISTORY_STORAGE_KEY:'undo', REDO_HISTORY_STORAGE_KEY:'redo', UNDO_HISTORY_LIMIT:80,
     BACKUP_FILE_VERSION:1, location:{href:'http://localhost/croquis'},
     congregacionActivaId:'a', currentIndex:0, LOCS:[{num:1}],
     textLabelSettings:{}, colorAreaSettings:{}, manualIconSettings:{}, whiteRoadSettings:{}, manualRiverSettings:{},
     frameScaleSettings:{}, framePositionSettings:{}, leyendaSettings:{}, nombresSettings:{},
-    undoHistory:[], suppressUndoSnapshot:false, selectedAreaIndex:null, selectedTextIndex:null, selectedIconIndex:null,
+    undoHistory:[], redoHistory:[], suppressUndoSnapshot:false, selectedAreaIndex:null, selectedTextIndex:null, selectedIconIndex:null,
     nube:null, nubeAplicando:false, nubeYo:'yo', nubeQuien:'Equipo', map:null,
     destinationAddMode:false, destinationSession:null, frameMoveMode:false,
     territoryAddMode:false, colorDrawMode:false, roadPencilMode:false, riverPencilMode:false,
@@ -151,6 +152,17 @@ test('Deshacer recupera puntas, posición del texto y dimensiones de la flecha',
   e.c.restoreLastUndoSnapshot(); assert.deepEqual(e.leer(),original);
   e.recargar(); assert.deepEqual(e.leer(),original);
   e.c.restoreLastUndoSnapshot(); assert.deepEqual(e.leer(),[]);
+});
+
+test('Rehacer recupera la flecha modificada y persiste extremos, texto y medidas físicas', () => {
+  const e = entorno(); e.guardar([destino()]);
+  e.guardar([destino({text:'Hacia Xalapa',lat:19.05,lng:-97.04,
+    points:[[19.02,-97.03],[19.05,-97.04]],sizePt:12,strokePt:1.7,headMm:4.5})]);
+  const modified = e.leer();
+  e.c.restoreLastUndoSnapshot(); assert.notDeepEqual(e.leer(),modified);
+  e.c.redoHistory = e.c.loadRedoHistory();
+  assert.equal(e.c.restoreLastRedoSnapshot(),true); assert.deepEqual(e.leer(),modified);
+  e.recargar(); assert.deepEqual(e.leer(),modified);
 });
 
 test('respaldo y nube transportan la anotación íntegra con sus medidas físicas', async () => {

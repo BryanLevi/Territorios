@@ -36,6 +36,8 @@ Toca una calle blanca, carretera o río dibujado para seleccionarlo, incluso sob
 
 `Deshacer` y `Ctrl+Z` restauran los cambios guardados conservando el zoom y la posición actuales del mapa. Puedes acercarte o mover la vista después de una edición y deshacerla sin volver al encuadre completo del territorio. Los puntos de un dibujo todavía sin guardar también se deshacen en la misma vista.
 
+`Rehacer` recupera los cambios deshechos con el mismo encuadre; admite `Ctrl+Mayús+Z` y `Ctrl+Y`, además de los puntos de una zona, calle o río todavía sin guardar. Un cambio nuevo inicia otra rama. `Historial` muestra el tipo de edición, territorio y fecha de hasta 80 cambios aplicados o pendientes por congregación, conservados al recargar. Sus botones trabajan sobre los cambios guardados; termina o cancela un borrador antes de utilizarlos.
+
 `Referencias` reconoce tanto los iconos que colocaste como los símbolos que la página dibuja a partir de OpenStreetMap, incluidos los descargados para uso sin conexión. Puedes elegir qué tipos incluir en la leyenda del PDF y editar sus nombres. La lista se actualiza cuando llegan más referencias sin perder los cambios que estás escribiendo; las referencias retiradas o sustituidas por un icono propio se excluyen. La leyenda del PDF incluye las referencias automáticas que se dibujan dentro de su croquis.
 
 `Renombrar` permite editar el nombre completo, sus paréntesis y la descripción final del selector de localidad. En el campo de descripción, `auto` restaura el conteo de subterritorios y dejarlo vacío oculta el sufijo. Esta descripción no cambia las divisiones ni los dibujos guardados.
@@ -45,6 +47,16 @@ La selección de territorios del PDF usa texto de 11 px y filas compactas; las c
 Se traen de OpenStreetMap con Overpass, **una sola vez por territorio**, y quedan guardadas en el navegador. Moverse o acercarse ya no vuelve a pedirlas, y al reabrir la pagina se usan las guardadas sin tocar la red.
 
 Si el servidor esta saturado se reintenta hasta tres veces, alternando entre dos servidores y esperando cada vez mas. Un territorio ya cargado se sigue viendo aunque Overpass este caido.
+
+## Buscar y recorrer
+
+`Buscar`, junto a Localidad, encuentra territorios por nombre, alias o número, con o sin tildes. También puedes escribir un número de subterritorio o `subterritorio 38` para acercarte a su zona. El buscador consulta únicamente la congregación activa y funciona con los dibujos guardados sin internet.
+
+`Recorrido` abre el mapa a pantalla completa y bloquea la edición. Conserva el encuadre al entrar y salir; incluye selección de territorio, anterior/siguiente, buscador y controles de ubicación. El zoom y el desplazamiento siguen disponibles. `Salir del recorrido` o `Escape` devuelve las herramientas. El mapa elegido, incluida la copia sin conexión, se conserva.
+
+## Continuar un dibujo pendiente
+
+Los borradores de zonas de color, calles, carreteras y ríos se guardan automáticamente en este dispositivo, separados por congregación y territorio. Al cerrar, recargar, volver a Inicio, cambiar de territorio o entrar al recorrido, el trabajo incompleto permanece disponible. Al abrir el editor se ofrece el borrador de su territorio actual o el más reciente de esa congregación. Elige `Continuar dibujo` para recuperar sus puntos, estilo y encuadre, o `Descartar`; cambia de territorio solo cuando aceptas continuar. Guardar o cancelar el dibujo elimina su borrador. Los borradores no se publican ni se incluyen en los respaldos; los destinos sin guardar no se recuperan.
 
 ## Rios y arroyos
 

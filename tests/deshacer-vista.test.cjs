@@ -25,7 +25,8 @@ function funcion(nombre){
   }
   throw new Error(`Función incompleta: ${nombre}`);
 }
-const codigo = ['cloneData', 'saveUndoHistory', 'restoreLastUndoSnapshot', 'undoDraftColorPoint',
+const codigo = ['cloneData', 'saveUndoHistory', 'getCurrentSnapshot', 'getInverseHistorySnapshot',
+  'restoreEditHistorySnapshot', 'restoreLastUndoSnapshot', 'undoDraftColorPoint',
   'goTo', 'drawTerritoryFrame'].map(funcion).join('\n');
 const copia = valor => JSON.parse(JSON.stringify(valor));
 
@@ -35,7 +36,7 @@ function entorno(){
   const noOp = () => {};
   const c = vm.createContext({
     currentIndex:0, locSel:{value:'0'}, LOCS:[{num:1, lat:19, lon:-97}, {num:2, lat:20, lon:-98}],
-    DETAIL_ZOOM:20, UNDO_HISTORY_LIMIT:80, UNDO_HISTORY_STORAGE_KEY:'undo',
+    DETAIL_ZOOM:20, UNDO_HISTORY_LIMIT:80, UNDO_HISTORY_STORAGE_KEY:'undo', REDO_HISTORY_STORAGE_KEY:'redo',
     map:{
       removeLayer:noOp,
       fitBounds(bounds, options){ movimientos.push({tipo:'fitBounds', bounds, options}); camara.centro = [bounds[0][0], bounds[0][1]]; camara.zoom = 14; },
@@ -52,7 +53,7 @@ function entorno(){
       return [[p.lat - d, p.lng - d], [p.lat + d, p.lng + d]];
     },
     framePositionSettings:{}, frameScaleSettings:{}, colorAreaSettings:{}, textLabelSettings:{},
-    manualIconSettings:{}, whiteRoadSettings:{}, manualRiverSettings:{}, undoHistory:[], suppressUndoSnapshot:false,
+    manualIconSettings:{}, whiteRoadSettings:{}, manualRiverSettings:{}, undoHistory:[], redoHistory:[], suppressUndoSnapshot:false,
     selectedAreaIndex:null, selectedTextIndex:null, selectedIconIndex:null,
     frameMoveMode:false, territoryAddMode:false, colorDrawMode:false, roadPencilMode:false, riverPencilMode:false,
     textAddMode:false, iconAddMode:false, contourEditMode:false, destinationAddMode:false, destinationSession:null,
@@ -72,6 +73,11 @@ function entorno(){
     publicarTerritorioPronto:loc => publicaciones.push(loc.num),
     renderRoadDraft:() => borradores.push('road'), renderRiverDraft:() => borradores.push('river'),
     renderDraftArea:() => borradores.push('area'), getColorAreasForLoc:loc => c.colorAreaSettings[String(loc.num)] || [],
+    getTextLabelsForLoc:loc => c.textLabelSettings[String(loc.num)] || [],
+    getManualIconsForLoc:loc => c.manualIconSettings[String(loc.num)] || [],
+    getWhiteRoadsForLoc:loc => c.whiteRoadSettings[String(loc.num)] || [],
+    getManualRiversForLoc:loc => c.manualRiverSettings[String(loc.num)] || [],
+    getFrameScaleForLoc:loc => c.frameScaleSettings[String(loc.num)] || 100,
     updateSelectedAreaPoints:points => { c.colorAreaSettings[String(c.LOCS[c.currentIndex].num)][c.selectedAreaIndex].points = points; }
   });
   vm.runInContext(codigo, c);
