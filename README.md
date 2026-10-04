@@ -38,7 +38,7 @@ Toca una calle blanca, carretera o río dibujado para seleccionarlo, incluso sob
 
 `Rehacer` recupera los cambios deshechos con el mismo encuadre; admite `Ctrl+Mayús+Z` y `Ctrl+Y`, además de los puntos de una zona, calle o río todavía sin guardar. Un cambio nuevo inicia otra rama. `Historial` muestra el tipo de edición, territorio y fecha de hasta 80 cambios aplicados o pendientes por congregación, conservados al recargar. Sus botones trabajan sobre los cambios guardados; termina o cancela un borrador antes de utilizarlos.
 
-La barra de escritorio usa controles compactos de 36 px. Desde 1280 px, sus seis secciones comparten una fila y `Trabajo` queda a la derecha de `Trazos`. En pantallas intermedias se acomodan en dos filas conservando esas dos secciones juntas; en móvil se mantienen los controles táctiles de 44 px.
+La cabecera y las acciones de escritorio usan controles compactos de 36 px. Desde 1280 px, las seis secciones de herramientas comparten una fila con controles de 40 a 44 px y se distribuyen por todo el ancho disponible; `Trabajo` queda a la derecha de `Trazos`. En pantallas intermedias se acomodan en dos filas conservando esas dos secciones juntas; en móvil se mantienen los controles táctiles de 44 px.
 
 `Referencias` reconoce tanto los iconos que colocaste como los símbolos que la página dibuja a partir de OpenStreetMap, incluidos los descargados para uso sin conexión. Puedes elegir qué tipos incluir en la leyenda del PDF y editar sus nombres. La lista se actualiza cuando llegan más referencias sin perder los cambios que estás escribiendo; las referencias retiradas o sustituidas por un icono propio se excluyen. La leyenda del PDF incluye las referencias automáticas que se dibujan dentro de su croquis.
 

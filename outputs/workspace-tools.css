@@ -63,7 +63,22 @@
   .premium-toolbar .bar-actions{min-height:46px;padding:5px 0;gap:5px 0}
   .premium-toolbar .bar-actions .btn{padding:0 9px}
 }
-@media screen and (min-width:1280px){.premium-toolbar .color-control{flex-wrap:nowrap}}
+@media screen and (min-width:1280px){
+  .premium-toolbar #tools-panel{--control-height:clamp(40px,2.95vw,44px);--text-label:clamp(9px,calc(.625vw + 1px),11px);--text-caption:clamp(10px,calc(.625vw + 2px),12px);--text-control:clamp(11px,calc(.625vw + 3px),13px);--tool-caption:clamp(9px,calc(.625vw + 1px),11px);--tool-icon-size:clamp(16px,1.25vw,20px);padding:6px 0}
+  .premium-toolbar .color-control{flex-wrap:nowrap;min-height:calc(var(--control-height) + 16px)}
+  .premium-toolbar .tool-group{flex:1 0 auto;min-height:calc(var(--control-height) + 16px);padding-top:16px;gap:clamp(3px,calc(.625vw - 5px),5px)}
+  .premium-toolbar .tools-color{padding-top:0}
+  .premium-toolbar .tools-color input[type=range]{width:clamp(58px,4.5vw,80px);flex:1 0 58px}
+  .premium-toolbar .text-input{width:clamp(76px,6vw,92px);flex:1 0 76px}
+  .premium-toolbar .tools-text input[type=range]{width:clamp(42px,3.2vw,58px)}
+  .premium-toolbar .icon-picker{flex:1 0 139px}
+  .premium-toolbar .icon-picker-trigger{width:100%}
+  .premium-toolbar .icon-btn.con-rotulo,.premium-toolbar .tools-actions .icon-btn{min-width:40px}
+  .premium-toolbar .tools-edit,.premium-toolbar .tools-draw,.premium-toolbar .tools-actions{gap:clamp(2px,calc(.625vw - 6px),4px)}
+  .premium-toolbar .tools-edit .icon-btn,.premium-toolbar .tools-draw .icon-btn,.premium-toolbar .tools-actions .icon-btn{flex:1 0 auto}
+  .premium-toolbar #tools-panel .icon-btn svg,.premium-toolbar #tools-panel .icon-btn.con-rotulo svg,.premium-toolbar #tools-panel .btn svg{width:var(--tool-icon-size);height:var(--tool-icon-size);flex-basis:var(--tool-icon-size)}
+  .premium-toolbar #tools-panel .icon-btn-rotulo{font-size:var(--tool-caption)}
+}
 @media screen and (min-width:761px) and (max-width:1279px){
   .premium-toolbar .color-control{display:grid;grid-template-columns:repeat(3,max-content);column-gap:7px;row-gap:6px;justify-content:start}
   .premium-toolbar .tool-group{width:max-content}
