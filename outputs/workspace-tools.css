@@ -26,6 +26,51 @@
 .history-entry .history-state{font-size:10px;font-weight:800;color:#2456cc}
 #btn-territory-search{min-width:44px;min-height:44px}
 #btn-walk-mode{min-height:44px}
+/* Barra de escritorio compacta: los seis grupos comparten una sola fila. */
+@media screen and (min-width:761px){
+  .premium-toolbar{--control-height:36px;--space-md:8px;--space-lg:10px;--text-label:9px;--text-caption:10px;--text-control:11px;--text-title:14px;--radius-button:12px;padding:0 10px}
+  .premium-toolbar .workspace-head{min-height:58px;gap:12px}
+  .premium-toolbar .brand{min-width:205px;flex-basis:230px;gap:8px}
+  .premium-toolbar .brand-mark svg{width:21px;height:21px}
+  .premium-toolbar .workspace-settings{gap:10px}
+  .premium-toolbar .territory-selection-group{padding:5px;gap:5px}
+  .premium-toolbar .territory-selection-group .field.grow{min-width:145px}
+  .premium-toolbar .territory-actions .btn{padding:0 7px;font-size:10px}
+  .premium-toolbar .territory-actions .btn-rotulo{font-size:10px}
+  .premium-toolbar #btn-territory-search,.premium-toolbar #btn-walk-mode{min-width:36px;min-height:36px}
+  .premium-toolbar .campo-mapa{min-width:204px;flex-basis:230px}
+  .premium-toolbar .frame-field{min-width:205px;flex-basis:205px}
+  .premium-toolbar .frame-control{width:205px;gap:5px}
+  .premium-toolbar .frame-control .frame-move-btn{width:44px;min-width:44px}
+  .premium-toolbar .frame-move-btn>span{font-size:9px}
+  .premium-toolbar #tools-panel{padding:5px 0}
+  .premium-toolbar .color-control{min-height:49px;gap:6px 0}
+  .premium-toolbar .tool-group{min-height:49px;padding-top:13px;gap:3px}
+  .premium-toolbar .tool-group+.tool-group,.premium-toolbar .tool-group.tools-edit{margin-left:7px;padding-left:7px}
+  .premium-toolbar .tool-group+.tool-group .tool-section-label,.premium-toolbar .tools-text>label,.premium-toolbar .tools-icon>label{left:7px}
+  .premium-toolbar .tools-color{padding-top:0}
+  .premium-toolbar .tools-color input[type=range]{width:58px}
+  .premium-toolbar .opacity-value{width:27px}
+  .premium-toolbar .text-input{width:76px;padding:0 8px}
+  .premium-toolbar .tools-text input[type=range]{width:42px}
+  .premium-toolbar .text-size-value{width:16px}
+  .premium-toolbar .icon-btn.con-rotulo,.premium-toolbar .tools-actions .icon-btn{min-width:40px;padding:3px 5px;gap:3px}
+  .premium-toolbar .icon-btn svg,.premium-toolbar .icon-btn.con-rotulo svg,.premium-toolbar .btn svg{width:16px;height:16px;flex-basis:16px}
+  .premium-toolbar .icon-btn-rotulo{font-size:9px}
+  .premium-toolbar .tools-edit,.premium-toolbar .tools-draw,.premium-toolbar .tools-actions{gap:2px}
+  .premium-toolbar .icon-picker-trigger{width:139px;padding:0 6px}
+  .premium-toolbar .icon-picker-glyph{width:23px;height:23px}
+  .premium-toolbar .bar-actions{min-height:46px;padding:5px 0;gap:5px 0}
+  .premium-toolbar .bar-actions .btn{padding:0 9px}
+}
+@media screen and (min-width:1280px){.premium-toolbar .color-control{flex-wrap:nowrap}}
+@media screen and (min-width:761px) and (max-width:1279px){
+  .premium-toolbar .color-control{display:grid;grid-template-columns:repeat(3,max-content);column-gap:7px;row-gap:6px;justify-content:start}
+  .premium-toolbar .tool-group{width:max-content}
+  .premium-toolbar .tool-group+.tool-group,.premium-toolbar .tool-group.tools-edit{margin-left:0}
+  .premium-toolbar .tool-group.tools-edit{padding-left:0;border-left:0}
+  .premium-toolbar .tool-group.tools-edit .tool-section-label{left:0}
+}
 .walk-panel{position:fixed;inset:0;pointer-events:none;z-index:1100;display:flex;flex-direction:column;justify-content:space-between;padding:max(12px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));gap:12px}
 .walk-panel-top,.walk-panel-bottom{pointer-events:auto;background:#fffffff2;border:1px solid #cbdcff;border-radius:22px;box-shadow:0 8px 32px #17386322;backdrop-filter:blur(12px);width:min(620px,100%);align-self:center;padding:12px 16px}
 .walk-panel-top{display:flex;align-items:center;justify-content:space-between;gap:12px}

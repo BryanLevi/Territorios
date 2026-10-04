@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'../outputs/offline-shell.js'),'utf8');
 const workerSource=fs.readFileSync(path.join(__dirname,'../sw.js'),'utf8');
-const cacheName='croquis-app-shell-v16';
+const cacheName='croquis-app-shell-v17';
 const options={baseURI:'https://example.test/Territorios/outputs/',cacheName,
   files:['../croquis-territorios-jw/','croquis_territorios.html?v=details-2','offline-shell.js']};
 const urls=options.files.map(file=>{const url=new URL(file,options.baseURI);url.search='';url.hash='';return url.href;});
