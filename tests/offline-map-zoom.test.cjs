@@ -102,7 +102,13 @@ test('un repaint que solicita otro refresh conserva el siguiente frame y no entr
   h.tick();assert.equal(h.calls.paints.length,2);assert.equal(h.pending.size,0);assert.equal(h.c.runtimeOfflineRenderFrame,null);
 });
 
-function zoomContext(){const c=vm.createContext({});vm.runInContext(extract('configureRuntimeMapZoom'),c);return c;}
+function zoomContext(reducedMotion=false){
+  const queries=[];
+  const window=reducedMotion===null ? {} : {matchMedia(query){queries.push(query);return{matches:reducedMotion};}};
+  const c=vm.createContext({window});
+  vm.runInContext(['runtimeMapZoomOptions','configureRuntimeMapZoom'].map(extract).join('\n'),c);
+  return{c,queries};
+}
 function targetMap(options={}){
   let zoom=16;const calls=[];
   const map={options:{zoomAnimation:true,wheelDebounceTime:40,zoomDelta:1,markerZoomAnimation:true,...options},getZoom:()=>zoom,
@@ -110,42 +116,72 @@ function targetMap(options={}){
   return{map,calls};
 }
 
-test('offline acelera zoom y rueda, preservando opciones del llamador y animación de desplazamiento',()=>{
-  const c=zoomContext(),h=targetMap(),originalOptions=plain(h.map.options);c.configureRuntimeMapZoom(h.map,true);
-  assert.equal(h.map.options.zoomAnimation,false);assert.equal(h.map.options.wheelDebounceTime,16);
-  assert.equal(h.map.options.zoomDelta,originalOptions.zoomDelta);assert.equal(h.map.options.markerZoomAnimation,originalOptions.markerZoomAnimation);
-  const options={animate:true,zoom:{animate:true,duration:.15,noMoveStart:true},pan:{animate:true,duration:.8},reset:false},before=plain(options);
-  assert.equal(h.map.setView([1,2],17,options),h.map);
-  const received=h.calls[0].options;assert.equal(received.zoom.animate,false);assert.equal(received.zoom.duration,.15);assert.equal(received.zoom.noMoveStart,true);
-  assert.equal(received.animate,true);assert.equal(received.reset,false);assert.equal(received.pan,options.pan);
-  assert.notEqual(received,options);assert.notEqual(received.zoom,options.zoom);assert.deepEqual(options,before);assert.equal(h.calls[0].receiver,h.map);
+test('el zoom usa pasos de medio nivel, rueda breve y menor sensibilidad sin añadir fade',()=>{
+  const {c,queries}=zoomContext(),h=targetMap({minZoom:12,maxZoom:20}),options=h.map.options;
+  const expected={zoomAnimation:true,fadeAnimation:false,zoomSnap:.5,zoomDelta:.5,wheelDebounceTime:24,wheelPxPerZoomLevel:180};
+  assert.deepEqual(plain(c.runtimeMapZoomOptions()),expected);
+  c.configureRuntimeMapZoom(h.map);
+  assert.equal(h.map.options,options);
+  for(const [key,value] of Object.entries(expected))assert.equal(h.map.options[key],value,key);
+  assert.equal(h.map.options.markerZoomAnimation,true);assert.equal(h.map.options.minZoom,12);assert.equal(h.map.options.maxZoom,20);
+  assert.ok(queries.length>0);assert.ok(queries.every(query=>query==='(prefers-reduced-motion: reduce)'));
 });
 
-test('online mantiene opciones e identidades originales y restaura la configuración propia de cada mapa',()=>{
-  const c=zoomContext();for(const defaults of [{zoomAnimation:true,wheelDebounceTime:73},{zoomAnimation:false,wheelDebounceTime:55}]){
-    const h=targetMap(defaults),original=plain(h.map.options),options={zoom:{animate:true},pan:{animate:true}};
-    c.configureRuntimeMapZoom(h.map,false);assert.deepEqual(h.map.options,original);
-    h.map.setView([1,2],17,options);assert.equal(h.calls[0].options,options);
-    c.configureRuntimeMapZoom(h.map,true);c.configureRuntimeMapZoom(h.map,false);assert.deepEqual(h.map.options,original);
-    h.map.setView([2,3],18,options);assert.equal(h.calls[1].options,options);assert.equal(h.calls[1].options.zoom.animate,true);
+test('configurar zoom conserva setView, coordenadas y las opciones explícitas de animación del llamador',()=>{
+  const {c}=zoomContext(),h=targetMap(),originalSetView=h.map.setView;
+  c.configureRuntimeMapZoom(h.map);
+  assert.equal(h.map.setView,originalSetView);
+  const center=Object.freeze([19.048889,-96.981944]);
+  for(const options of [
+    {animate:true,zoom:{animate:true,duration:.15,noMoveStart:true},pan:{animate:true,duration:.8},reset:false},
+    {animate:false},
+    {animate:true,zoom:{animate:false}},
+    {zoom:{animate:true},pan:{animate:false}}
+  ]){
+    const before=plain(options),nextZoom=h.map.getZoom()+.5;
+    assert.equal(h.map.setView(center,nextZoom,options),h.map);
+    const received=h.calls.at(-1);
+    assert.equal(received.receiver,h.map);assert.equal(received.center,center);assert.equal(received.zoom,nextZoom);
+    assert.equal(received.options,options);assert.deepEqual(options,before);
   }
 });
 
-test('reset booleano true y un paneo sin cambio de zoom llegan intactos a setView',()=>{
-  const c=zoomContext(),h=targetMap();c.configureRuntimeMapZoom(h.map,true);
+test('reset booleano, paneo y zoom sin opciones llegan intactos a setView',()=>{
+  const {c}=zoomContext(),h=targetMap();c.configureRuntimeMapZoom(h.map);
   h.map.setView([1,2],17,true);assert.equal(h.calls[0].options,true);
   const pan={animate:true,pan:{animate:true,duration:.6}};
   h.map.setView([2,3],17,pan);assert.equal(h.calls[1].options,pan);
   h.map.setView([3,4],undefined,pan);assert.equal(h.calls[2].options,pan);
-  h.map.setView([3,4],18);assert.equal(h.calls[3].options.zoom.animate,false);
+  h.map.setView([3,4],18);assert.equal(h.calls[3].options,undefined);
 });
 
-test('el wrapper es idempotente y solo afecta a la instancia configurada',()=>{
-  const c=zoomContext(),main=targetMap(),other=targetMap(),otherSetView=other.map.setView;
-  c.configureRuntimeMapZoom(main.map,true);const wrapped=main.map.setView;
-  c.configureRuntimeMapZoom(main.map,true);c.configureRuntimeMapZoom(main.map,false);c.configureRuntimeMapZoom(main.map,true);
-  assert.equal(main.map.setView,wrapped);assert.equal(other.map.setView,otherSetView);
-  const options={zoom:{animate:true}};other.map.setView([1,2],17,options);main.map.setView([1,2],17,options);
-  assert.equal(other.calls[0].options,options);assert.equal(other.map.options.zoomAnimation,true);assert.equal(other.map.options.wheelDebounceTime,40);
-  assert.equal(main.calls.length,1);assert.equal(main.calls[0].options.zoom.animate,false);
+test('alternar vistas conserva la misma animación suave sin mover ni envolver el mapa',()=>{
+  const {c}=zoomContext(),h=targetMap({zoomAnimation:false,wheelDebounceTime:73}),originalSetView=h.map.setView;
+  const expected=plain(c.runtimeMapZoomOptions());
+  for(const offline of [false,true,false,true]){
+    c.configureRuntimeMapZoom(h.map,offline);
+    for(const [key,value] of Object.entries(expected))assert.equal(h.map.options[key],value,key);
+    assert.equal(h.map.setView,originalSetView);assert.equal(h.map.getZoom(),16);assert.equal(h.calls.length,0);
+  }
+});
+
+test('la preferencia de movimiento reducido desactiva la animación; sin esa preferencia el zoom permanece suave',()=>{
+  for(const reducedMotion of [true,false,null]){
+    const {c}=zoomContext(reducedMotion),h=targetMap();
+    assert.equal(c.runtimeMapZoomOptions().zoomAnimation,reducedMotion!==true);
+    c.configureRuntimeMapZoom(h.map);
+    assert.equal(h.map.options.zoomAnimation,reducedMotion!==true);
+    assert.equal(h.map.options.zoomSnap,.5);assert.equal(h.map.options.wheelDebounceTime,24);
+    const options={animate:false};h.map.setView([1,2],17,options);assert.equal(h.calls[0].options,options);
+  }
+});
+
+test('solo se configura la instancia principal y el mapa de impresión conserva sus opciones y API',()=>{
+  const {c}=zoomContext(),main=targetMap(),print=targetMap({zoomAnimation:false,zoomSnap:0,zoomDelta:.25,wheelDebounceTime:55});
+  const originalPrintOptions=plain(print.map.options),mainSetView=main.map.setView,printSetView=print.map.setView;
+  c.configureRuntimeMapZoom(main.map);c.configureRuntimeMapZoom(main.map);
+  assert.equal(main.map.setView,mainSetView);assert.equal(print.map.setView,printSetView);
+  assert.deepEqual(print.map.options,originalPrintOptions);
+  const options={zoom:{animate:false}};print.map.setView([1,2],17,options);
+  assert.equal(print.calls[0].options,options);assert.equal(main.calls.length,0);
 });

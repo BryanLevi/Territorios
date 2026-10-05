@@ -195,6 +195,9 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .leaflet-container{font-family:"Segoe UI",Arial,sans-serif;background:#dbe4df}
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-image-layer,.leaflet-layer,.leaflet-zoom-box{position:absolute;left:0;top:0}
 .leaflet-container{overflow:hidden;outline:0}
+/* Una transición corta conserva el contexto al acercar sin retrasar la
+   pintura de calles y referencias al terminar el gesto. Sólo en el editor. */
+#map .leaflet-zoom-anim .leaflet-zoom-animated{transition:transform .18s cubic-bezier(.2,0,.25,1)}
 .leaflet-tile{border:0;user-select:none;-webkit-user-drag:none}
 .leaflet-control{position:relative;z-index:800;pointer-events:auto}
 .leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
@@ -7815,7 +7818,7 @@ function initApp(){
   const centroInicial = LOCS[0] || congregacionBase();
   map = L.map('map', {
     zoomControl:true, attributionControl:true,
-    zoomAnimation:false, fadeAnimation:false, wheelDebounceTime:16
+    ...runtimeMapZoomOptions()
   })
     .setView([centroInicial.lat ?? 19.048889, centroInicial.lon ?? -96.981944], 17);
   registrarCentradoUbicacion();
@@ -7911,28 +7914,20 @@ function initApp(){
   window.refreshOfflineCard?.();
 }
 
-function configureRuntimeMapZoom(targetMap, offline){
+function runtimeMapZoomOptions(){
+  const reducedMotion = typeof window !== 'undefined'
+    && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
+  return {
+    zoomAnimation:!reducedMotion, fadeAnimation:false,
+    zoomSnap:.5, zoomDelta:.5, wheelDebounceTime:24, wheelPxPerZoomLevel:180
+  };
+}
+
+function configureRuntimeMapZoom(targetMap){
   if(!targetMap?.options || typeof targetMap.setView !== 'function') return;
-  if(!targetMap._croquisZoomDefaults){
-    targetMap._croquisZoomDefaults = {
-      zoomAnimation:targetMap.options.zoomAnimation,
-      wheelDebounceTime:targetMap.options.wheelDebounceTime
-    };
-    const originalSetView = targetMap.setView;
-    // Botones, rueda, teclado y fitBounds pasan por esta API pública.
-    // Se conserva la animación del desplazamiento y las opciones del llamador.
-    targetMap.setView = function(center, zoom, options){
-      if(this._croquisOfflineZoom && options !== true && zoom !== undefined && zoom !== this.getZoom()){
-        options = {...(options || {}), zoom:{...(options?.zoom || {}), animate:false}};
-      }
-      return originalSetView.call(this, center, zoom, options);
-    };
-  }
-  targetMap._croquisOfflineZoom = Boolean(offline);
-  // El gesto con dos dedos consulta zoomAnimation al terminar; la rueda usa
-  // el mismo intervalo de entrada que un cuadro de pantalla en modo offline.
-  targetMap.options.zoomAnimation = offline ? false : targetMap._croquisZoomDefaults.zoomAnimation;
-  targetMap.options.wheelDebounceTime = offline ? 16 : targetMap._croquisZoomDefaults.wheelDebounceTime;
+  // Cambiar de fondo conserva el mismo gesto suave. No se intercepta setView:
+  // GPS, deshacer y cambios de territorio mantienen sus opciones explícitas.
+  Object.assign(targetMap.options, runtimeMapZoomOptions());
 }
 
 function changeView(key, silent){
@@ -7942,7 +7937,7 @@ function changeView(key, silent){
     if(!navigator.onLine) key = 'offline';
   }
   currentView = key;
-  configureRuntimeMapZoom(map, key === 'offline');
+  configureRuntimeMapZoom(map);
   cancelRuntimeOfflineMapRefresh();
   drawRuntimeOfflineDetails(null);
   runtimeOfflineLabelLayer?.clearLayers();
@@ -10729,6 +10724,6 @@ if(document.readyState === 'loading'){
 <script src="edit-history.js?v=workspace-1"></script>
 <script src="territory-search.js?v=workspace-1"></script>
 <script src="walk-mode.js?v=workspace-1"></script>
-<script src="offline-controller.js?v=pdf-uniform-labels-1"></script>
+<script src="offline-controller.js?v=smooth-zoom-1"></script>
 </body>
 </html>
