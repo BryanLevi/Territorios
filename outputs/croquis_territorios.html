@@ -4390,11 +4390,11 @@ async function updateRuntimeVectorRoadOverlay(loc = LOCS[currentIndex]){
     return;
   }
   drawRuntimeOfflineDetails(null);runtimeOfflineLabelLayer?.clearLayers();
-  vectorRoadLayer.clearLayers();
   if(runtimeRoadCache?.key === key && runtimeRoadCache.congregation===congregacionActivaId && !runtimeRoadCache.offline && Array.isArray(runtimeRoadCache.roadWays)){
     drawRuntimeVectorRoads(runtimeRoadCache.roadWays);
     return;
   }
+  vectorRoadLayer.clearLayers();
   const guardadas = readOverpassCache(loc, 'roads');
   if(guardadas?.length){
     runtimeRoadCache = { key, roadWays:guardadas,congregation:congregacionActivaId };
@@ -4689,24 +4689,29 @@ function canPlaceLabel(box, placedBoxes, pad = 5){
 
 function drawRuntimeReferences(references){
   if(!runtimeReferenceLayer || !window.L) return;
-  actualizarPanelReferencias();
   const loc=LOCS[currentIndex];
-  const offlineSignature=currentView==='offline' ? JSON.stringify([congregacionActivaId,String(loc?.num),referenceZoomScale(),
-    [...getHiddenReferencesForLoc(loc)],getManualIconsForLoc(loc)]) : '';
-  if(currentView==='offline' && runtimeReferenceLayer._offlineSource===references && runtimeReferenceLayer._offlineSignature===offlineSignature){
-    refreshRuntimeOfflineMap();return;
+  const hasAreas = getColorAreasForLoc(loc).length > 0;
+  const ocultas = getHiddenReferencesForLoc(loc);
+  const iconosPropios = getManualIconsForLoc(loc);
+  const escala = referenceZoomScale();
+  const signature=JSON.stringify([congregacionActivaId,String(loc?.num),currentView,escala,
+    hasAreas,[...ocultas],iconosPropios]);
+  // Leaflet mueve los iconos existentes durante el gesto. Sólo se reconstruyen
+  // cuando cambian sus datos o tamaño, sin borrarlos al terminar cada zoom.
+  if(runtimeReferenceLayer._referenceSource===references && runtimeReferenceLayer._referenceSignature===signature
+    && runtimeReferenceLayer._referenceCount===runtimeReferenceLayer.getLayers().length){
+    if(currentView==='offline') refreshRuntimeOfflineMap();
+    return;
   }
+  actualizarPanelReferencias();
   runtimeReferenceLayer.clearLayers();
-  runtimeReferenceLayer._offlineSource=currentView==='offline'?references:null;
-  runtimeReferenceLayer._offlineSignature=offlineSignature;
+  runtimeReferenceLayer._referenceSource=references;
+  runtimeReferenceLayer._referenceSignature=signature;
+  runtimeReferenceLayer._referenceCount=0;
   if(!Array.isArray(references) || !references.length){if(currentView==='offline')refreshRuntimeOfflineMap();return;}
-  const hasAreas = getColorAreasForLoc(LOCS[currentIndex]).length > 0;
   const opacity = hasAreas ? 1 : .9;
-  const ocultas = getHiddenReferencesForLoc(LOCS[currentIndex]);
-  const iconosPropios = getManualIconsForLoc(LOCS[currentIndex]);
   // Antes se ocultaba el que se encimara con otro, asi que al alejarse
   // desaparecian. Ahora se dibujan todos y lo que cambia es el tamano.
-  const escala = referenceZoomScale();
   (currentView==='offline'?references:references.slice(0,140)).filter(ref => !ocultas.has(referenceKey(ref)) && !isCoveredByManualIcon(ref, iconosPropios)).forEach(ref => {
     const lat = Number(ref.lat);
     const lng = Number(ref.lng);
@@ -4729,6 +4734,7 @@ function drawRuntimeReferences(references){
       selectReference(ref);
     });
   });
+  runtimeReferenceLayer._referenceCount=runtimeReferenceLayer.getLayers().length;
   if(currentView==='offline') refreshRuntimeOfflineMap();
 }
 
@@ -4744,7 +4750,7 @@ async function updateRuntimeReferenceOverlay(loc = LOCS[currentIndex]){
       drawRuntimeReferences(runtimeReferenceCache.references);return;
     }
     runtimeReferenceLayer.clearLayers();
-    runtimeReferenceLayer._offlineSource=null;
+    runtimeReferenceLayer._referenceSource=null;
     const record = window.CroquisOfflineData
       ? await window.CroquisOfflineData.get(congregationId, String(loc.num)).catch(() => null) : null;
     if(requestId !== runtimeReferenceRequestId || congregationId !== congregacionActivaId || currentView!==view || key!=='ref:'+getRuntimeRoadCacheKey(LOCS[currentIndex])) return;
@@ -4755,12 +4761,12 @@ async function updateRuntimeReferenceOverlay(loc = LOCS[currentIndex]){
     }
     return;
   }
-  runtimeReferenceLayer.clearLayers();
-  runtimeReferenceLayer._offlineSource=null;
   if(runtimeReferenceCache?.key === key && runtimeReferenceCache.congregationId === congregationId && !runtimeReferenceCache.offline && Array.isArray(runtimeReferenceCache.references)){
     drawRuntimeReferences(runtimeReferenceCache.references);
     return;
   }
+  runtimeReferenceLayer.clearLayers();
+  runtimeReferenceLayer._referenceSource=null;
   const guardadas = readOverpassCache(loc, 'refs');
   if(Array.isArray(guardadas)){
     runtimeReferenceCache = { key, congregationId, references:guardadas };
@@ -7895,7 +7901,9 @@ function initApp(){
     saveAllChanges();
   });
   map.on('mousemove', handleMapMouseMove);
-  map.on('moveend zoomend', () => updateLabelOverlayVisibility());
+  // Leaflet emite moveend también al terminar un zoom: escuchar ambos
+  // reconstruía calles y referencias dos veces en el mismo cuadro.
+  map.on('moveend', () => updateLabelOverlayVisibility());
   // El filtro de tramos cortos depende del zoom, asi que hay que rehacer los puntos
   map.on('zoomend', () => {
     if(contourEditMode) renderContourEditHandles(LOCS[currentIndex]);
@@ -7988,26 +7996,9 @@ function changeView(key, silent){
     pane:'territoryRestorePane',
     interactive:false
   }).addTo(map);
-  const roadSrc = getRuntimeRoadTileSource(src);
-  roadOverlayLayer = roadSrc ? L.tileLayer(roadSrc.url, {
-    maxZoom: roadSrc.maxZ,
-    subdomains: roadSrc.sub || '',
-    attribution:'',
-    crossOrigin: true,
-    opacity:0,
-    pane:'territoryRoadPane',
-    interactive:false
-  }).addTo(map) : null;
-  const labelSrc = getRuntimeLabelTileSource(src);
-  labelOverlayLayer = labelSrc ? L.tileLayer(labelSrc.url, {
-    maxZoom: labelSrc.maxZ,
-    subdomains: labelSrc.sub || '',
-    attribution:'',
-    crossOrigin: true,
-    opacity:0,
-    pane:'territoryLabelPane',
-    interactive:false
-  }).addTo(map) : null;
+  // En el editor las calles y nombres adicionales son vectores. Sus antiguos
+  // mosaicos estaban ocultos por CSS, pero seguían cargando imágenes por zoom.
+  // Las capas necesarias para el PDF se crean aparte al preparar la impresión.
   const activeLayer = tileLayer;
   tileLayer.on('tileload', () => {
     if(tileLayer === activeLayer && tileErrorCount === 0 && !statusBox.classList.contains('warn')) setStatus('', '');
@@ -10724,6 +10715,6 @@ if(document.readyState === 'loading'){
 <script src="edit-history.js?v=workspace-1"></script>
 <script src="territory-search.js?v=workspace-1"></script>
 <script src="walk-mode.js?v=workspace-1"></script>
-<script src="offline-controller.js?v=smooth-zoom-1"></script>
+<script src="offline-controller.js?v=fast-zoom-refresh-1"></script>
 </body>
 </html>
