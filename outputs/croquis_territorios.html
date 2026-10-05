@@ -1655,7 +1655,10 @@ function combinarEntradasCongregaciones(locales, remotas){
     delete combinada.accesoActualizadoEn;
     if(acceso.proteccion) combinada.proteccion = acceso.proteccion;
     if(acceso.accesoActualizadoEn) combinada.accesoActualizadoEn = acceso.accesoActualizadoEn;
-    porId.set(nueva.id, combinada);
+    // El registro debe conservar el mismo orden de campos tras una fusión.
+    // Reinsertar la protección al final hacía que una lista idéntica pareciera
+    // distinta al compararla y volviera a publicarse en cada sincronización.
+    porId.set(nueva.id, normalizarEntradaCongregacion(combinada));
   });
   return [...porId.values()].sort((a, b) => a.id === CONGREGACION_BASE_ID ? -1 : b.id === CONGREGACION_BASE_ID ? 1 : a.id.localeCompare(b.id));
 }
@@ -6921,7 +6924,7 @@ function fusionarRegistro(remotas){
   return combinarEntradasCongregaciones(cargarRegistroCongregaciones(), entradasDeRegistroCongregaciones(remotas, false));
 }
 
-function aplicarRegistroCompartido(entradas, quien){
+function aplicarRegistroCompartido(entradas){
   const fusion = combinarEntradasCongregaciones(cargarRegistroCongregaciones(), entradas);
   if(JSON.stringify(fusion) === JSON.stringify(cargarRegistroCongregaciones())) return true;
   const anteriorId = congregacionActivaId;
@@ -6936,8 +6939,9 @@ function aplicarRegistroCompartido(entradas, quien){
   }
   actualizarVistaCongregacion(anteriorId !== congregacionActivaId);
   if(typeof window !== 'undefined') window.CroquisAccess?.enforce();
-  mostrarEstadoCongregaciones(!congregacionActivaId ? 'Agrega una congregación para comenzar.'
-    : (quien || 'El equipo') + ' actualizó la lista de congregaciones.');
+  // La sincronización de fondo no sustituye las confirmaciones ni errores
+  // de las acciones del usuario en Inicio. La nota junto al selector ya
+  // indica si no quedan congregaciones y se actualiza al recibir otra.
   return true;
 }
 
@@ -6957,7 +6961,7 @@ function escucharRegistro(){
       try{ lista = JSON.parse(d.lista || '[]'); }catch(e){ return; }
       if(!Array.isArray(lista) && !(lista?.version === 2 && Array.isArray(lista.entradas))) return;
       const fusion = fusionarRegistro(lista);
-      if(!aplicarRegistroCompartido(fusion, d.porQuien)) return;
+      if(!aplicarRegistroCompartido(fusion)) return;
       // si este equipo tenia alguna que alla no estaba, se sube
       if(JSON.stringify(fusion) !== JSON.stringify(entradasDeRegistroCongregaciones(lista, false))) publicarRegistro();
     },
@@ -10715,6 +10719,6 @@ if(document.readyState === 'loading'){
 <script src="edit-history.js?v=workspace-1"></script>
 <script src="territory-search.js?v=workspace-1"></script>
 <script src="walk-mode.js?v=workspace-1"></script>
-<script src="offline-controller.js?v=fast-zoom-refresh-1"></script>
+<script src="offline-controller.js?v=stable-login-sync-1"></script>
 </body>
 </html>

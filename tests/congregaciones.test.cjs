@@ -217,6 +217,100 @@ test('la fusión es determinista y una retirada vence una edición concurrente',
   assert.ok(e.plano(e.ejecutar('combinarEntradasCongregaciones(a,b)'))[0].deletedAt);
 });
 
+function entradaProtegida(){
+  return {
+    ...base, updatedAt:30, revision:3, accesoActualizadoEn:30,
+    proteccion:{
+      v:1, salt:Buffer.alloc(16, 3).toString('base64'), hash:Buffer.alloc(32, 5).toString('base64'), iterations:310000,
+      recovery:{v:1, salt:Buffer.alloc(16, 7).toString('base64'), hash:Buffer.alloc(32, 9).toString('base64'), iterations:310000}
+    }
+  };
+}
+
+test('un registro protegido idéntico conserva su serialización y no reescribe ni actualiza Inicio', () => {
+  const e = entorno({[llaveRegistro]:JSON.stringify({version:2, entradas:[entradaProtegida()]})});
+  const estado = e.$('welcome-status');
+  e.ejecutar('mostrarEstadoCongregaciones("Contraseña actualizada.")');
+  const antes = e.ejecutar('JSON.stringify(cargarRegistroCongregaciones())'), escrituras = e.escrituras.length;
+  let actualizaciones = 0;
+  e.contexto.actualizarVistaCongregacion = () => { actualizaciones++; };
+  e.contexto.remotas = e.registro();
+  assert.equal(e.ejecutar('JSON.stringify(fusionarRegistro(remotas))'), antes);
+  assert.equal(e.ejecutar('aplicarRegistroCompartido(remotas, "Otro equipo")'), true);
+  assert.equal(e.ejecutar('aplicarRegistroCompartido(remotas, "Otro equipo")'), true);
+  assert.equal(e.escrituras.length, escrituras);assert.equal(actualizaciones, 0);
+  assert.equal(estado.textContent, 'Contraseña actualizada.');assert.equal(estado.hidden, false);
+  assert.equal(estado.classList.contains('is-error'), false);
+  assert.deepEqual(e.registro()[0].proteccion, entradaProtegida().proteccion);
+  assert.equal(e.registro()[0].accesoActualizadoEn, 30);
+});
+
+test('escuchar el mismo registro protegido no republica snapshots ni reemplaza un aviso local', () => {
+  const e = entorno({[llaveRegistro]:JSON.stringify({version:2, entradas:[entradaProtegida()]})});
+  e.ejecutar('mostrarEstadoCongregaciones("Datos guardados.")');
+  let recibir, publicaciones = 0, actualizaciones = 0;
+  e.contexto.nubeMock = {db:{}, fs:{
+    doc:() => 'registro',
+    onSnapshot(ref, callback){ recibir = callback;return () => {}; }
+  }};
+  e.contexto.publicarRegistro = () => { publicaciones++; };
+  e.contexto.actualizarVistaCongregacion = () => { actualizaciones++; };
+  e.ejecutar('nube=nubeMock; escucharRegistro()');
+  const lista = JSON.stringify({version:2, entradas:e.registro()}), escrituras = e.escrituras.length;
+  for(const [de, cuando] of [['otro',100],['yo',101],['otro',102]]){
+    recibir({data:() => ({lista,de,cuando,porQuien:'Otro equipo'})});
+  }
+  assert.equal(publicaciones, 0);assert.equal(actualizaciones, 0);assert.equal(e.escrituras.length, escrituras);
+  assert.equal(e.$('welcome-status').textContent, 'Datos guardados.');
+});
+
+test('un cambio real recibido se guarda y actualiza la lista sin sustituir confirmaciones ni errores locales', () => {
+  for(const [mensaje, error] of [['Congregación seleccionada.',false],['No se pudo guardar la contraseña.',true]]){
+    const e = entorno({[llaveRegistro]:JSON.stringify({version:2, entradas:[entradaProtegida()]})});
+    e.contexto.mensaje = mensaje;e.contexto.errorLocal = error;
+    e.ejecutar('mostrarEstadoCongregaciones(mensaje, errorLocal)');
+    e.contexto.remotas = [{...e.registro()[0],nombre:'Centro actualizado',updatedAt:40,revision:4}];
+    const escrituras = e.escrituras.length, actualizaciones = [];
+    e.contexto.actualizarVistaCongregacion = cambio => actualizaciones.push(cambio);
+    assert.equal(e.ejecutar('aplicarRegistroCompartido(remotas, "Otro equipo")'), true);
+    assert.equal(e.vivas()[0].nombre, 'Centro actualizado');assert.deepEqual(actualizaciones, [false]);
+    assert.ok(e.escrituras.length > escrituras);
+    assert.deepEqual(e.vivas()[0].proteccion, entradaProtegida().proteccion);
+    assert.equal(e.vivas()[0].accesoActualizadoEn, 30);
+    assert.equal(e.$('welcome-status').textContent, mensaje);assert.equal(e.$('welcome-status').hidden, false);
+    assert.equal(e.$('welcome-status').classList.contains('is-error'), error);
+  }
+});
+
+test('rotar el acceso recibido sigue guardando recuperación y verificando la sesión sin un aviso genérico', () => {
+  const e = entorno({[llaveRegistro]:JSON.stringify({version:2, entradas:[entradaProtegida()]})});
+  e.ejecutar('mostrarEstadoCongregaciones("Congregación seleccionada.")');
+  let verificaciones = 0;
+  e.contexto.window = {CroquisAccess:{refresh(){},enforce(){verificaciones++;}}};
+  const proteccion = entradaProtegida().proteccion;
+  proteccion.recovery = {v:1,salt:Buffer.alloc(16, 11).toString('base64'),hash:Buffer.alloc(32, 13).toString('base64'),iterations:310000};
+  e.contexto.remotas = [{...e.registro()[0],proteccion,accesoActualizadoEn:50,updatedAt:50,revision:5}];
+  assert.equal(e.ejecutar('aplicarRegistroCompartido(remotas, "Otro equipo")'), true);
+  assert.deepEqual(e.vivas()[0].proteccion, proteccion);assert.equal(e.vivas()[0].accesoActualizadoEn, 50);
+  assert.equal(verificaciones, 1);assert.equal(e.$('welcome-status').textContent, 'Congregación seleccionada.');
+  assert.equal(e.ejecutar('aplicarRegistroCompartido(remotas, "Otro equipo")'), true);
+  assert.equal(verificaciones, 1);
+});
+
+test('la sincronización de lista vacía y su reposición actualiza la nota sin dejar un aviso de Inicio obsoleto', () => {
+  const e = entorno({[llaveRegistro]:JSON.stringify({version:2, entradas:[entradaProtegida()]})});
+  e.ejecutar('mostrarEstadoCongregaciones("Datos guardados.")');
+  e.contexto.remotas = e.registro().map(c => ({...c,updatedAt:40,deletedAt:40,revision:4}));
+  assert.equal(e.ejecutar('aplicarRegistroCompartido(remotas)'), true);
+  assert.deepEqual(e.vivas(), []);assert.equal(e.$('welcome-cong-note').textContent, 'Agrega una congregación para comenzar.');
+  assert.equal(e.$('welcome-status').textContent, 'Datos guardados.');
+  e.contexto.remotas = [...e.registro(),{id:'cong-remota',nombre:'Nueva congregación',updatedAt:50,revision:1}];
+  assert.equal(e.ejecutar('aplicarRegistroCompartido(remotas)'), true);
+  assert.equal(e.vivas()[0].nombre, 'Nueva congregación');
+  assert.doesNotMatch(e.$('welcome-cong-note').textContent, /Agrega una congregación/);
+  assert.equal(e.$('welcome-status').textContent, 'Datos guardados.');
+});
+
 test('un formulario desactualizado no pisa un renombre recibido ni revive una retirada', () => {
   const e = entorno(); e.crear();
   e.ejecutar('renombrarCongregacion()');
