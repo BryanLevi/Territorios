@@ -26,6 +26,8 @@ Inicio, formularios y controles del editor comparten una tematica azul marino y 
 
 Los estilos visuales se aplican solo en pantalla. El color elegido para pintar, los dibujos guardados, el punto de ubicacion y el contenido de los PDF conservan sus colores.
 
+En el PDF, el fondo de Google y las capas de siluetas ocultan todas las etiquetas del mapa para evitar letras pequeñas repetidas bajo las calles blancas. La capa de nombres principales permanece visible, tanto en una hoja individual como en una lámina de varios territorios.
+
 ## Recuadro del territorio
 
 Junto a `Recuadro`, pulsa `Mover` y arrastra el control azul del centro para cambiar su posición conservando el tamaño. Se guarda al soltar y `Listo` termina la edición. También admite las flechas del teclado (Mayús para avanzar más), `Escape` y `Deshacer`. La posición se conserva por territorio y congregación al recargar, compartir y recuperar respaldos, y el PDF usa ese nuevo encuadre. El botón de restablecer devuelve su posición y tamaño originales. Los dibujos conservan sus coordenadas del mapa.

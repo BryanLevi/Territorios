@@ -1237,7 +1237,9 @@ const PRINT_BACKGROUND_BLUR = .38;
 // la misma geometria. Con el fondo ya sin letras no hace falta desenfocarlo,
 // y sin desenfoque el navegador deja de aplanar esa capa: las manzanas y las
 // calles salen a la resolucion de la tesela en vez de a 300 ppp.
-const GOOGLE_SIN_LETRAS = '&apistyle=s.t%3A2%7Cs.e%3Al%7Cp.v%3Aoff';
+// Tipo 0 aplica a todos los elementos; tipo 2 dejaba los nombres de calles
+// en el fondo y las dos capas de siluetas, debajo de los rotulos principales.
+const GOOGLE_SIN_LETRAS = '&apistyle=s.t%3A0%7Cs.e%3Al%7Cp.v%3Aoff';
 // Cuanto se marcan las casas y las calles por encima del color. Es la misma
 // capa que en la pantalla deja ver las manzanas a traves de la pintada: va
 // multiplicada, asi que solo oscurece donde hay algo dibujado.
@@ -10677,6 +10679,6 @@ if(document.readyState === 'loading'){
 <script src="edit-history.js?v=workspace-1"></script>
 <script src="territory-search.js?v=workspace-1"></script>
 <script src="walk-mode.js?v=workspace-1"></script>
-<script src="offline-controller.js?v=balanced-toolbar-1"></script>
+<script src="offline-controller.js?v=pdf-street-labels-1"></script>
 </body>
 </html>
