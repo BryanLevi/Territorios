@@ -25,7 +25,7 @@ function funcion(nombre){
   }
   throw new Error(`Funcion incompleta: ${nombre}`);
 }
-const funciones = ['printDirectionLabelsForLoc', 'getDirectionExportBoundsPlain',
+const funciones = ['isPrintZoneNumber', 'printDirectionLabelsForLoc', 'getDirectionExportBoundsPlain',
   'medidaDeLasZonas', 'medidaDeMarcasImpresas', 'recorteDelCroquis', 'elegirSitioLeyenda', 'drawPrintTextLabels',
   'escalaDeHueco', 'acomodarHojaSueltaEnHueco'].map(funcion).join('\n');
 const copiar = valor => JSON.parse(JSON.stringify(valor));

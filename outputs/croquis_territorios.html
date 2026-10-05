@@ -356,10 +356,8 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 /* La sombra de la rosa es un filtro, y Chrome aplasta a 300 ppp la capa que
    lleve filtro al imprimir. Ademas el halo gris parecia otro filo. */
 .hueco-agrupado.en-lamina .print-compass{filter:none}
-/* Dentro del recuadro no va ni un trazo verde. Lo que en la hoja suelta es
-   verde oscuro -el filo de la rosa, el de la lista de referencias- aqui se
-   pone negro. Los cuadritos verdes de los iconos si se quedan: son los que
-   identifican los iconos del mapa. */
+/* El borde de la rosa y de la leyenda se imprime en negro. Las referencias
+   conservan sus contornos verdes. */
 .hueco-agrupado.en-lamina .print-compass [stroke]{stroke:#000}
 .hueco-agrupado.en-lamina .print-compass path[fill="#17251c"],
 .hueco-agrupado.en-lamina .print-compass text{fill:#000}
@@ -372,19 +370,10 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 /* El disco de la rosa es blanco al 82%: colgada del recuadro se pinta encima
    de todo, y sobre una zona pintada el disco se tenia de su color. */
 .hueco-agrupado.en-lamina .print-compass circle{fill-opacity:1}
-/* Cada icono del mapa se traza dos veces: primero un filo grueso verde y
-   encima el dibujo en blanco, asi que lo que se ve es el filo. Ese trazo va
-   por encima del tapado blanco y se comia las lineas negras de calles por
-   donde pasaba. Dentro del recuadro va en negro; en la pantalla, en la hoja
-   suelta y en el PDF de siempre sigue verde, como se pidio en su dia. Los
-   cuadritos de la lista de referencias no entran aqui: esos siguen verdes. */
+/* Conserva el contorno verde de las referencias también en la lámina. */
 .hueco-agrupado.en-lamina .print-reference-icon svg g[stroke="#0a8f22"],
-.hueco-agrupado.en-lamina .manual-map-icon svg g[stroke="#0a8f22"]{stroke:#000;stroke-width:2.9}
-/* Y mas fino. El filo de 4.2 contra un dibujo de 2.4 dejaba casi el doble de
-   tinta que de dibujo: los trazos se tocaban entre si y el icono salia como
-   una mancha negra que borraba la calle de debajo. Con 3.4 y 2.8 el filo es
-   un contorno y no un bloque, y el icono se achica un poco: en la lamina se
-   ve a un tamano en el que 46 px tapaban media manzana. */
+.hueco-agrupado.en-lamina .manual-map-icon svg g[stroke="#0a8f22"]{stroke:#0a8f22;stroke-width:2.9}
+/* El trazo interior blanco deja visible un filo fino, sin fondo relleno. */
 .hueco-agrupado.en-lamina .print-reference-icon svg g[stroke="currentColor"],
 .hueco-agrupado.en-lamina .manual-map-icon svg g[stroke="currentColor"]{stroke-width:2}
 .hueco-agrupado.en-lamina .print-reference-icon{
@@ -564,7 +553,9 @@ body.print-preview{overflow:hidden}
   body.agrupado .print-sheet:not(.hoja-guardada){display:none!important}
   body.agrupado .print-sheet.hoja-guardada{display:block!important;width:auto!important;height:auto!important;overflow:visible!important}
   body.agrupado #hojas-agrupadas{position:static!important;left:auto!important;top:auto!important;z-index:auto!important}
-  body.agrupado .pagina-agrupada{page-break-after:always;break-after:page;overflow:hidden}
+  /* El papel transformado conserva 297 mm en el diseño interno. Aísla cada
+     página para que Chromium no reduzca toda una hoja vertical por ese ancho. */
+  body.agrupado .pagina-agrupada{page-break-after:always;break-after:page;overflow:hidden;contain:size layout paint}
   body.agrupado .pagina-agrupada:last-child{page-break-after:auto;break-after:auto}
 }
 </style>
@@ -5226,7 +5217,30 @@ function deleteDestinationAnnotation(){
   const saved=setTextLabelsForLoc(loc,labels);renderTextLabels(loc);updateColorControls(loc);setStatus('Flecha y destino eliminados. Puedes recuperarlos con Deshacer.','warn');return saved;
 }
 
-function createTextIcon(label, selected = false, scale = 1, tamCarretera = TAM_CARRETERA_PANTALLA){
+function isPrintZoneNumber(label){
+  return label?.type !== 'carretera' && label?.type !== 'destino'
+    && /^\d+$/.test(String(label?.text ?? '').trim());
+}
+
+// 10 pt en la hoja final, independientemente de la resolución del mapa y
+// de cuánto se reduzca para entrar en el recuadro. También escala la cajita.
+function printZoneNumberStyle(renderScale = printRenderScale, layoutScale = 1){
+  const factor = Math.max(.05, Number(renderScale) || 1) / Math.max(.05, Number(layoutScale) || 1);
+  return 'font-size:' + (10 * 96 / 72 * factor) + 'px;'
+    + 'padding:' + (2 * factor) + 'px ' + (4 * factor) + 'px;'
+    + 'border-width:' + (.5 * factor) + 'px;border-radius:' + (1.5 * factor) + 'px;';
+}
+
+function updatePrintZoneNumbers(targetMap, layoutScale = 1){
+  targetMap?.getContainer?.()?.querySelectorAll('.print-zone-number').forEach(node => {
+    const existing = node.style.cssText.split(';').filter(declaration =>
+      !/^\s*(?:font-size|padding|border-width|border-radius)\s*:/i.test(declaration));
+    node.style.cssText = existing.join(';') + ';'
+      + printZoneNumberStyle(Number(node.dataset.printScale), layoutScale);
+  });
+}
+
+function createTextIcon(label, selected = false, scale = 1, tamCarretera = TAM_CARRETERA_PANTALLA, printLayoutScale = 0){
   const base = label.type === 'carretera'
     ? tamCarretera
     : Math.max(13, Math.min(38, Number(label.size) || 22));
@@ -5234,9 +5248,14 @@ function createTextIcon(label, selected = false, scale = 1, tamCarretera = TAM_C
   const opacity = Number.isFinite(Number(label.opacity)) ? Math.max(.45, Math.min(1, Number(label.opacity))) : 1;
   const selectedClass = selected ? ' is-selected' : '';
   const textHtml = renderColonyLabelHtml(label.text);
+  const printNumber = printLayoutScale > 0 && isPrintZoneNumber(label);
+  const numberClass = printNumber ? ' print-zone-number' : '';
+  const numberData = printNumber ? ' data-print-scale="' + printRenderScale + '"' : '';
+  const sizing = printNumber ? printZoneNumberStyle(printRenderScale, printLayoutScale) : 'font-size:' + size + 'px;';
   return L.divIcon({
     className:'territory-text-marker',
-    html:'<div class="territory-text-label' + selectedClass + '" style="color:#243129!important;font-size:' + size + 'px;opacity:' + opacity + '">' + textHtml + '</div>',
+    html:'<div class="territory-text-label' + selectedClass + numberClass + '"' + numberData
+      + ' style="color:#243129!important;' + sizing + 'opacity:' + opacity + '">' + textHtml + '</div>',
     iconAnchor:[0,0]
   });
 }
@@ -8488,7 +8507,7 @@ function drawPrintColorAreaOutlines(targetMap, loc){
   });
 }
 
-function drawPrintTextLabels(targetMap, loc, ocupadas){
+function drawPrintTextLabels(targetMap, loc, ocupadas, layoutScale = 1){
   getTextLabelsForLoc(loc).forEach(label => {
     if(label.type === 'destino') return;
     const lat = Number(label.lat);
@@ -8501,7 +8520,9 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
       const base = label.type === 'carretera'
         ? TAM_CARRETERA_PAPEL
         : Math.max(13, Math.min(38, Number(label.size) || 22));
-      const tam = base * printRenderScale * aumento;
+      const tam = isPrintZoneNumber(label)
+        ? 10 * 96 / 72 * printRenderScale / Math.max(.05, Number(layoutScale) || 1)
+        : base * printRenderScale * aumento;
       const punto = targetMap.latLngToLayerPoint([lat, lng]);
       const ancho = Math.max(tam, String(label.text).trim().length * tam * .68) + tam * .6;
       const alto = tam * 1.7;
@@ -8509,7 +8530,7 @@ function drawPrintTextLabels(targetMap, loc, ocupadas){
     }
     L.marker([lat, lng], {
       interactive:false,
-      icon:createTextIcon(label, false, printRenderScale * aumento, TAM_CARRETERA_PAPEL)
+      icon:createTextIcon(label, false, printRenderScale * aumento, TAM_CARRETERA_PAPEL, layoutScale)
     }).addTo(targetMap);
   });
 }
@@ -9475,6 +9496,7 @@ async function generarAgrupado(modo){
           // punta mantienen sus puntos/mm. Se mide a esa escala real para
           // dejarles sitio sin recortar las referencias fuera del color.
           for(let paso = 0; paso < 48; paso++){
+            updatePrintZoneNumbers(printMap, k);
             const dibujadas = hayDestinos ? renderDirectionAnnotations(printMap, loc, {
               printMode:true, scale:printRenderScale, layoutScale:k,
               maxTextWidthMm:directionTextWidthMm, interactive:false
@@ -9488,10 +9510,12 @@ async function generarAgrupado(modo){
             printMode:true, scale:printRenderScale, layoutScale:k,
             maxTextWidthMm:directionTextWidthMm, interactive:false
           }) : null;
+          updatePrintZoneNumbers(printMap, k);
           rec = recorteDelCroquis(printMap, loc, finales?.bounds || null, k);
           // El ultimo ajuste solo reserva mas aire; no amplifica el papel
           // tras medir los textos y por tanto no puede cortar un extremo.
           k = Math.min(k, util.w / rec.w, util.h / rec.h);
+          updatePrintZoneNumbers(printMap, k);
           const sobraX = (util.w - rec.w * k) / 2;
           const sobraY = (util.h - rec.h * k) / 2;
           papel.style.transform = 'translate('
@@ -9502,6 +9526,7 @@ async function generarAgrupado(modo){
           // La hoja base es horizontal. En una pagina vertical entra entera
           // al escalarla; la flecha ya compensa esta escala y conserva 10 pt.
           k = acomodarHojaSueltaEnHueco(papel, hueco);
+          updatePrintZoneNumbers(printMap, k);
         }
         // La hoja sigue viviendo dentro de un .print-sheet. Media pagina de
         // estilos cuelga de esa clase -que capas se ven, como se mezclan-, y
@@ -9628,6 +9653,30 @@ function getExportBoundsPlain(loc, z = DETAIL_ZOOM){
   return getColorAreasBoundsPlain(loc) || getPrintBoundsPlain(loc, z);
 }
 
+// Los números junto al borde necesitan sitio dentro del lienzo antes de
+// recortarlo: ampliar sólo el recorte no recuperaría tinta ya cortada.
+function getPrintZoneNumberExportBoundsPlain(loc, original, layoutScale = 1){
+  const labels = getTextLabelsForLoc(loc).filter(label => isPrintZoneNumber(label)
+    && Number.isFinite(Number(label.lat)) && Number.isFinite(Number(label.lng)));
+  if(!labels.length) return original;
+  const bounds = {...original};
+  let digits = 1;
+  labels.forEach(label => {
+    bounds.south = Math.min(bounds.south, Number(label.lat));
+    bounds.north = Math.max(bounds.north, Number(label.lat));
+    bounds.west = Math.min(bounds.west, Number(label.lng));
+    bounds.east = Math.max(bounds.east, Number(label.lng));
+    digits = Math.max(digits, String(label.text).trim().length);
+  });
+  const factor = 1 / Math.max(.05, Number(layoutScale) || 1);
+  const reservaX = Math.min(297 * .4, ((digits * 10 + 9) / 2 * 25.4 / 96 + 2) * factor);
+  const reservaY = Math.min(189 * .4, ((10 * 96 / 72 * 1.02 + 5) / 2 * 25.4 / 96 + 2) * factor);
+  const padLat = Math.max(bounds.north - bounds.south, .0006) * reservaY / (189 - 2 * reservaY);
+  const padLng = Math.max(bounds.east - bounds.west, .0006) * reservaX / (297 - 2 * reservaX);
+  return {south:bounds.south - padLat, north:bounds.north + padLat,
+    west:bounds.west - padLng, east:bounds.east + padLng};
+}
+
 function printDirectionLabelsForLoc(loc){
   return getTextLabelsForLoc(loc).filter(label => label.type === 'destino'
     && String(label.text || '').trim()
@@ -9730,8 +9779,9 @@ async function imprimir(opciones = {}){
   // resolucion sale el tamano del lienzo que se arma justo despues.
   const directionLayoutScale = Math.max(.05, Number(opciones.directionLayoutScale) || 1);
   const directionTextWidthMm = Math.max(12, Number(opciones.directionTextWidthMm) || 64);
-  const plainBounds = getDirectionExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM,
-    directionLayoutScale, directionTextWidthMm);
+  const plainBounds = getPrintZoneNumberExportBoundsPlain(loc,
+    getDirectionExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM, directionLayoutScale, directionTextWidthMm),
+    directionLayoutScale);
   const bounds = L.latLngBounds([plainBounds.south, plainBounds.west], [plainBounds.north, plainBounds.east]);
   printRenderScale = choosePrintRenderScale(loc, bounds, src);
   console.info('Croquis: resolucion', printRenderScale.toFixed(2), 'para', loc.name);
@@ -9943,7 +9993,7 @@ async function imprimir(opciones = {}){
     $('print-wait-text').textContent = 'Colocando los nombres...';
     const ocupadas = [];
     const zonasPintadas = usingColorMask ? buildPrintZoneShapes(printMap, loc) : null;
-    drawPrintTextLabels(printMap, loc, ocupadas);
+    drawPrintTextLabels(printMap, loc, ocupadas, directionLayoutScale);
     const referenciasImpresas = drawPrintReferences(printMap, referenciasAutomaticasDeLoc(loc), loc, ocupadas, zonasPintadas);
     const leyendaImpresa = construirLeyendaIconos(loc, referenciasImpresas);
     const leyendaAnterior = sheet.querySelector('#print-leyenda');
@@ -10679,6 +10729,6 @@ if(document.readyState === 'loading'){
 <script src="edit-history.js?v=workspace-1"></script>
 <script src="territory-search.js?v=workspace-1"></script>
 <script src="walk-mode.js?v=workspace-1"></script>
-<script src="offline-controller.js?v=pdf-street-labels-1"></script>
+<script src="offline-controller.js?v=pdf-uniform-labels-1"></script>
 </body>
 </html>
