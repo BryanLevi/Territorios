@@ -29,6 +29,7 @@ function extractFunction(name){
 function environment(renderScale = 3, labels = []){
   const context = vm.createContext({
     printRenderScale:renderScale,
+    PRINT_ZONE_NUMBER_SIZE_PT:Number(html.match(/const PRINT_ZONE_NUMBER_SIZE_PT\s*=\s*([\d.]+)\s*;/)[1]),
     TAM_CARRETERA_PANTALLA:16,
     getTextLabelsForLoc:() => labels,
     L:{divIcon:options => options},
@@ -65,11 +66,11 @@ function physicalDimensions(css, renderScale, layoutScale){
 }
 function uniformBadge(css, renderScale, layoutScale){
   const actual = physicalDimensions(css, renderScale, layoutScale);
-  close(actual.fontPt, 10, 'Printed number in points');
-  close(actual.paddingY, 2, 'Vertical padding in final CSS pixels');
-  close(actual.paddingX, 4, 'Horizontal padding in final CSS pixels');
-  close(actual.border, .5, 'Final badge border');
-  close(actual.radius, 1.5, 'Final badge corner radius');
+  close(actual.fontPt, 8.5, 'Printed number in points');
+  close(actual.paddingY, 1.7, 'Vertical padding in final CSS pixels');
+  close(actual.paddingX, 3.4, 'Horizontal padding in final CSS pixels');
+  close(actual.border, .425, 'Final badge border');
+  close(actual.radius, 1.275, 'Final badge corner radius');
 }
 
 test('Only whole numeric zone labels use uniform PDF numbering', () => {

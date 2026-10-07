@@ -1224,6 +1224,7 @@ const PRINT_ASPECT = 297 / 189;
 // Los numeros de zona y los textos se agrandan esto sobre su tamano
 // guardado. Estuvo en 1.5 y salian demasiado gordos en la hoja.
 const PRINT_ZONE_NUMBER_BOOST = 1.05;
+const PRINT_ZONE_NUMBER_SIZE_PT = 8.5;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
 const PRINT_BACKGROUND_BLUR = .38;
@@ -1263,12 +1264,10 @@ function escalaTeselaImpresion(){
 // con las calles en blanco. Uno es el punto donde no se ve la cinta y el
 // dibujo sigue entero. Si algun dia se toca, mirar las dos cosas.
 const PRINT_MASK_GROW_FONDO = 1;
-// La capa de nombres tambien se recorta, para que fuera del territorio no
-// quede ni un nombre ni un trazo de calle. Se deja un poco mas de aire que el
-// fondo: lo justo para que un nombre que empieza dentro alcance a terminar.
-// El que cruce el borde igual se parte; es el precio de tener el blanco
-// limpio, y es lo que se ha pedido.
-const PRINT_MASK_GROW_NOMBRES = 14;
+// Los nombres necesitan más espacio que el fondo: las letras de las teselas
+// pueden terminar fuera de la zona seleccionada. Este trazo abre 64 px por
+// lado sólo en la capa de nombres; el fondo sigue recortado al contorno.
+const PRINT_MASK_GROW_NOMBRES = 128;
 
 // El color del area de fuera. 'transparente' no pinta nada, asi que por ahi
 // se asoma el mapa alrededor del territorio.
@@ -5234,13 +5233,14 @@ function isPrintZoneNumber(label){
     && /^\d+$/.test(String(label?.text ?? '').trim());
 }
 
-// 10 pt en la hoja final, independientemente de la resolución del mapa y
+// 8.5 pt en la hoja final, independientemente de la resolución del mapa y
 // de cuánto se reduzca para entrar en el recuadro. También escala la cajita.
 function printZoneNumberStyle(renderScale = printRenderScale, layoutScale = 1){
   const factor = Math.max(.05, Number(renderScale) || 1) / Math.max(.05, Number(layoutScale) || 1);
-  return 'font-size:' + (10 * 96 / 72 * factor) + 'px;'
-    + 'padding:' + (2 * factor) + 'px ' + (4 * factor) + 'px;'
-    + 'border-width:' + (.5 * factor) + 'px;border-radius:' + (1.5 * factor) + 'px;';
+  const badgeFactor = factor * PRINT_ZONE_NUMBER_SIZE_PT / 10;
+  return 'font-size:' + (PRINT_ZONE_NUMBER_SIZE_PT * 96 / 72 * factor) + 'px;'
+    + 'padding:' + (2 * badgeFactor) + 'px ' + (4 * badgeFactor) + 'px;'
+    + 'border-width:' + (.5 * badgeFactor) + 'px;border-radius:' + (1.5 * badgeFactor) + 'px;';
 }
 
 function updatePrintZoneNumbers(targetMap, layoutScale = 1){
@@ -8511,7 +8511,7 @@ function drawPrintTextLabels(targetMap, loc, ocupadas, layoutScale = 1){
         ? TAM_CARRETERA_PAPEL
         : Math.max(13, Math.min(38, Number(label.size) || 22));
       const tam = isPrintZoneNumber(label)
-        ? 10 * 96 / 72 * printRenderScale / Math.max(.05, Number(layoutScale) || 1)
+        ? PRINT_ZONE_NUMBER_SIZE_PT * 96 / 72 * printRenderScale / Math.max(.05, Number(layoutScale) || 1)
         : base * printRenderScale * aumento;
       const punto = targetMap.latLngToLayerPoint([lat, lng]);
       const ancho = Math.max(tam, String(label.text).trim().length * tam * .68) + tam * .6;
@@ -9239,6 +9239,15 @@ function medidaDeMarcasImpresas(mapa){
   return limites;
 }
 
+function medidaDeNombresImpresos(mapa, loc){
+  const aire = Number(mapa?._printNameBleed);
+  if(!Number.isFinite(aire) || aire <= 0) return null;
+  const zonas = medidaDeLasZonas(mapa, loc);
+  if(!zonas) return null;
+  return {x0:zonas.x0 - aire, y0:zonas.y0 - aire,
+    x1:zonas.x1 + aire, y1:zonas.y1 + aire};
+}
+
 function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1){
   const hoja = { x:0, y:15, w:297, h:189 };   // la cabecera son 15 mm
   try{
@@ -9254,6 +9263,13 @@ function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1){
     // y el marco solo pone el limite.
     const zonas = medidaDeLasZonas(mapa, loc);
     if(zonas){ a = zonas.x0; c = zonas.x1; d = zonas.y0; e = zonas.y1; }
+    // El texto de las teselas no tiene una caja DOM que podamos medir.
+    // Conservamos también el espacio que abrió la máscara de nombres.
+    const nombres = medidaDeNombresImpresos(mapa, loc);
+    if(nombres){
+      a = Math.min(a, nombres.x0); c = Math.max(c, nombres.x1);
+      d = Math.min(d, nombres.y0); e = Math.max(e, nombres.y1);
+    }
     const marcas = medidaDeMarcasImpresas(mapa);
     if(marcas){
       a = Math.min(a, marcas.x0); c = Math.max(c, marcas.x1);
@@ -9643,6 +9659,17 @@ function getExportBoundsPlain(loc, z = DETAIL_ZOOM){
   return getColorAreasBoundsPlain(loc) || getPrintBoundsPlain(loc, z);
 }
 
+// El aire de los nombres se reserva antes de cargar el mapa. Ampliar sólo
+// la máscara o el recorte final no recuperaría letras fuera del lienzo.
+function getPrintMapLabelExportBoundsPlain(original){
+  if(!original || !['south', 'north', 'west', 'east'].every(side => Number.isFinite(original[side]))) return original;
+  const reserva = PRINT_MASK_GROW_NOMBRES / 2 * 25.4 / 96;
+  const padLat = Math.max(original.north - original.south, .0006) * reserva / (189 - 2 * reserva);
+  const padLng = Math.max(original.east - original.west, .0006) * reserva / (297 - 2 * reserva);
+  return {south:original.south - padLat, north:original.north + padLat,
+    west:original.west - padLng, east:original.east + padLng};
+}
+
 // Los números junto al borde necesitan sitio dentro del lienzo antes de
 // recortarlo: ampliar sólo el recorte no recuperaría tinta ya cortada.
 function getPrintZoneNumberExportBoundsPlain(loc, original, layoutScale = 1){
@@ -9659,8 +9686,10 @@ function getPrintZoneNumberExportBoundsPlain(loc, original, layoutScale = 1){
     digits = Math.max(digits, String(label.text).trim().length);
   });
   const factor = 1 / Math.max(.05, Number(layoutScale) || 1);
-  const reservaX = Math.min(297 * .4, ((digits * 10 + 9) / 2 * 25.4 / 96 + 2) * factor);
-  const reservaY = Math.min(189 * .4, ((10 * 96 / 72 * 1.02 + 5) / 2 * 25.4 / 96 + 2) * factor);
+  const fontPx = PRINT_ZONE_NUMBER_SIZE_PT * 96 / 72;
+  const badgeScale = PRINT_ZONE_NUMBER_SIZE_PT / 10;
+  const reservaX = Math.min(297 * .4, ((digits * fontPx * .68 + 9 * badgeScale) / 2 * 25.4 / 96 + 2) * factor);
+  const reservaY = Math.min(189 * .4, ((fontPx * 1.02 + 5 * badgeScale) / 2 * 25.4 / 96 + 2) * factor);
   const padLat = Math.max(bounds.north - bounds.south, .0006) * reservaY / (189 - 2 * reservaY);
   const padLng = Math.max(bounds.east - bounds.west, .0006) * reservaX / (297 - 2 * reservaX);
   return {south:bounds.south - padLat, north:bounds.north + padLat,
@@ -9769,9 +9798,10 @@ async function imprimir(opciones = {}){
   // resolucion sale el tamano del lienzo que se arma justo despues.
   const directionLayoutScale = Math.max(.05, Number(opciones.directionLayoutScale) || 1);
   const directionTextWidthMm = Math.max(12, Number(opciones.directionTextWidthMm) || 64);
-  const plainBounds = getPrintZoneNumberExportBoundsPlain(loc,
+  const numberBounds = getPrintZoneNumberExportBoundsPlain(loc,
     getDirectionExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM, directionLayoutScale, directionTextWidthMm),
     directionLayoutScale);
+  const plainBounds = src.roadUrl || src.labelUrl ? getPrintMapLabelExportBoundsPlain(numberBounds) : numberBounds;
   const bounds = L.latLngBounds([plainBounds.south, plainBounds.west], [plainBounds.north, plainBounds.east]);
   printRenderScale = choosePrintRenderScale(loc, bounds, src);
   console.info('Croquis: resolucion', printRenderScale.toFixed(2), 'para', loc.name);
@@ -9903,8 +9933,8 @@ async function imprimir(opciones = {}){
     // muchas mas. Las calles se siguen viendo: las dibuja la capa de nombres.
     // Los nombres del propio mapa, otra vez encima del color: la capa de
     // detalle va multiplicada y los deja lavados, asi que se repiten aqui
-    // limpios. Van por debajo del recorte, para que no salgan fuera del
-    // territorio.
+    // limpios. Su recorte conserva un pequeño margen fuera del territorio
+    // para que los rótulos cercanos al borde puedan terminar.
     let urlNombres = src.roadUrl || src.labelUrl;
     if(urlNombres && String(urlNombres).includes('google.com') && !String(urlNombres).includes('scale=')){
       urlNombres += '&scale=' + escalaTeselaImpresion();
@@ -9928,6 +9958,7 @@ async function imprimir(opciones = {}){
         pane:'territoryRoadPane'
       }).addTo(printMap);
     }
+    printMap._printNameBleed = capaNombres ? PRINT_MASK_GROW_NOMBRES * printRenderScale / 2 : 0;
     if(usingColorMask){
       drawPrintColorAreaOutlines(printMap, loc);
     }else if(!opciones.lamina){
@@ -9996,7 +10027,7 @@ async function imprimir(opciones = {}){
       $('print-wait-text').textContent = 'Recortando el croquis a las zonas pintadas...';
       // Primero el de abajo, pegado a las zonas, que tapa el mapa de fondo.
       renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO, fondo:fondoTapa });
-      // Y encima el de los nombres, con su pizca de aire.
+      // Y encima el de los nombres, con espacio para completar los rótulos.
       renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:PRINT_MASK_GROW_NOMBRES, fondo:fondoTapa });
     }else if(opciones.lamina){
       // Sin zonas pintadas no habia tapado ninguno. Se usa el marco de la hoja
@@ -10719,6 +10750,6 @@ if(document.readyState === 'loading'){
 <script src="edit-history.js?v=workspace-1"></script>
 <script src="territory-search.js?v=workspace-1"></script>
 <script src="walk-mode.js?v=workspace-1"></script>
-<script src="offline-controller.js?v=stable-login-sync-1"></script>
+<script src="offline-controller.js?v=pdf-complete-labels-1"></script>
 </body>
 </html>

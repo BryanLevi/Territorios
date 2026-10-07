@@ -26,7 +26,7 @@ function funcion(nombre){
   throw new Error(`Funcion incompleta: ${nombre}`);
 }
 const funciones = ['isPrintZoneNumber', 'printDirectionLabelsForLoc', 'getDirectionExportBoundsPlain',
-  'medidaDeLasZonas', 'medidaDeMarcasImpresas', 'recorteDelCroquis', 'elegirSitioLeyenda', 'drawPrintTextLabels',
+  'medidaDeLasZonas', 'medidaDeMarcasImpresas', 'medidaDeNombresImpresos', 'recorteDelCroquis', 'elegirSitioLeyenda', 'drawPrintTextLabels',
   'escalaDeHueco', 'acomodarHojaSueltaEnHueco'].map(funcion).join('\n');
 const copiar = valor => JSON.parse(JSON.stringify(valor));
 const destino = opciones => ({type:'destino', text:'Hacia Ocotitlan', lat:.5, lng:-.2,
@@ -35,7 +35,7 @@ function entorno(labels = []){
   const base = {south:0, north:1, west:0, east:1};
   const marcas = [];
   const contexto = vm.createContext({
-    DETAIL_ZOOM:20, printRenderScale:3, PRINT_ZONE_NUMBER_BOOST:1.2, TAM_CARRETERA_PAPEL:13,
+    DETAIL_ZOOM:20, printRenderScale:3, PRINT_ZONE_NUMBER_BOOST:1.2, PRINT_ZONE_NUMBER_SIZE_PT:8.5, TAM_CARRETERA_PAPEL:13,
     A4_LARGO:297, A4_CORTO:210,
     getTextLabelsForLoc:() => labels,
     getExportBoundsPlain:() => base,
