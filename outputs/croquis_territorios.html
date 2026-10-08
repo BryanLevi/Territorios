@@ -1127,8 +1127,8 @@ body.print-preview{overflow:hidden}
         <div class="agrupar-opciones">
           <label>Orientacion
             <select id="agrupar-orientacion">
-              <option value="landscape">Horizontal</option>
               <option value="portrait">Vertical</option>
+              <option value="landscape">Horizontal</option>
             </select>
           </label>
           <label>Fondo
@@ -1139,7 +1139,7 @@ body.print-preview{overflow:hidden}
           </label>
           <label>Formato
             <select id="agrupar-porpagina">
-              <option value="lamina">Lamina: todo en 1 pagina, uno grande</option>
+              <option value="lamina">Lamina: todo en 1 pagina, distribucion equilibrada</option>
               <option value="sueltas">Una pagina por territorio</option>
             </select>
           </label>
@@ -8849,7 +8849,9 @@ const AGRUPAR_TITULO = 15;   // mm de la cabecera de la lamina
 
 let agruparOrden = [];       // los numeros, en el orden que manda el usuario
 let agruparPrincipal = '';   // cual va en grande
-let agruparOrientacion = 'landscape';
+// La lámina vertical deja una columna lateral y varias filas legibles cuando
+// se seleccionan muchos territorios, como en los croquis impresos de referencia.
+let agruparOrientacion = 'portrait';
 let agruparModo = 'lamina';  // 'lamina' o 'sueltas'
 let agruparGenerando = false;
 
@@ -8880,6 +8882,53 @@ function huecosDeLamina(cuantos){
   const ancho = pagina.ancho - AGRUPAR_MARGEN * 2;
   const alto = pagina.alto - AGRUPAR_MARGEN - y0;
   if(cuantos <= 1) return [{ x:x0, y:y0, w:ancho, h:alto }];
+
+  // En vertical, dos mapas principales apilados aprovechan mejor la hoja.
+  // La columna lateral conserva celdas altas y la franja inferior se divide
+  // en dos o tres columnas, evitando que los últimos territorios queden como
+  // tiras ilegibles cuando se selecciona una congregación completa.
+  if(agruparOrientacion === 'portrait' && cuantos >= 8){
+    const hueco = AGRUPAR_HUECO;
+    const cantidadLateral = Math.min(7, Math.max(4, Math.ceil((cuantos - 2) * .64)));
+    const cantidadInferior = cuantos - 2 - cantidadLateral;
+    const lateralW = Math.min(58, Math.max(52, ancho * .29));
+    const izquierdaW = ancho - lateralW - hueco;
+    const inferiorH = cantidadInferior
+      ? Math.min(76, Math.max(64, alto * .28))
+      : 0;
+    const superioresH = alto - (cantidadInferior ? inferiorH + hueco : 0);
+    const grandesH = (superioresH - hueco) / 2;
+    const lateralH = (alto - hueco * (cantidadLateral - 1)) / cantidadLateral;
+    const huecos = [
+      {x:x0, y:y0, w:izquierdaW, h:grandesH},
+      {x:x0, y:y0 + grandesH + hueco, w:izquierdaW, h:grandesH}
+    ];
+    for(let i = 0; i < cantidadLateral; i++){
+      huecos.push({
+        x:x0 + izquierdaW + hueco,
+        y:y0 + i * (lateralH + hueco),
+        w:lateralW,
+        h:lateralH
+      });
+    }
+    if(cantidadInferior){
+      const columnas = Math.min(3, cantidadInferior);
+      const filas = Math.ceil(cantidadInferior / columnas);
+      const celdaW = (izquierdaW - hueco * (columnas - 1)) / columnas;
+      const celdaH = (inferiorH - hueco * (filas - 1)) / filas;
+      for(let i = 0; i < cantidadInferior; i++){
+        const fila = Math.floor(i / columnas);
+        const columna = i % columnas;
+        huecos.push({
+          x:x0 + columna * (celdaW + hueco),
+          y:y0 + superioresH + hueco + fila * (celdaH + hueco),
+          w:celdaW,
+          h:celdaH
+        });
+      }
+    }
+    return huecos;
+  }
 
   const resto = cuantos - 1;
   // La mitad larga a la derecha y el resto debajo, que es como se reparten
@@ -9143,7 +9192,7 @@ function pintarPreviaAgrupar(){
   const pista = $('agrupar-pista');
   if(pista){
     pista.textContent = c.elegidos.length > 1
-      ? 'Arrastra un croquis sobre otro para cambiarlos de sitio. El de arriba a la izquierda es el que sale en grande.'
+      ? 'Arrastra un croquis sobre otro para cambiarlos de sitio. En vertical, los dos primeros ocupan las secciones principales.'
       : '';
   }
   const boton = $('agrupar-generar');
@@ -10750,6 +10799,6 @@ if(document.readyState === 'loading'){
 <script src="edit-history.js?v=workspace-1"></script>
 <script src="territory-search.js?v=workspace-1"></script>
 <script src="walk-mode.js?v=workspace-1"></script>
-<script src="offline-controller.js?v=pdf-complete-labels-1"></script>
+<script src="offline-controller.js?v=pdf-lamina-layout-1"></script>
 </body>
 </html>
