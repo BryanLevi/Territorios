@@ -26,7 +26,7 @@ function funcion(nombre){
   throw new Error(`Funcion incompleta: ${nombre}`);
 }
 const funciones = ['isPrintZoneNumber', 'printDirectionLabelsForLoc', 'getDirectionExportBoundsPlain',
-  'medidaDeLasZonas', 'medidaDeMarcasImpresas', 'medidaDeNombresImpresos', 'recorteDelCroquis', 'elegirSitioLeyenda', 'drawPrintTextLabels',
+  'medidaDeLasZonas', 'medidaDeMarcasImpresas', 'medidaDeNombresImpresos', 'recorteDelCroquis', 'calcularAreaDeCroquis', 'recolocarNumerosImpresos', 'printOwnTextPoints', 'drawPrintTextLabels',
   'escalaDeHueco', 'acomodarHojaSueltaEnHueco'].map(funcion).join('\n');
 const copiar = valor => JSON.parse(JSON.stringify(valor));
 const destino = opciones => ({type:'destino', text:'Hacia Ocotitlan', lat:.5, lng:-.2,
@@ -35,7 +35,9 @@ function entorno(labels = []){
   const base = {south:0, north:1, west:0, east:1};
   const marcas = [];
   const contexto = vm.createContext({
-    DETAIL_ZOOM:20, printRenderScale:3, PRINT_ZONE_NUMBER_BOOST:1.2, PRINT_ZONE_NUMBER_SIZE_PT:8.5, TAM_CARRETERA_PAPEL:13,
+    DETAIL_ZOOM:20, printRenderScale:3,
+    PRINT_ZONE_NUMBER_BOOST:Number(html.match(/const PRINT_ZONE_NUMBER_BOOST\s*=\s*([\d.]+)\s*;/)[1]),
+    PRINT_ZONE_NUMBER_SIZE_PT:Number(html.match(/const PRINT_ZONE_NUMBER_SIZE_PT\s*=\s*([\d.]+)\s*;/)[1]), TAM_CARRETERA_PAPEL:13,
     A4_LARGO:297, A4_CORTO:210,
     getTextLabelsForLoc:() => labels,
     getExportBoundsPlain:() => base,
@@ -143,18 +145,35 @@ test('Una calle horizontal fuera del color conserva sus dos extremos y todo su g
   assert.deepEqual(copiar(e.contexto.medidaDeMarcasImpresas(mapa)),{x0:144,y0:174,x1:456,y1:186});
 });
 
-test('La leyenda busca una esquina libre en la silueta real y respeta textos y rotulo', () => {
+test('La leyenda y la rosa reservan papel propio fuera del mapa en marcos grandes y pequeños', () => {
   const e = entorno([]);
-  const poligono = [{x:0,y:0},{x:100,y:0},{x:100,y:70},{x:0,y:70}];
-  const obstaculo = {left:70,top:70,right:100,bottom:100};
-  const sitio = copiar(e.contexto.elegirSitioLeyenda(100,100,25,20,8,3,[poligono],[obstaculo]));
-  assert.deepEqual(sitio,{left:3,top:77});
-  assert(sitio.left >= 3 && sitio.left+25 <= 97);
-  assert(sitio.top >= 11 && sitio.top+20 <= 97);
-  // Una diagonal no ocupa todas las esquinas de su cuadro envolvente.
-  const diagonal = [{x:0,y:0},{x:100,y:90},{x:100,y:100},{x:0,y:10}];
-  const libre = copiar(e.contexto.elegirSitioLeyenda(100,100,20,20,0,3,[diagonal],[]));
-  assert(libre.left === 77 || libre.top === 77);
+  const areaInterseccion = (a,b) => Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))
+    * Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
+  for(const marco of [{w:190,h:145},{w:125,h:105},{w:57,h:44},{w:43,h:38},{w:297,h:189}]){
+    const titulo = 5, leyenda = {w:Math.min(68,marco.w-15),h:marco.w>100?16:10};
+    const rosa = {w:6,h:8};
+    const plan = copiar(e.contexto.calcularAreaDeCroquis(marco,titulo,leyenda,rosa));
+    assert(plan.mapRect.y > titulo && plan.mapRect.h > 10);
+    for(const adorno of [plan.legendRect,plan.compassRect]){
+      assert.equal(areaInterseccion(plan.mapRect,adorno),0, 'El mapa no toca la referencia ni la rosa');
+      assert(adorno.x >= 1.6 && adorno.y >= titulo);
+      assert(adorno.x+adorno.w <= marco.w-1.6+.0001 && adorno.y+adorno.h <= marco.h-1.6+.0001);
+      assert(adorno.y >= plan.mapRect.y+plan.mapRect.h+.999);
+    }
+    assert.equal(areaInterseccion(plan.legendRect,plan.compassRect),0, 'Los dos adornos tampoco se superponen');
+    assert.equal(plan.legendRect.x,1.6, 'Referencias fijadas a la esquina inferior izquierda');
+    assert(Math.abs(plan.legendRect.y+plan.legendRect.h-(marco.h-1.6)) < 1e-10);
+  }
+});
+
+test('El mapa usa toda el área disponible si no hay adornos y el pie mide solo el adorno más alto', () => {
+  const e=entorno([]), marco={w:100,h:80};
+  const vacio=copiar(e.contexto.calcularAreaDeCroquis(marco,5));
+  const conAdornos=copiar(e.contexto.calcularAreaDeCroquis(marco,5,{w:40,h:12},{w:8,h:10}));
+  assert.equal(vacio.legendRect,null); assert.equal(vacio.compassRect,null); assert.equal(vacio.footerRect,null);
+  assert.equal(vacio.mapRect.h-conAdornos.mapRect.h,13, 'Se reserva altura máxima y un milímetro de separación');
+  assert.equal(conAdornos.footerRect.h,12);
+  assert.equal(conAdornos.mapRect.w,vacio.mapRect.w, 'No se resta una franja lateral al croquis');
 });
 
 test('El rotulado general no duplica destinos ni les aplica el aumento de zona', () => {

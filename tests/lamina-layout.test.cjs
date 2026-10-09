@@ -71,18 +71,22 @@ test('Vertical large groups use two main maps, a readable side column and a bott
 test('Horizontal layout remains available as a deliberate user choice', () => {
   const context = environment('landscape');
   const page = context.paginaAgrupada();
-  const slots = context.huecosDeLamina(12);
-  assert.equal(slots.length, 12);
   assert.equal(page.ancho, 297);
   assert.equal(page.alto, 210);
-  assert(slots.every(slot => slot.x >= 5 && slot.y >= 20 &&
-    slot.x + slot.w <= page.ancho - 5 && slot.y + slot.h <= page.alto - 5));
-  // En horizontal la columna lateral conserva la mayoria de las celdas y la
-  // franja inferior queda reservada para un grupo mas corto y legible.
-  const side = slots.slice(1, 8);
-  const bottom = slots.slice(8);
-  assert.equal(side.length, 7);
-  assert.equal(bottom.length, 4);
-  assert(side.every(slot => slot.x > slots[0].x + slots[0].w));
-  assert(bottom.every(slot => slot.y > slots[0].y + slots[0].h));
+  for(const count of [8,12,15,21]){
+    const slots = context.huecosDeLamina(count);
+    assert.equal(slots.length,count);
+    assert(slots.every(slot => slot.x >= 5 && slot.y >= 20 &&
+      slot.x + slot.w <= page.ancho - 5 && slot.y + slot.h <= page.alto - 5));
+    for(let i=0;i<slots.length;i++) for(let j=i+1;j<slots.length;j++)
+      assert(!overlaps(slots[i],slots[j]),`${count}: slots ${i} and ${j} overlap`);
+    assert(slots[0].w >= 160 && slots[0].h >= 110,`${count}: main map remains useful`);
+    assert(slots.slice(1).every(slot => slot.w >= 35 && slot.h >= 32),
+      `${count}: room for a wrapped title, readable map and separate footer`);
+    const side = slots.slice(1).filter(slot => slot.x > slots[0].x+slots[0].w);
+    const bottom = slots.slice(1).filter(slot => slot.y > slots[0].y+slots[0].h);
+    assert(side.length && bottom.length,`${count}: both lateral and lower space is used`);
+    if(count>=12) assert(new Set(side.map(slot=>slot.x)).size>=2,
+      `${count}: maps use several columns instead of a tall stack of tiny frames`);
+  }
 });

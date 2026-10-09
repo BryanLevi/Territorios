@@ -15,7 +15,7 @@
   let refreshVersion = 0;
   let downloadNotice = null;
   let readiness = {group:null, signature:'', ready:false, usable:false};
-  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-shell.js', 'offline-map-details.js', 'offline-data.js', 'offline-controller.js', 'destination-placement.js',
+  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-shell.js', 'offline-map-details.js', 'offline-data.js', 'offline-controller.js', 'destination-placement.js', 'print-label-geometry.js',
     'congregation-password.js', 'congregation-access.js', 'favicon.svg',
     'edit-history.js', 'draft-recovery.js', 'territory-search.js', 'workspace-tools.css',
     '../croquis-territorios-jw/', '../croquis-territorios-jw/index.html', '../croquis-territorio-jw/', '../croquis-territorio-jw/index.html', '../coquis-territorios-jw/', '../coquis-territorios-jw/index.html', '../tokens.css', 'welcome-premium.css',
@@ -152,7 +152,7 @@
       });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v30');
+        const shellCache = await caches.open('croquis-app-shell-v31');
         shellReady = shellVerified && await shellComplete(shellCache);
       }
       if (version !== refreshVersion || group !== congregacionActivaId || (running && running.group === group)) return;
@@ -214,7 +214,7 @@
     if (!shellPromise) {
       shellVerified = false;
       shellPromise = offlineShell.prepare({
-        baseURI:document.baseURI || location.href, cacheName:'croquis-app-shell-v30', files:shellFiles
+        baseURI:document.baseURI || location.href, cacheName:'croquis-app-shell-v31', files:shellFiles
       }).then(() => { shellVerified = true; return true; }).finally(() => { shellPromise = null; });
     }
     return shellPromise;

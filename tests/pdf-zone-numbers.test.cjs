@@ -35,7 +35,7 @@ function environment(renderScale = 3, labels = []){
     L:{divIcon:options => options},
     renderColonyLabelHtml:value => '<span>' + String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])) + '</span>'
   });
-  vm.runInContext(['isPrintZoneNumber', 'printZoneNumberStyle', 'createTextIcon', 'updatePrintZoneNumbers', 'getPrintZoneNumberExportBoundsPlain'].map(extractFunction).join('\n'), context);
+  vm.runInContext(['isPrintZoneNumber', 'printZoneNumberStyle', 'printOwnTextPoints', 'printOwnTextStyle', 'createTextIcon', 'updatePrintZoneNumbers', 'getPrintZoneNumberExportBoundsPlain'].map(extractFunction).join('\n'), context);
   return context;
 }
 
@@ -117,7 +117,7 @@ test('Printed numeric markers ignore saved editor font sizes and the territory e
   }
 });
 
-test('Screen numbers and nonnumeric or highway labels preserve their existing sizes and selection', () => {
+test('Screen labels preserve editor sizes while printed own text stays physically legible', () => {
   const context = environment(8);
   const screen = labelDiv(context.createTextIcon({text:'38', type:'texto', size:28, opacity:.75}, true));
   assert.doesNotMatch(screen.attributes, /print-zone-number|data-print-scale/);
@@ -126,11 +126,28 @@ test('Screen numbers and nonnumeric or highway labels preserve their existing si
   assert.equal(parseFloat(screen.css.opacity), .75);
   const colony = labelDiv(context.createTextIcon({text:'Colonia <Centro>', size:20}, false, 8 * 1.2, 13, .25));
   assert.doesNotMatch(colony.attributes, /print-zone-number/);
-  close(parseFloat(colony.css['font-size']), 20 * 8 * 1.2, 'Existing nonnumeric font size');
+  assert.match(colony.attributes, /print-own-text/);
+  close(physicalDimensions(colony.css,8,.25).fontPt, 12, 'Printed own text in points');
   assert.equal(colony.contents, '<span>Colonia &lt;Centro&gt;</span>');
   const highway = labelDiv(context.createTextIcon({text:'38', type:'carretera', size:38}, false, 8, 13, .25));
   assert.doesNotMatch(highway.attributes, /print-zone-number/);
-  assert.equal(parseFloat(highway.css['font-size']), 13 * 8);
+  close(physicalDimensions(highway.css,8,.25).fontPt, 6, 'Printed road name in points');
+});
+
+test('Printed own text and road names retain readable points and wrapping width across frame sizes', () => {
+  for(const renderScale of [.5,2,4.6875]) for(const layoutScale of [.15,.7,1,1.5]){
+    const context=environment(renderScale);
+    for(const label of [{text:'Colonia Centro / Iglesia San Rafael',size:13},
+      {text:'Colonia Centro / Iglesia San Rafael',size:38},{text:'Av. Independencia',type:'carretera'}]){
+      const snapshot=JSON.stringify(label);
+      const div=labelDiv(context.createTextIcon(label,false,renderScale,13,layoutScale,24));
+      const expected=label.type==='carretera'?6:label.size===13?9.75:12;
+      close(physicalDimensions(div.css,renderScale,layoutScale).fontPt,expected,'Physical text size');
+      close(parseFloat(div.css['max-width'])*layoutScale/renderScale*25.4/96,24,'Wrap width on paper');
+      assert.equal(div.css['white-space'],'normal');
+      assert.equal(JSON.stringify(label),snapshot,'Print typography does not rewrite editor data');
+    }
+  }
 });
 
 test('Changing the PDF frame scale resizes only printed badges without moving markers or editing saved labels', () => {
