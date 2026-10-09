@@ -137,6 +137,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 
 .print-sheet .runtime-vector-road-label span,.print-sheet .territory-text-label,.print-sheet .print-reference-name,.print-sheet .print-reference-icon{box-shadow:none!important}
 .color-area-path.is-selected{filter:saturate(1.16) contrast(1.04)}
+.print-sheet .color-area-path{filter:none!important}
 .territory-road-pane,.leaflet-territoryroad-pane{mix-blend-mode:normal;pointer-events:none}
 .territory-road-pane .leaflet-tile,.leaflet-territoryroad-pane .leaflet-tile{display:none!important}
 .print-sheet .territory-road-pane{mix-blend-mode:normal}
@@ -1222,13 +1223,10 @@ const PRINT_SILUETAS_OPACIDAD = 1;
 // multiplicar dos veces marca mucho mas que apretar una sola.
 const PRINT_SILUETAS_SEGUNDA = .6;
 
-// Google sirve la misma tesela al doble de puntos con scale=4: mismo trozo de
-// tierra, cuatro veces mas pixeles. Se pide asi cuando la hoja se dibuja con
-// poca escala, que es donde se queda corta: un territorio chico salia a unos
-// 370 ppp y uno grande a mas de mil. Con mucha escala ya sobra resolucion y
-// pedirlas al doble solo multiplicaria por cuatro el peso de la hoja.
+// La rejilla de impresión usa 512 px. scale=2 entrega esa misma resolución,
+// sin cuadruplicar las imágenes que el visor PDF tiene que descomprimir.
 function escalaTeselaImpresion(){
-  return printRenderScale < 8 ? 4 : 2;
+  return 2;
 }
 // La hoja lleva dos recortes blancos, y de ahi las dos medidas. Son el trazo
 // del poligono, que va centrado, asi que el aire real es la mitad.
@@ -1261,10 +1259,10 @@ const FONDO_IMPRESION_STORAGE_KEY = 'croquis-fondo-impresion-v1';
 // blanco, que tambien esta en la lista, y el desplegable se replegaba solo a
 // "Blanco" antes de que diera tiempo a tocar el tono.
 let fondoPersonalizado = false;
-const PRINT_RENDER_SCALE_MAX = 18;
-// El suelo: por debajo de esto no se baja aunque el territorio sea diminuto,
-// porque el mapa no da mas de zoom 20 y estirarlo mas solo emborrona.
-const PRINT_RENDER_SCALE_MIN = 3;
+// 450 ppp bastan para las calles; los textos y contornos propios siguen
+// siendo vectoriales. Cada recuadro pide sólo el detalle que cabe en papel.
+const PRINT_RENDER_SCALE_MAX = 450 / 96;
+const PRINT_RENDER_SCALE_MIN = .5;
 // La que se esta usando en la hoja que se dibuja ahora mismo.
 let printRenderScale = PRINT_RENDER_SCALE_MAX;
 const PRINT_TILE_TIMEOUT_MS = 180000;
@@ -8138,20 +8136,23 @@ function navigate(delta){
 }
 
 
-function choosePrintRenderScale(loc, bounds, src){
-  if(!window.L || !bounds?.isValid?.()) return PRINT_RENDER_SCALE_MAX;
+function choosePrintRenderScale(loc, bounds, src, layoutScale = 1){
+  const medida = Number(layoutScale);
+  const proporcion = Number.isFinite(medida) && medida > 0 ? Math.min(1, medida) : 1;
+  const presupuesto = Math.max(PRINT_RENDER_SCALE_MIN, PRINT_RENDER_SCALE_MAX * proporcion);
+  if(!window.L || !bounds?.isValid?.()) return presupuesto;
   const zoomTope = Math.min(src?.maxZ || PRINT_MAX_ZOOM, loc?.printMaxZoom || PRINT_MAX_ZOOM);
   const noroeste = L.CRS.EPSG3857.latLngToPoint(bounds.getNorthWest(), zoomTope);
   const sureste = L.CRS.EPSG3857.latLngToPoint(bounds.getSouthEast(), zoomTope);
   const anchoPx = Math.abs(sureste.x - noroeste.x);
   const altoPx = Math.abs(sureste.y - noroeste.y);
-  if(!anchoPx || !altoPx) return PRINT_RENDER_SCALE_MAX;
+  if(!anchoPx || !altoPx) return presupuesto;
   // Cuanta escala cabe sin pedirle al mapa mas zoom del que tiene. Se
   // descuentan los margenes que deja fitBounds a los dos lados.
   const cabeDeAncho = anchoPx / (1123 - 36);
   const cabeDeAlto = altoPx / (714 - 36);
   const escala = Math.min(cabeDeAncho, cabeDeAlto);
-  return Math.max(PRINT_RENDER_SCALE_MIN, Math.min(PRINT_RENDER_SCALE_MAX, escala));
+  return Math.max(PRINT_RENDER_SCALE_MIN, Math.min(presupuesto, escala));
 }
 
 // La rosa de los vientos de la hoja. Se mide en milimetros y va fuera del
@@ -8350,9 +8351,7 @@ function construirLeyendaIconos(loc, automaticas = referenciasAutomaticasDeLoc(l
   return '<div class="print-leyenda" id="print-leyenda"><b>Referencias</b>' + filas + '</div>';
 }
 
-// Se pone en la esquina donde menos estorbe. Se mide en fracciones del mapa
-// y no en pixeles, porque la hoja va encogida y los pixeles del mapa no son
-// los del papel.
+// La leyenda conserva una posicion fija en cada croquis: abajo a la izquierda.
 function colocarLeyenda(targetMap, loc){
   const caja = document.getElementById('print-leyenda');
   if(!caja || !targetMap) return;
@@ -8360,50 +8359,45 @@ function colocarLeyenda(targetMap, loc){
   if(!escenario) return;
   const W = escenario.clientWidth;
   const H = escenario.clientHeight;
-  const w = caja.offsetWidth;
-  const h = caja.offsetHeight;
-  const margen = Math.round(W * 0.008);
+  const margen = Math.max(8, Math.round(W * 0.008));
+  caja.style.left = margen + 'px';
+  caja.style.top = Math.max(margen, H - caja.offsetHeight - margen) + 'px';
+}
 
-  const tam = targetMap.getSize();
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  const mira = punto => {
-    const lat = Number(punto?.[0]);
-    const lng = Number(punto?.[1]);
-    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    const q = targetMap.latLngToContainerPoint([lat, lng]);
-    x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x);
-    y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y);
-  };
-  getColorAreasForLoc(loc).forEach(area => (area.points || []).forEach(mira));
-  if(!Number.isFinite(x0)){
-    caja.style.left = margen + 'px';
-    caja.style.top = margen + 'px';
-    return;
-  }
-  const terr = {
-    left:(x0 / tam.x) * W, right:(x1 / tam.x) * W,
-    top:(y0 / tam.y) * H, bottom:(y1 / tam.y) * H
-  };
-
-  // la esquina de abajo a la derecha no entra: ahi va la rosa de los vientos
+function acomodarRosaLejosDeMarcas(rosa, contenedor, margen = '4mm'){
+  if(!rosa || !contenedor) return;
+  const obstaculos = [...contenedor.querySelectorAll(
+    '.destination-text-label,.destination-arrow-path,.destination-arrow-head,.print-leyenda'
+  )].map(elemento => {
+    const caja = elemento.getBoundingClientRect();
+    return {caja, peso:elemento.classList.contains('print-leyenda') ? 2 : 4};
+  }).filter(({caja}) => caja.width > 0 && caja.height > 0);
   const esquinas = [
-    { left:margen, top:margen },
-    { left:W - w - margen, top:margen },
-    { left:margen, top:H - h - margen }
+    {left:'auto',right:margen,top:'auto',bottom:margen},
+    {left:'auto',right:margen,top:margen,bottom:'auto'},
+    {left:margen,right:'auto',top:margen,bottom:'auto'},
+    {left:margen,right:'auto',top:'auto',bottom:margen}
   ];
-  const estorbo = sitio => {
-    const ancho = Math.max(0, Math.min(sitio.left + w, terr.right) - Math.max(sitio.left, terr.left));
-    const alto = Math.max(0, Math.min(sitio.top + h, terr.bottom) - Math.max(sitio.top, terr.top));
-    return ancho * alto;
-  };
-  let mejor = esquinas[0];
-  let menos = estorbo(esquinas[0]);
-  esquinas.slice(1).forEach(sitio => {
-    const cuanto = estorbo(sitio);
-    if(cuanto < menos){ menos = cuanto; mejor = sitio; }
+  const origen = contenedor.getBoundingClientRect();
+  let mejor = null;
+  esquinas.forEach((sitio, orden) => {
+    Object.assign(rosa.style, sitio);
+    const caja = rosa.getBoundingClientRect();
+    const izquierda = caja.left - origen.left, derecha = caja.right - origen.left;
+    const arriba = caja.top - origen.top, abajo = caja.bottom - origen.top;
+    const fuera = Math.max(0,-izquierda) + Math.max(0,-arriba)
+      + Math.max(0,derecha-origen.width) + Math.max(0,abajo-origen.height);
+    const choque = obstaculos.reduce((total, item) => {
+      const a = item.caja;
+      const ancho = Math.max(0,Math.min(caja.right,a.right)-Math.max(caja.left,a.left));
+      const alto = Math.max(0,Math.min(caja.bottom,a.bottom)-Math.max(caja.top,a.top));
+      return total + ancho * alto * item.peso;
+    }, 0) + fuera * Math.max(1,caja.width,caja.height) * 100;
+    if(!mejor || choque < mejor.choque - .01 || (Math.abs(choque-mejor.choque) <= .01 && orden < mejor.orden)){
+      mejor = {sitio,choque,orden};
+    }
   });
-  caja.style.left = Math.round(mejor.left) + 'px';
-  caja.style.top = Math.round(mejor.top) + 'px';
+  if(mejor) Object.assign(rosa.style,mejor.sitio);
 }
 
 function buildPrintSheetMarkup(loc){
@@ -8744,26 +8738,70 @@ function renderPrintColorMask(targetMap, loc, opciones = {}){
 function waitForPrintTiles(layer, timeoutMs = 8000){
   return new Promise(resolve => {
     let done = false;
-    let loaded = 0;
-    let failed = 0;
-    const finish = () => {
+    let timer = null;
+    let eventLoaded = 0;
+    let eventFailed = 0;
+    const seenLoaded = new Set();
+    const seenFailed = new Set();
+    const state = () => {
+      const tiles = layer?._tiles;
+      const current = tiles && typeof tiles === 'object'
+        ? Object.values(tiles).filter(tile => tile && tile.current !== false) : null;
+      if(!current) return {loaded:eventLoaded, failed:eventFailed, pending:0};
+      let loaded = 0, failed = 0, pending = 0;
+      current.forEach(tile => {
+        const image = tile.el;
+        if(image && typeof image.naturalWidth === 'number'){
+          if(image.complete && image.naturalWidth > 0) loaded++;
+          else if(image.complete && (tile.loaded || image.currentSrc || image.src)) failed++;
+          else pending++;
+        }else if(tile.loaded) loaded++;
+        else pending++;
+      });
+      return {loaded, failed, pending};
+    };
+    const finish = (timedOut = false) => {
       if(done) return;
       done = true;
       clearTimeout(timer);
-      layer.off('load', finish);
-      layer.off('tileload', onTileLoad);
-      layer.off('tileerror', onTileError);
-      resolve({ loaded, failed });
+      layer?.off?.('load', onLoad);
+      layer?.off?.('tileload', onTileLoad);
+      layer?.off?.('tileerror', onTileError);
+      resolve({...state(), timedOut});
     };
-    const onTileLoad = () => { loaded++; };
-    const onTileError = () => {
-      failed++;
-      setTimeout(finish, 900);
+    const check = () => {
+      if(layer?.isLoading?.() === false && state().pending === 0) finish();
     };
-    const timer = setTimeout(finish, timeoutMs);
+    const countEvent = (event, seen, kind) => {
+      const tile = event?.tile;
+      if(tile && seen.has(tile)) return;
+      if(tile) seen.add(tile);
+      if(kind === 'loaded') eventLoaded++;
+      else eventFailed++;
+    };
+    const onTileLoad = event => {
+      countEvent(event, seenLoaded, 'loaded');
+      check();
+    };
+    const onTileError = event => {
+      countEvent(event, seenFailed, 'failed');
+      check();
+    };
+    const onLoad = () => {
+      if(state().pending === 0) finish();
+    };
+    if(!layer || typeof layer.on !== 'function'){
+      finish();
+      return;
+    }
     layer.on('tileload', onTileLoad);
     layer.on('tileerror', onTileError);
-    layer.on('load', finish);
+    layer.on('load', onLoad);
+    const duration = Number(timeoutMs);
+    timer = setTimeout(() => finish(true), Number.isFinite(duration) ? Math.max(0, duration) : 8000);
+    // Otra capa puede haber terminado mientras se esperaba el fondo. Se
+    // cuentan sus imágenes actuales en lugar de esperar un evento ya pasado.
+    check();
   });
 }
 
@@ -8981,10 +9019,9 @@ function cuentasAgrupadas(){
     const anchoDestino = lamina ? Math.max(12, hueco.w - 13) : 64;
     const b = getDirectionExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM, layoutScale, anchoDestino);
     const bounds = L.latLngBounds([b.south, b.west], [b.north, b.east]);
-    const escala = choosePrintRenderScale(loc, bounds, src);
-    const densidad = escala < 8 ? 4 : 2;
+    const escala = choosePrintRenderScale(loc, bounds, src, layoutScale);
     const k = escalaDeHueco(hueco);
-    const ppp = (escala * 96 * (densidad / 2)) / Math.max(k, .01);
+    const ppp = (escala * 96) / Math.max(k, .01);
     pppMin = Math.min(pppMin, ppp);
     pppMax = Math.max(pppMax, ppp);
     teselas += Math.ceil((1123 * escala) / 512 + 1) * Math.ceil((714 * escala) / 512 + 1);
@@ -9274,7 +9311,7 @@ function medidaDeNombresImpresos(mapa, loc){
     x1:zonas.x1 + aire, y1:zonas.y1 + aire};
 }
 
-function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1){
+function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1, espacioLeyenda = null){
   const hoja = { x:0, y:15, w:297, h:189 };   // la cabecera son 15 mm
   try{
     const b = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
@@ -9307,6 +9344,12 @@ function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1){
       a = Math.min(a, directionBounds.x0); c = Math.max(c, directionBounds.x1);
       d = Math.min(d, directionBounds.y0); e = Math.max(e, directionBounds.y1);
     }
+    // En las laminas la leyenda queda fija abajo a la izquierda. Se amplia el
+    // recorte por ese lado para reservarle papel y mantener libre el mapa.
+    if(espacioLeyenda){
+      a -= Math.max(0, Number(espacioLeyenda.left) || 0);
+      e += Math.max(0, Number(espacioLeyenda.bottom) || 0);
+    }
     const x0 = Math.max(0, a) / anchoLienzo;
     const x1 = Math.min(anchoLienzo, c) / anchoLienzo;
     const y0 = Math.max(0, d) / altoLienzo;
@@ -9327,40 +9370,7 @@ function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1){
   }
 }
 
-// La leyenda se sitúa en un espacio libre del recuadro, conservando un tamaño
-// de papel independiente de la escala y del recorte del territorio.
-function elegirSitioLeyenda(ancho, alto, w, h, techo, margen, poligonos = [], obstaculos = []){
-  const izquierda = margen, derecha = Math.max(margen, ancho - w - margen);
-  const arriba = techo + margen, abajo = Math.max(arriba, alto - h - margen);
-  const sitios = [{left:izquierda,top:arriba}, {left:derecha,top:arriba},
-    {left:izquierda,top:abajo}, {left:derecha,top:abajo},
-    {left:izquierda,top:(arriba+abajo)/2}, {left:derecha,top:(arriba+abajo)/2}];
-  const dentro = (x, y, puntos) => {
-    let encontrado = false;
-    for(let i = 0, j = puntos.length - 1; i < puntos.length; j = i++){
-      const p = puntos[i], q = puntos[j];
-      if((p.y > y) !== (q.y > y) && x < (q.x-p.x)*(y-p.y)/(q.y-p.y)+p.x) encontrado = !encontrado;
-    }
-    return encontrado;
-  };
-  const estorbo = sitio => {
-    let pintados = 0;
-    // Mirar la silueta real evita tratar como ocupado todo el rectángulo
-    // de un territorio diagonal o irregular, que deja esquinas libres.
-    for(let y = 0; y < 10; y++) for(let x = 0; x < 14; x++){
-      const px = sitio.left + (x+.5)*w/14, py = sitio.top + (y+.5)*h/10;
-      if(poligonos.some(puntos => dentro(px, py, puntos))) pintados++;
-    }
-    const dibujos = pintados / 140 * w * h;
-    const textos = obstaculos.reduce((suma, r) => suma
-      + Math.max(0, Math.min(sitio.left+w,r.right)-Math.max(sitio.left,r.left))
-      * Math.max(0, Math.min(sitio.top+h,r.bottom)-Math.max(sitio.top,r.top)), 0);
-    return dibujos + textos * 4;
-  };
-  return sitios.reduce((mejor, sitio) => estorbo(sitio) < estorbo(mejor) ? sitio : mejor, sitios[0]);
-}
-
-function acomodarLeyendaEnHueco(caso, papel, mapa, loc, alturaRotulo = 0){
+function acomodarLeyendaEnHueco(caso, papel, alturaRotulo = 0){
   const caja = papel && papel.querySelector('.print-leyenda');
   if(!caja || !caso) return;
   // La transformación del papel solo cambia el croquis. La leyenda queda
@@ -9386,19 +9396,6 @@ function acomodarLeyendaEnHueco(caso, papel, mapa, loc, alturaRotulo = 0){
       if(caja.getBoundingClientRect().height <= altoUtil) break;
     }
   }
-  const lienzo = mapa?.getContainer?.().getBoundingClientRect();
-  const tam = mapa?.getSize?.();
-  const poligonos = lienzo?.width && lienzo?.height && tam?.x && tam?.y
-    ? getExportColorAreasForLoc(loc).map(area => area.points.filter(punto =>
-      Number.isFinite(Number(punto?.[0])) && Number.isFinite(Number(punto?.[1]))).map(punto => {
-      const p = mapa.latLngToContainerPoint(punto);
-      return {x:lienzo.left-marco.left+p.x*lienzo.width/tam.x,
-        y:lienzo.top-marco.top+p.y*lienzo.height/tam.y};
-    })) : [];
-  const obstaculos = [...papel.querySelectorAll('.destination-text-label,.territory-text-label,.destination-arrow-path,.destination-arrow-head')].map(nodo => {
-    const r = nodo.getBoundingClientRect();
-    return {left:r.left-marco.left, right:r.right-marco.left, top:r.top-marco.top, bottom:r.bottom-marco.top};
-  });
   const l = caja.getBoundingClientRect();
   const ajuste = Math.min(1, anchoUtil / l.width, altoUtil / l.height);
   if(ajuste < 1){
@@ -9407,9 +9404,8 @@ function acomodarLeyendaEnHueco(caso, papel, mapa, loc, alturaRotulo = 0){
     caja.style.transform = 'scale(' + ajuste + ')';
     caja.style.transformOrigin = 'top left';
   }
-  const sitio = elegirSitioLeyenda(marco.width, marco.height, l.width * ajuste, l.height * ajuste, techo, margen, poligonos, obstaculos);
-  caja.style.left = sitio.left.toFixed(1) + 'px';
-  caja.style.top = sitio.top.toFixed(1) + 'px';
+  caja.style.left = margen.toFixed(1) + 'px';
+  caja.style.top = Math.max(techo + margen, marco.height - l.height * ajuste - margen).toFixed(1) + 'px';
 }
 
 // La rosa va anclada a la esquina de la hoja entera, asi que con el recorte de
@@ -9433,18 +9429,7 @@ function acomodarRosaEnHueco(caso, papel, hueco, alturaRotulo){
   rosa.style.height = alto.toFixed(2) + 'mm';
   rosa.style.transform = 'none';
   caso.appendChild(rosa);
-  // Si la lista de referencias acabo en esa misma esquina, la rosa se le
-  // pondria encima y le taparia las filas: se pasa a la otra esquina.
-  const ley = caso.querySelector('.print-leyenda');
-  if(ley){
-    const r = rosa.getBoundingClientRect();
-    const l = ley.getBoundingClientRect();
-    const chocan = !(r.right < l.left || r.left > l.right || r.bottom < l.top || r.top > l.bottom);
-    if(chocan){
-      rosa.style.right = 'auto';
-      rosa.style.left = '3mm';
-    }
-  }
+  acomodarRosaLejosDeMarcas(rosa, caso, '3mm');
 }
 
 async function generarAgrupado(modo){
@@ -9503,6 +9488,7 @@ async function generarAgrupado(modo){
         caso.style.width = hueco.w + 'mm';
         caso.style.height = hueco.h + 'mm';
         let alturaRotulo = 0;
+        let espacioLeyenda = null;
         if(c.lamina){
           const rotulo = document.createElement('div');
           rotulo.className = 'rotulo-hueco';
@@ -9521,7 +9507,17 @@ async function generarAgrupado(modo){
           // el croquis no toca el filo: se le deja aire a los cuatro lados
           const margenCroquis = 1.2;
           const util = { w:hueco.w - margenCroquis * 2, h:hueco.h - alturaRotulo - margenCroquis * 2 };
-          let rec = recorteDelCroquis(printMap, loc);
+          const cajaLeyenda = papel.querySelector('.print-leyenda');
+          const etapa = papel.querySelector('.print-map-stage');
+          if(cajaLeyenda && etapa){
+            const r = cajaLeyenda.getBoundingClientRect(), s = etapa.getBoundingClientRect();
+            const anchoMm = Math.min(r.width * 297 / s.width, Math.max(0, hueco.w - 3.2));
+            const altoMm = Math.min(Math.max(r.height * 189 / s.height, 6 + referenciasDeLoc(loc).filter(ref => ref.ver).length * 4.2),
+              Math.max(0, hueco.h - alturaRotulo - 3.2));
+            const pixelesPorMm = printRenderScale * 96 / 25.4 / Math.max(.05, directionLayoutScale);
+            espacioLeyenda = {left:(anchoMm + 1) * pixelesPorMm, bottom:(altoMm + 1) * pixelesPorMm};
+          }
+          let rec = recorteDelCroquis(printMap, loc, null, directionLayoutScale, espacioLeyenda);
           k = Math.min(util.w / rec.w, util.h / rec.h);
           const hayDestinos = printDirectionLabelsForLoc(loc).length > 0;
           // El mapa encoge dentro del recuadro; el texto, el trazo y la
@@ -9533,7 +9529,7 @@ async function generarAgrupado(modo){
               printMode:true, scale:printRenderScale, layoutScale:k,
               maxTextWidthMm:directionTextWidthMm, interactive:false
             }) : null;
-            rec = recorteDelCroquis(printMap, loc, dibujadas?.bounds || null, k);
+            rec = recorteDelCroquis(printMap, loc, dibujadas?.bounds || null, k, espacioLeyenda);
             const siguiente = Math.min(util.w / rec.w, util.h / rec.h);
             if(Math.abs(siguiente - k) < .00001 * Math.max(1, k)) break;
             k = siguiente;
@@ -9543,7 +9539,7 @@ async function generarAgrupado(modo){
             maxTextWidthMm:directionTextWidthMm, interactive:false
           }) : null;
           updatePrintZoneNumbers(printMap, k);
-          rec = recorteDelCroquis(printMap, loc, finales?.bounds || null, k);
+          rec = recorteDelCroquis(printMap, loc, finales?.bounds || null, k, espacioLeyenda);
           // El ultimo ajuste solo reserva mas aire; no amplifica el papel
           // tras medir los textos y por tanto no puede cortar un extremo.
           k = Math.min(k, util.w / rec.w, util.h / rec.h);
@@ -9569,7 +9565,7 @@ async function generarAgrupado(modo){
         caso.appendChild(envoltura);
         pagina.appendChild(caso);
         if(c.lamina){
-          acomodarLeyendaEnHueco(caso, papel, printMap, loc, alturaRotulo);
+          acomodarLeyendaEnHueco(caso, papel, alturaRotulo);
           acomodarRosaEnHueco(caso, papel, hueco, alturaRotulo);
         }
       }
@@ -9586,6 +9582,7 @@ async function generarAgrupado(modo){
     descargarAgrupado();
   }catch(err){
     console.error('No se pudo armar el PDF agrupado.', err);
+    limpiarHojasAgrupadas();
     if(aviso) aviso.textContent = 'No se pudo armar: ' + err.message;
   }finally{
     agruparGenerando = false;
@@ -9829,7 +9826,7 @@ async function imprimir(opciones = {}){
     directionLayoutScale);
   const plainBounds = src.roadUrl || src.labelUrl ? getPrintMapLabelExportBoundsPlain(numberBounds) : numberBounds;
   const bounds = L.latLngBounds([plainBounds.south, plainBounds.west], [plainBounds.north, plainBounds.east]);
-  printRenderScale = choosePrintRenderScale(loc, bounds, src);
+  printRenderScale = choosePrintRenderScale(loc, bounds, src, directionLayoutScale);
   console.info('Croquis: resolucion', printRenderScale.toFixed(2), 'para', loc.name);
 
   const sheet = document.createElement('section');
@@ -9895,6 +9892,7 @@ async function imprimir(opciones = {}){
     printMap.getPane('territoryPoiPane').style.pointerEvents = 'none';
     printMap.getPane('territoryPoiPane').classList.add('territory-poi-pane');
     // Se imprime con el mismo mapa que se esta viendo en pantalla.
+    const capasImpresas = [];
     const anadirTeselas = (fuente, opciones = {}) => {
       const opcionesCapa = {
         maxZoom:fuente.maxZ || PRINT_MAX_ZOOM,
@@ -9914,7 +9912,9 @@ async function imprimir(opciones = {}){
       };
       if(opciones.pane) opcionesCapa.pane = opciones.pane;
       const direccion = opciones.url || getPrintTileUrl(fuente, { noLabels:!!opciones.sinNombres });
-      return L.tileLayer(direccion, opcionesCapa).addTo(printMap);
+      const capa = L.tileLayer(direccion, opcionesCapa).addTo(printMap);
+      capasImpresas.push(capa);
+      return capa;
     };
     // Con recorte de zonas el fondo va invisible: lo unico que se ve del mapa
     // es la capa de detalle que se multiplica sobre el color, y eso es lo que
@@ -9970,19 +9970,9 @@ async function imprimir(opciones = {}){
     // cuando habia recorte de color, asi que Cruz Verde salia sin un solo
     // nombre de calle.
     if(urlNombres){
-      capaNombres = L.tileLayer(urlNombres, {
-        maxZoom:src.maxZ || PRINT_MAX_ZOOM,
-        maxNativeZoom:src.maxZ || PRINT_MAX_ZOOM,
-        subdomains:src.roadSub || src.labelSub || src.sub || '',
-        attribution:'',
-        // El tamano de celda y el salto de zoom van juntos: celda del doble de
-        // lado con un nivel menos cae exactamente sobre la misma tierra.
-        tileSize:PRINT_NAME_TILE_SIZE,
-        zoomOffset:PRINT_NAME_ZOOM_OFFSET,
-        keepBuffer:8,
-        updateWhenIdle:false,
-        pane:'territoryRoadPane'
-      }).addTo(printMap);
+      capaNombres = anadirTeselas({...src, sub:src.roadSub || src.labelSub || src.sub || ''}, {
+        url:urlNombres, attribution:'', pane:'territoryRoadPane'
+      });
     }
     printMap._printNameBleed = capaNombres ? PRINT_MASK_GROW_NOMBRES * printRenderScale / 2 : 0;
     if(usingColorMask){
@@ -10014,20 +10004,21 @@ async function imprimir(opciones = {}){
     printMap.whenReady(frameMap);
     frameMap();
     $('print-wait-text').textContent = 'Cargando el mapa de fondo...';
-    let estado = await waitForPrintTiles(capaFondo, PRINT_TILE_TIMEOUT_MS);
+    const esperarCapas = () => Promise.all(capasImpresas.map(capa => waitForPrintTiles(capa, PRINT_TILE_TIMEOUT_MS)));
+    const completa = estado => estado.loaded > 0 && !estado.failed && !estado.pending && !estado.timedOut;
+    let estados = await esperarCapas();
     // Si el mapa elegido no responde se cae al de respaldo antes que sacar una
     // hoja en blanco.
-    if(!estado.loaded && src.downloadAs && TILES[src.downloadAs]?.downloadable){
+    if(!completa(estados[0]) && src.downloadAs && TILES[src.downloadAs]?.downloadable){
       printMap.removeLayer(capaFondo);
+      capasImpresas.splice(capasImpresas.indexOf(capaFondo), 1);
       src = TILES[src.downloadAs];
-      printRenderScale = choosePrintRenderScale(loc, bounds, src);
       $('print-wait-text').textContent = 'El mapa elegido no cargo. Preparando el de respaldo...';
       capaFondo = anadirTeselas(src, { opacity:opacidadFondo });
-      estado = await waitForPrintTiles(capaFondo, PRINT_TILE_TIMEOUT_MS);
+      estados = await esperarCapas();
     }
-    if(capaNombres) await waitForPrintTiles(capaNombres, 45000);
-    if(!estado.loaded){
-      throw new Error('No se pudieron cargar las teselas del mapa para imprimir.');
+    if(estados.some(estado => !completa(estado))){
+      throw new Error('El mapa no terminó de cargar. Revisa internet y vuelve a descargar.');
     }
 
     frameMap();
@@ -10072,6 +10063,11 @@ async function imprimir(opciones = {}){
     // Al final: antes de encuadrar el mapa no tiene tamano todavia, y la
     // esquina se elegiria con cuentas sin sentido.
     colocarLeyenda(printMap, loc);
+    if(!opciones.lamina){
+      acomodarRosaLejosDeMarcas(
+        sheet.querySelector('.print-compass'), sheet.querySelector('.print-map-stage')
+      );
+    }
     $('print-wait-text').textContent = 'Listo. El territorio se imprimirá desde esta misma hoja.';
     $('print-ready-button').disabled = false;
     if(opciones.soloPreparar){
@@ -10083,9 +10079,15 @@ async function imprimir(opciones = {}){
       setTimeout(printPreparedSheet, 450);
     }
   }catch(err){
-    $('print-wait-text').textContent = 'No se pudo preparar el mapa. Revisa internet y vuelve a intentar.';
-    $('print-ready-button').disabled = true;
+    const aviso = $('print-wait-text');
+    if(aviso) aviso.textContent = 'No se pudo preparar el mapa. Revisa internet y vuelve a intentar.';
+    const listo = $('print-ready-button');
+    if(listo) listo.disabled = true;
     console.error(err);
+    if(opciones.soloPreparar){
+      resetPrintSheet();
+      throw err;
+    }
   }
 }
 
@@ -10775,6 +10777,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=remove-walk-mode-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=remove-walk-mode-1"></script>
+<script src="offline-controller.js?v=pdf-ready-2"></script>
 </body>
 </html>
