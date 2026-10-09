@@ -102,8 +102,7 @@
 
   function editorReady() {
     return !!map && !!LOCS[currentIndex] && element('welcome-screen')?.classList.contains('is-hidden')
-      && (!window.CroquisAccess || window.CroquisAccess.canEnter())
-      && !window.CroquisWalk?.isActive() && !document.body.classList.contains('is-walk-mode');
+      && (!window.CroquisAccess || window.CroquisAccess.canEnter());
   }
 
   function sameIdentity(identity) {

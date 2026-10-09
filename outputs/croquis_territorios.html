@@ -566,7 +566,7 @@ body.print-preview{overflow:hidden}
 <link rel="stylesheet" href="./toolbar-premium.css?v=offline-selector-1">
 <link rel="stylesheet" href="./welcome-premium.css?v=footer-outside-1">
 <link rel="stylesheet" href="./editor-premium.css?v=offline-selector-1">
-<link rel="stylesheet" href="./workspace-tools.css?v=balanced-toolbar-1">
+<link rel="stylesheet" href="./workspace-tools.css?v=remove-walk-mode-1">
 </head>
 <body>
 <section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
@@ -1002,9 +1002,6 @@ body.print-preview{overflow:hidden}
   </button>
   </div>
   <div class="bar-group grupo-nav" role="group" aria-label="Navegar territorios">
-  <button class="btn ghost" id="btn-walk-mode" type="button" disabled title="Ver el mapa a pantalla completa sin editar" aria-pressed="false" aria-controls="walk-panel">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M9 12h6M12 9v6"></path></svg>Recorrido
-  </button>
   <button class="btn ghost" id="btn-prev" type="button" disabled title="Territorio anterior" aria-label="Territorio anterior">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
     Anterior
@@ -1171,25 +1168,6 @@ body.print-preview{overflow:hidden}
 
 <div id="hojas-agrupadas" aria-hidden="true"></div>
 
-<section class="walk-panel" id="walk-panel" hidden aria-label="Modo recorrido">
-  <div class="walk-panel-top">
-    <div><span class="workspace-dialog-kicker">Modo recorrido · Solo consulta</span><strong id="route-congregation"></strong><small id="route-map-name"></small></div>
-    <button class="btn ghost" id="route-exit" type="button">Salir del recorrido</button>
-  </div>
-  <div class="walk-panel-bottom">
-    <div class="walk-territory-row">
-      <button class="btn ghost" id="route-prev" type="button" aria-label="Territorio anterior">‹</button>
-      <select id="route-territory" aria-label="Territorio del recorrido"></select>
-      <button class="btn ghost" id="route-next" type="button" aria-label="Territorio siguiente">›</button>
-    </div>
-    <div class="walk-actions">
-      <button class="btn primary" id="route-location" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"></circle><path d="M12 2v4m0 12v4M2 12h4m12 0h4"></path></svg>Mi ubicación</button>
-      <button class="btn ghost" id="route-search" type="button" aria-haspopup="dialog" aria-controls="territory-search-dialog">Buscar</button>
-      <button class="btn ghost" id="route-stop-location" type="button" hidden>Detener</button>
-    </div>
-    <p id="route-gps-status" role="status" aria-live="polite"></p>
-  </div>
-</section>
 <dialog class="workspace-dialog" id="territory-search-dialog" aria-labelledby="territory-search-title">
   <div class="workspace-dialog-head"><div><span class="workspace-dialog-kicker">Congregación activa</span><h2 id="territory-search-title">Buscar territorio</h2></div><button class="dialog-x" id="territory-search-close" type="button" aria-label="Cerrar buscador">×</button></div>
   <div class="workspace-dialog-body"><label for="territory-search-input">Nombre o número del territorio o subterritorio</label><input id="territory-search-input" type="search" placeholder="Ejemplo: Tomatlán o 38" autocomplete="off"><p id="territory-search-status" role="status" aria-live="polite"></p><div id="territory-search-results"></div></div>
@@ -2866,7 +2844,6 @@ function hideWelcomeScreen(){
 function showWelcomeScreen(){
   if(typeof window !== 'undefined'){
     window.CroquisDrafts?.leave();
-    window.CroquisWalk?.setActive(false, {offer:false, focus:false});
   }
   ['history-dialog', 'territory-search-dialog', 'draft-recovery-dialog'].forEach(id => $(id)?.close());
   if(colorDrawMode) setColorDrawMode(false);
@@ -3111,7 +3088,6 @@ function restoreEditHistorySnapshot(snapshot){
 }
 
 function restoreLastUndoSnapshot(){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive?.()) return false;
   const snapshot = undoHistory[undoHistory.length - 1];
   if(!snapshot){
     setStatus('No hay cambios anteriores para regresar.', 'warn');
@@ -3130,7 +3106,6 @@ function restoreLastUndoSnapshot(){
 }
 
 function restoreLastRedoSnapshot(){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive?.()) return false;
   const snapshot = redoHistory[redoHistory.length - 1];
   if(!snapshot){
     setStatus('No hay cambios pendientes para rehacer.', 'warn');
@@ -3192,7 +3167,6 @@ function hasColorExportMask(loc){
 }
 
 function setColorAreasForLoc(loc, areas, options = {}){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return false;
   if(!loc) return false;
   publicarTerritorioPronto(loc);
   const key = String(loc.num);
@@ -3261,7 +3235,6 @@ function getTextLabelsForLoc(loc){
 }
 
 function setTextLabelsForLoc(loc, labels, options = {}){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return false;
   if(!loc) return false;
   publicarTerritorioPronto(loc);
   const key = String(loc.num);
@@ -3316,7 +3289,6 @@ function getManualIconsForLoc(loc){
 }
 
 function setManualIconsForLoc(loc, icons, options = {}){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return false;
   if(!loc) return false;
   publicarTerritorioPronto(loc);
   const key = String(loc.num);
@@ -3357,7 +3329,6 @@ function getWhiteRoadsForLoc(loc){
 }
 
 function setWhiteRoadsForLoc(loc, roads, options = {}){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return false;
   if(!loc) return false;
   publicarTerritorioPronto(loc);
   const key = String(loc.num);
@@ -3395,7 +3366,6 @@ function getManualRiversForLoc(loc){
 }
 
 function setManualRiversForLoc(loc, rivers, options = {}){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return false;
   if(!loc) return false;
   publicarTerritorioPronto(loc);
   const key = String(loc.num);
@@ -5748,7 +5718,6 @@ function setIconAddMode(active, showMessage = true){
 }
 
 function selectColorArea(index){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return;
   if(frameMoveMode) return;
   cancelDestinationInteraction();
   clearSelectedLine();
@@ -5772,7 +5741,6 @@ function selectColorArea(index){
 }
 
 function selectTextLabel(index){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return;
   if(frameMoveMode) return;
   clearSelectedLine();
   selectedReference = null;
@@ -5887,7 +5855,6 @@ function refreshIconActions(loc = LOCS[currentIndex]){
 }
 
 function selectManualIcon(index){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return;
   if(frameMoveMode) return;
   cancelDestinationInteraction();
   clearSelectedLine();
@@ -7308,7 +7275,6 @@ async function loadCloudBackup(options = {}){
 }
 
 function undoDraftColorPoint(){
-  if(window.CroquisWalk?.isActive()) return;
   if(destinationAddMode || destinationSession?.points){cancelDestinationInteraction();renderTextLabels(LOCS[currentIndex]);updateColorControls();setStatus('Flecha sin guardar cancelada.','warn');return;}
   if(destinationSession)cancelDestinationInteraction();
   if(roadPencilMode && roadDraftPoints.length){
@@ -7345,7 +7311,6 @@ function undoDraftColorPoint(){
 }
 
 function redoEditChange(){
-  if(window.CroquisWalk?.isActive()) return;
   if(window.CroquisDrafts?.canRedoPoint()) return window.CroquisDrafts.redoPoint();
   if(window.CroquisDrafts?.hasPending()) return;
   restoreLastRedoSnapshot();
@@ -7413,7 +7378,6 @@ function clearColorAreasForCurrent(){
 }
 
 async function handleColorMapClick(event){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return;
   if(!event?.latlng) return;
   if(frameMoveMode) return;
   if(destinationAddMode){handleDestinationClick(event.latlng);return;}
@@ -7594,7 +7558,6 @@ function translateFrameBoundsPlain(bounds, position){
 }
 
 function setFramePositionForLoc(loc, position){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return false;
   if(!loc) return false;
   const center = normalizeFramePosition(position), key = String(loc.num);
   if(!translateFrameBoundsPlain(getPrintBoundsPlain(loc, loc.zoom || DETAIL_ZOOM), center)) return false;
@@ -7618,7 +7581,6 @@ function setFramePositionForLoc(loc, position){
 }
 
 function resetFrameForCurrent(){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return;
   const loc = LOCS[currentIndex];
   if(!loc) return;
   const key = String(loc.num);
@@ -7741,7 +7703,6 @@ function setFrameMoveMode(active, showMessage = true){
 }
 
 function setFrameScaleForCurrent(value, fitMap = true){
-  if(typeof window !== 'undefined' && window.CroquisWalk?.isActive()) return;
   const loc = LOCS[currentIndex];
   if(!loc) return;
   const scale = clampFrameScale(value);
@@ -8116,7 +8077,6 @@ function updateButtons(){
   const botonAgrupar = $('btn-agrupar');
   if(botonAgrupar) botonAgrupar.disabled = !map || !LOCS.length || currentView === 'offline';
   $('btn-delete-territory').disabled = !map || LOCS.length <= (esCongregacionBase() ? 1 : 0);
-  window.CroquisWalk?.refresh();
   if($('btn-territory-search')) $('btn-territory-search').disabled = !map || !LOCS.length;
 }
 
@@ -8170,7 +8130,6 @@ function goTo(index, silent, fitMap = true){
   renderManualIcons(loc);
   updateColorControls(loc);
   updateButtons();
-  window.CroquisWalk?.refresh();
   window.CroquisDrafts?.offer(loc);
 }
 
@@ -10680,7 +10639,7 @@ $('welcome-cong-sel')?.addEventListener('change', event => {
 refrescarCongregacionesEnInicio();
 document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
 document.addEventListener('keydown', event => {
-  if(window.CroquisWalk?.isActive() || $('history-dialog')?.open || $('territory-search-dialog')?.open || $('draft-recovery-dialog')?.open) return;
+  if($('history-dialog')?.open || $('territory-search-dialog')?.open || $('draft-recovery-dialog')?.open) return;
   if($('congregacion-dialog')?.open || $('password-dialog')?.open || privacyDialog?.open) return;
   if(event.key==='Escape' && (destinationAddMode || destinationSession || (!$('destination-panel')?.hidden))){
     event.preventDefault();cancelDestinationInteraction();renderTextLabels(LOCS[currentIndex]);updateColorControls();destinationButton?.focus();return;
@@ -10813,10 +10772,9 @@ if(document.readyState === 'loading'){
 }
 </script>
 <script src="congregation-access.js"></script>
-<script src="draft-recovery.js?v=workspace-1"></script>
-<script src="edit-history.js?v=workspace-1"></script>
-<script src="territory-search.js?v=workspace-1"></script>
-<script src="walk-mode.js?v=workspace-1"></script>
-<script src="offline-controller.js?v=pdf-lamina-layout-2"></script>
+<script src="draft-recovery.js?v=remove-walk-mode-1"></script>
+<script src="edit-history.js?v=remove-walk-mode-1"></script>
+<script src="territory-search.js?v=remove-walk-mode-1"></script>
+<script src="offline-controller.js?v=remove-walk-mode-1"></script>
 </body>
 </html>

@@ -34,11 +34,10 @@ function harness() {
   };
   const camera = { center:[19.04, -96.96], zoom:18 };
   const c = vm.createContext({
-    document:{getElementById:element, visibilityState:'visible', body:{classList:{contains:() => false}},
+    document:{getElementById:element, visibilityState:'visible',
       addEventListener:(name, fn) => { handlers[name] = fn; }},
-    window:{ addEventListener:(name, fn) => { handlers[name] = fn; }, CroquisAccess:{canEnter:() => c.accessAllowed},
-      CroquisWalk:{isActive:() => c.walking} },
-    localStorage, editorOpen:true, accessAllowed:true, walking:false,
+    window:{ addEventListener:(name, fn) => { handlers[name] = fn; }, CroquisAccess:{canEnter:() => c.accessAllowed} },
+    localStorage, editorOpen:true, accessAllowed:true,
     congregacionActivaId:'ixhuatlan', currentIndex:0, LOCS:[{num:1,name:'Café'}, {num:2,name:'Tranca'}],
     claveDe:(key, id) => id === 'ixhuatlan' ? key : `${key}::${id}`,
     almacen:{
@@ -168,11 +167,10 @@ test('descartar elimina solo el borrador ofertado y habilita un dibujo nuevo', (
   h.draw('highway'); h.api.flush(); assert.equal(h.stored().find(r => r.locNum==='1').kind,'highway');
 });
 
-test('acceso protegido y modo recorrido no ofrecen ni sobrescriben borradores', () => {
+test('acceso protegido no ofrece ni sobrescribe borradores', () => {
   const h = harness(); h.seed([record()]); h.c.accessAllowed=false;
   assert.equal(h.api.offer(),false); h.api.flush(); assert.equal(h.stored().length,1);
-  h.c.accessAllowed=true; h.c.walking=true; assert.equal(h.api.offer(),false);
-  h.c.walking=false; assert.equal(h.api.offer(),true);
+  h.c.accessAllowed=true; assert.equal(h.api.offer(),true);
 });
 
 test('ignora JSON, namespaces, coordenadas y cantidades inválidos sin ejecutarlos', () => {

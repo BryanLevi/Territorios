@@ -1,5 +1,5 @@
 /* App shell for the croquis. Map tiles and external APIs are never cached here. */
-const APP_CACHE = 'croquis-app-shell-v25';
+const APP_CACHE = 'croquis-app-shell-v26';
 const APP_FILES = [
   './',
   './index.html',
@@ -20,7 +20,6 @@ const APP_FILES = [
   './outputs/edit-history.js',
   './outputs/draft-recovery.js',
   './outputs/territory-search.js',
-  './outputs/walk-mode.js',
   './outputs/workspace-tools.css',
   './outputs/favicon.svg',
   './tokens.css',

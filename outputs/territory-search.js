@@ -125,7 +125,7 @@
     results = element('territory-search-results'); status = element('territory-search-status');
     if (!dialog || !input || !results || !status) return false;
     initialized = true;
-    ['btn-territory-search', 'route-search'].forEach(id => element(id)?.addEventListener('click', open));
+    element('btn-territory-search')?.addEventListener('click', open);
     element('territory-search-close')?.addEventListener('click', close);
     input.addEventListener('input', refresh);
     input.addEventListener('keydown', event => {

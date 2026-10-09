@@ -107,7 +107,7 @@ function browser() {
       close() { this.open = false; this.fire('close'); }
     };
   }
-  ['territory-search-dialog', 'territory-search-input', 'territory-search-results', 'territory-search-status', 'territory-search-close', 'btn-territory-search', 'route-search'].forEach(id => { nodes[id] = node(id); });
+  ['territory-search-dialog', 'territory-search-input', 'territory-search-results', 'territory-search-status', 'territory-search-close', 'btn-territory-search'].forEach(id => { nodes[id] = node(id); });
   Object.assign(document, { getElementById: id => nodes[id], createElement: name => node(name), createDocumentFragment: () => node('fragment', true) });
   const context = { document, congregacionActivaId: 'g', LOCS: [{ num: 29, displayNum: 2, name: '<b>La Tranca</b>' }],
     getTextLabelsForLoc: () => [{ text: '8', lat: 19.005, lng: -96.995 }], getColorAreasForLoc: () => [{ points }],
@@ -138,9 +138,9 @@ test('Navegar a un subterritorio encuadra únicamente su polígono; el texto se 
   assert.equal(nodes['territory-search-dialog'].open, false);
 });
 
-test('La búsqueda desde recorrido respeta el bloqueo al abrir y al elegir un resultado ya mostrado', () => {
+test('La búsqueda respeta el bloqueo al abrir y al elegir un resultado ya mostrado', () => {
   const { nodes, context, navigation, lock } = browser();
-  nodes['route-search'].click();
+  nodes['btn-territory-search'].click();
   const stale = nodes['territory-search-results'].children[0];
   lock();
   stale.click();
@@ -164,7 +164,7 @@ test('Enter abre el primer resultado del buscador y Escape cierra el recuadro de
   nodes['btn-territory-search'].click();
   nodes['territory-search-input'].fire('keydown', { key: 'Enter' });
   assert.deepEqual(navigation, [['goTo', 0]]);
-  nodes['route-search'].click();
+  nodes['btn-territory-search'].click();
   nodes['territory-search-dialog'].fire('cancel');
   assert.equal(nodes['territory-search-dialog'].open, false);
 });

@@ -12,7 +12,6 @@
   };
   let initialized = false;
   const node = id => document.getElementById(id);
-  const walking = () => !!window.CroquisWalk?.isActive?.();
   const hasDraft = () => !!window.CroquisDrafts?.hasPending?.();
 
   function describe(snapshot) {
@@ -68,14 +67,14 @@
       list.append(empty);
     }
     const status = node('history-status');
-    if(status) status.textContent = walking() ? 'Sal del modo recorrido para editar.' : hasDraft() ?
+    if(status) status.textContent = hasDraft() ?
       'Guarda o cancela el dibujo en curso para recorrer los cambios guardados.' :
       undoHistory.length + ' cambios aplicados · ' + redoHistory.length + ' por rehacer. El zoom y la posición del mapa se conservan.';
     const undo = node('history-undo'), redo = node('history-redo');
-    if(undo) undo.disabled = walking() || !map || !undoHistory.length || hasDraft();
-    if(redo) redo.disabled = walking() || !map || !redoHistory.length || hasDraft();
+    if(undo) undo.disabled = !map || !undoHistory.length || hasDraft();
+    if(redo) redo.disabled = !map || !redoHistory.length || hasDraft();
     const toolbarRedo = node('btn-color-redo');
-    if(toolbarRedo) toolbarRedo.disabled = !map || walking() ||
+    if(toolbarRedo) toolbarRedo.disabled = !map ||
       (!window.CroquisDrafts?.canRedoPoint?.() && (!redoHistory.length || hasDraft()));
   }
 
@@ -94,17 +93,16 @@
     node('btn-history')?.addEventListener('click', open);
     node('history-close')?.addEventListener('click', () => node('history-dialog').close());
     node('history-undo')?.addEventListener('click', () => {
-      if(walking() || hasDraft() || !undoHistory.length) return;
+      if(hasDraft() || !undoHistory.length) return;
       restoreLastUndoSnapshot();
       refresh();
     });
     node('history-redo')?.addEventListener('click', () => {
-      if(walking() || hasDraft() || !redoHistory.length) return;
+      if(hasDraft() || !redoHistory.length) return;
       restoreLastRedoSnapshot();
       refresh();
     });
     node('btn-color-redo')?.addEventListener('click', () => {
-      if(walking()) return;
       redoEditChange();
     });
     refresh();

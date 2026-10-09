@@ -166,14 +166,6 @@ test('la falta de espacio reduce las dos ramas y elimina las claves pesadas si n
   assert.equal(e.storage.size, 0); assert.equal(e.refreshes(), 1);
 });
 
-test('modo recorrido bloquea deshacer y rehacer en el núcleo sin consumir pasos', () => {
-  const c = env().c;
-  c.undoHistory.push({locNum:1}); c.redoHistory.push({locNum:1});
-  c.window.CroquisWalk = {isActive:() => true};
-  assert.equal(c.restoreLastUndoSnapshot(), false); assert.equal(c.restoreLastRedoSnapshot(), false);
-  assert.equal(c.undoHistory.length, 1); assert.equal(c.redoHistory.length, 1);
-});
-
 class Element {
   constructor(tag) { this.tag = tag; this.children = []; this.listeners = {}; this.open = false; }
   append(...nodes) { this.children.push(...nodes); }
@@ -187,10 +179,10 @@ class Element {
 function uiEnv() {
   const ids = ['history-dialog','history-list','history-status','history-undo','history-redo','history-close','btn-history','btn-color-redo'];
   const nodes = Object.fromEntries(ids.map(id => [id, new Element(id)]));
-  let undos = 0, redos = 0, walk = false, draft = false;
+  let undos = 0, redos = 0, draft = false;
   const c = vm.createContext({
     document:{getElementById:id => nodes[id], createElement:tag => new Element(tag)},
-    window:{CroquisWalk:{isActive:() => walk}, CroquisDrafts:{hasPending:() => draft}}, map:{},
+    window:{CroquisDrafts:{hasPending:() => draft}}, map:{},
     LOCS:[{num:1, name:'<img onerror=alert(1)>'}], displayTerritoryNumber:loc => loc.num, displayTerritoryName:loc => loc.name,
     undoHistory:[{locNum:1, reason:'icons', createdAt:1720000000000}],
     redoHistory:[{locNum:1, reason:'text', createdAt:1720000000010}],
@@ -198,7 +190,7 @@ function uiEnv() {
     redoEditChange:() => { if(!draft) redos++; }
   });
   vm.runInContext(uiSource, c);
-  return {c, nodes, undos:() => undos, redos:() => redos, walk:value => { walk = value; }, draft:value => { draft = value; }};
+  return {c, nodes, undos:() => undos, redos:() => redos, draft:value => { draft = value; }};
 }
 
 test('el historial muestra cambios aplicados y pendientes con descripción, territorio y hora', () => {
@@ -222,14 +214,11 @@ test('los controles del historial abren, cierran, deshacen y rehacen un paso', (
   e.nodes['history-close'].listeners.click(); assert.equal(e.nodes['history-dialog'].open, false);
 });
 
-test('el historial no habilita edición durante recorrido ni rehacer encima de un borrador', () => {
+test('el historial no deshace ni rehace encima de un borrador', () => {
   const e = uiEnv();
-  e.walk(true); e.c.window.CroquisHistory.refresh();
+  e.draft(true); e.c.window.CroquisHistory.refresh();
   assert.equal(e.nodes['history-undo'].disabled, true); assert.equal(e.nodes['history-redo'].disabled, true);
-  e.nodes['history-undo'].listeners.click(); e.nodes['history-redo'].listeners.click(); assert.equal(e.undos(), 0); assert.equal(e.redos(), 0);
-  e.walk(false); e.draft(true); e.c.window.CroquisHistory.refresh();
-  assert.equal(e.nodes['history-undo'].disabled, true); assert.equal(e.nodes['history-redo'].disabled, true);
-  e.nodes['history-undo'].listeners.click(); e.nodes['btn-color-redo'].listeners.click();
+  e.nodes['history-undo'].listeners.click(); e.nodes['history-redo'].listeners.click(); e.nodes['btn-color-redo'].listeners.click();
   assert.equal(e.undos(), 0); assert.equal(e.redos(), 0);
 });
 
