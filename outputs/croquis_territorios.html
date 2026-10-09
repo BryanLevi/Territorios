@@ -8351,7 +8351,7 @@ function construirLeyendaIconos(loc, automaticas = referenciasAutomaticasDeLoc(l
   return '<div class="print-leyenda" id="print-leyenda"><b>Referencias</b>' + filas + '</div>';
 }
 
-// La leyenda conserva una posicion fija en cada croquis: abajo a la izquierda.
+// En un PDF de un solo mapa, la lista se conserva abajo a la izquierda.
 function colocarLeyenda(targetMap, loc){
   const caja = document.getElementById('print-leyenda');
   if(!caja || !targetMap) return;
@@ -9385,27 +9385,107 @@ function acomodarLeyendaEnHueco(caso, papel, alturaRotulo = 0){
   const techo = rotulo ? rotulo.getBoundingClientRect().bottom - marco.top : alturaRotulo * pxPorMm;
   const anchoUtil = Math.max(1, marco.width - margen * 2);
   const altoUtil = Math.max(1, marco.height - techo - margen * 2);
-  caja.style.maxWidth = anchoUtil + 'px';
-  // Una lista larga puede tener varias columnas sin reducir sus letras.
-  if(caja.getBoundingClientRect().height > altoUtil){
-    caja.style.display = 'grid';
-    caja.querySelector('b').style.gridColumn = '1 / -1';
-    caja.style.width = anchoUtil + 'px';
-    for(let columnas = 2; columnas <= 3; columnas++){
-      caja.style.gridTemplateColumns = 'repeat(' + columnas + ',minmax(0,1fr))';
-      if(caja.getBoundingClientRect().height <= altoUtil) break;
+  // Primero intenta abajo a la izquierda; si ahi cubre color, busca un
+  // espacio despejado dentro del mismo recuadro y reduce la leyenda si hace falta.
+  const preparar = escala => {
+    aplicarEscalaDeLeyenda(caja, escala);
+    caja.style.left = margen.toFixed(1) + 'px';
+    caja.style.top = (techo + margen).toFixed(1) + 'px';
+    caja.style.maxWidth = anchoUtil + 'px';
+    caja.style.width = '';
+    caja.style.display = '';
+    caja.style.gridTemplateColumns = '';
+    const titulo = caja.querySelector('b');
+    if(titulo) titulo.style.gridColumn = '';
+    // Una lista larga puede usar varias columnas antes de encoger el texto.
+    if(caja.getBoundingClientRect().height > altoUtil){
+      caja.style.display = 'grid';
+      if(titulo) titulo.style.gridColumn = '1 / -1';
+      caja.style.width = anchoUtil + 'px';
+      for(let columnas = 2; columnas <= 3; columnas++){
+        caja.style.gridTemplateColumns = 'repeat(' + columnas + ',minmax(0,1fr))';
+        if(caja.getBoundingClientRect().height <= altoUtil) break;
+      }
     }
-  }
-  const l = caja.getBoundingClientRect();
-  const ajuste = Math.min(1, anchoUtil / l.width, altoUtil / l.height);
-  if(ajuste < 1){
-    // En recuadros muy pequeños con muchas referencias se conserva la lista
-    // completa, incluso cuando tres columnas todavía no caben.
-    caja.style.transform = 'scale(' + ajuste + ')';
+    const alto = caja.getBoundingClientRect();
+    const ajuste = Math.min(1, anchoUtil / Math.max(1, alto.width), altoUtil / Math.max(1, alto.height));
+    if(ajuste < 1) caja.style.transform = 'scale(' + ajuste + ')';
+    else caja.style.transform = 'none';
     caja.style.transformOrigin = 'top left';
+    return caja.getBoundingClientRect();
+  };
+  const formas = [...papel.querySelectorAll('.color-area-path')].map(path => {
+    try{
+      const matriz = path.getScreenCTM();
+      return matriz && path.ownerSVGElement && typeof path.isPointInFill === 'function'
+        ? {path, svg:path.ownerSVGElement, inversa:matriz.inverse(), caja:path.getBoundingClientRect()}
+        : {caja:path.getBoundingClientRect()};
+    }catch(e){ return {caja:path.getBoundingClientRect()}; }
+  }).filter(forma => forma.caja.width > 0 && forma.caja.height > 0);
+  const otros = [...papel.querySelectorAll(
+    '.print-zone-number,.manual-map-icon,.print-reference-name,.destination-text-label,.destination-arrow-path,.destination-arrow-head'
+  )].map(nodo => nodo.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0);
+  const fraccionTerritorio = cajaRect => {
+    if(!formas.length) return 0;
+    const porMm = marco.width / Math.max(1, parseFloat(caso.style.width));
+    const columnas = Math.max(3, Math.min(48, Math.ceil(cajaRect.width / Math.max(1, porMm * .55))));
+    const filas = Math.max(3, Math.min(48, Math.ceil(cajaRect.height / Math.max(1, porMm * .55))));
+    let total = 0, dentro = 0;
+    for(let fila = 0; fila < filas; fila++) for(let columna = 0; columna < columnas; columna++){
+      const x = cajaRect.left + cajaRect.width * (columna + .5) / columnas;
+      const y = cajaRect.top + cajaRect.height * (fila + .5) / filas;
+      total++;
+      if(formas.some(forma => {
+        if(x < forma.caja.left || x > forma.caja.right || y < forma.caja.top || y > forma.caja.bottom) return false;
+        if(forma.path && forma.inversa){
+          try{
+            const punto = forma.svg.createSVGPoint();
+            punto.x = x; punto.y = y;
+            return forma.path.isPointInFill(punto.matrixTransform(forma.inversa));
+          }catch(e){ return true; }
+        }
+        return true;
+      })) dentro++;
+    }
+    return dentro / total;
+  };
+  const margenX = margen, derecha = Math.max(margenX, marco.width - margenX);
+  const arriba = techo + margen, abajo = Math.max(arriba, marco.height - margen);
+  const escalaInicial = Math.max(.62, Math.min(.9, Number(caja.dataset.referenceScale) || .78));
+  const escalas = [...new Set([escalaInicial, Math.max(.62, escalaInicial - .08), Math.max(.62, escalaInicial - .16), .62])];
+  let mejor = null;
+  for(const escala of escalas){
+    const tam = preparar(escala);
+    const xIzq = margenX, xCentro = Math.max(margenX, (marco.width - tam.width) / 2);
+    const xDer = Math.max(margenX, derecha - tam.width);
+    const yArriba = arriba, yCentro = Math.max(arriba, (arriba + abajo - tam.height) / 2);
+    const yAbajo = Math.max(arriba, abajo - tam.height);
+    const sitios = [
+      {x:xIzq,y:yAbajo}, {x:xDer,y:yAbajo}, {x:xIzq,y:yArriba}, {x:xDer,y:yArriba},
+      {x:xIzq,y:yCentro}, {x:xDer,y:yCentro}, {x:xCentro,y:yAbajo}, {x:xCentro,y:yArriba}
+    ];
+    for(let orden = 0; orden < sitios.length; orden++){
+      const sitio = sitios[orden];
+      caja.style.left = sitio.x.toFixed(1) + 'px';
+      caja.style.top = sitio.y.toFixed(1) + 'px';
+      const r = caja.getBoundingClientRect();
+      const cobertura = fraccionTerritorio(r);
+      const etiqueta = otros.reduce((suma, a) => {
+        const area = Math.max(0, Math.min(r.right,a.right)-Math.max(r.left,a.left))
+          * Math.max(0, Math.min(r.bottom,a.bottom)-Math.max(r.top,a.top));
+        return suma + area;
+      }, 0) / Math.max(1, r.width * r.height);
+      const area = r.width * r.height;
+      const costo = cobertura * area * 1000000 + etiqueta * area * 1000 + (.9 - escala) * .01 + orden / 100;
+      if(!mejor || costo < mejor.costo) mejor = {x:sitio.x,y:sitio.y,escala,cobertura,costo};
+    }
+    if(mejor && mejor.cobertura === 0) break;
   }
-  caja.style.left = margen.toFixed(1) + 'px';
-  caja.style.top = Math.max(techo + margen, marco.height - l.height * ajuste - margen).toFixed(1) + 'px';
+  if(mejor){
+    preparar(mejor.escala);
+    caja.style.left = mejor.x.toFixed(1) + 'px';
+    caja.style.top = mejor.y.toFixed(1) + 'px';
+  }
 }
 
 function escalaDeLeyendaParaHueco(hueco, alturaRotulo = 0){
@@ -9417,7 +9497,8 @@ function escalaDeLeyendaParaHueco(hueco, alturaRotulo = 0){
 
 function aplicarEscalaDeLeyenda(caja, escala){
   if(!caja) return;
-  const factor = Math.max(.78, Math.min(.9, Number(escala) || .78));
+  const factor = Math.max(.62, Math.min(.9, Number(escala) || .78));
+  caja.dataset.referenceScale = factor.toFixed(3);
   caja.style.padding = (1.6 * factor).toFixed(2) + 'mm ' + (2 * factor).toFixed(2) + 'mm';
   caja.style.gap = (.8 * factor).toFixed(2) + 'mm';
   caja.style.borderRadius = (.8 * factor).toFixed(2) + 'mm';
