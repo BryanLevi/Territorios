@@ -66,11 +66,11 @@ function physicalDimensions(css, renderScale, layoutScale){
 }
 function uniformBadge(css, renderScale, layoutScale){
   const actual = physicalDimensions(css, renderScale, layoutScale);
-  close(actual.fontPt, 8.5, 'Printed number in points');
-  close(actual.paddingY, 1.7, 'Vertical padding in final CSS pixels');
-  close(actual.paddingX, 3.4, 'Horizontal padding in final CSS pixels');
-  close(actual.border, .425, 'Final badge border');
-  close(actual.radius, 1.275, 'Final badge corner radius');
+  close(actual.fontPt, 7, 'Printed number in points');
+  close(actual.paddingY, 1.4, 'Vertical padding in final CSS pixels');
+  close(actual.paddingX, 2.8, 'Horizontal padding in final CSS pixels');
+  close(actual.border, .35, 'Final badge border');
+  close(actual.radius, 1.05, 'Final badge corner radius');
 }
 
 test('Only whole numeric zone labels use uniform PDF numbering', () => {

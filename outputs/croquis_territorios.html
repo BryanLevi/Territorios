@@ -1203,7 +1203,7 @@ const PRINT_ASPECT = 297 / 189;
 // Los numeros de zona y los textos se agrandan esto sobre su tamano
 // guardado. Estuvo en 1.5 y salian demasiado gordos en la hoja.
 const PRINT_ZONE_NUMBER_BOOST = 1.05;
-const PRINT_ZONE_NUMBER_SIZE_PT = 8.5;
+const PRINT_ZONE_NUMBER_SIZE_PT = 7;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
 const PRINT_BACKGROUND_BLUR = .38;
@@ -5201,7 +5201,7 @@ function isPrintZoneNumber(label){
     && /^\d+$/.test(String(label?.text ?? '').trim());
 }
 
-// 8.5 pt en la hoja final, independientemente de la resolución del mapa y
+// 7 pt en la hoja final, independientemente de la resolución del mapa y
 // de cuánto se reduzca para entrar en el recuadro. También escala la cajita.
 function printZoneNumberStyle(renderScale = printRenderScale, layoutScale = 1){
   const factor = Math.max(.05, Number(renderScale) || 1) / Math.max(.05, Number(layoutScale) || 1);
