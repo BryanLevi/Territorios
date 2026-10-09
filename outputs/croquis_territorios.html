@@ -415,8 +415,8 @@ body.print-preview{overflow:hidden}
 .print-leyenda b{font-size:8pt;text-transform:uppercase;letter-spacing:.06em;color:#1f7a47}
 .print-leyenda-fila{display:flex;align-items:center;gap:1.8mm;font-size:9pt;line-height:1.15;white-space:normal}
 .print-leyenda-fila>span:last-child{min-width:0;overflow-wrap:anywhere}
-/* La lista queda en el propio recuadro, a tamaño físico fijo: el mapa puede
-   encoger pero las referencias conservan un tamaño legible en la lámina. */
+/* La lista queda dentro del recuadro y se adapta a su tamaño; al ampliar el
+   PDF, los textos y los iconos siguen siendo nítidos. */
 .hueco-agrupado.en-lamina>.print-leyenda{padding:1.6mm 2mm;gap:.8mm;max-width:calc(100% - 4mm);border-radius:.8mm}
 .hueco-agrupado.en-lamina>.print-leyenda b{font-size:7pt}
 .hueco-agrupado.en-lamina>.print-leyenda .print-leyenda-fila{font-size:8pt;gap:1.2mm}
@@ -9408,6 +9408,31 @@ function acomodarLeyendaEnHueco(caso, papel, alturaRotulo = 0){
   caja.style.top = Math.max(techo + margen, marco.height - l.height * ajuste - margen).toFixed(1) + 'px';
 }
 
+function escalaDeLeyendaParaHueco(hueco, alturaRotulo = 0){
+  const ancho = Math.max(0, Number(hueco?.w) || 0);
+  const alto = Math.max(0, (Number(hueco?.h) || 0) - (Number(alturaRotulo) || 0));
+  const ladoCorto = Math.min(ancho, alto);
+  return Math.max(.78, Math.min(.9, .78 + .12 * (ladoCorto - 30) / 90));
+}
+
+function aplicarEscalaDeLeyenda(caja, escala){
+  if(!caja) return;
+  const factor = Math.max(.78, Math.min(.9, Number(escala) || .78));
+  caja.style.padding = (1.6 * factor).toFixed(2) + 'mm ' + (2 * factor).toFixed(2) + 'mm';
+  caja.style.gap = (.8 * factor).toFixed(2) + 'mm';
+  caja.style.borderRadius = (.8 * factor).toFixed(2) + 'mm';
+  const titulo = caja.querySelector('b');
+  if(titulo) titulo.style.fontSize = (7 * factor).toFixed(2) + 'pt';
+  caja.querySelectorAll('.print-leyenda-fila').forEach(fila => {
+    fila.style.fontSize = (8 * factor).toFixed(2) + 'pt';
+    fila.style.gap = (1.2 * factor).toFixed(2) + 'mm';
+  });
+  caja.querySelectorAll('.print-leyenda-icono').forEach(icono => {
+    icono.style.width = (4 * factor).toFixed(2) + 'mm';
+    icono.style.height = (4 * factor).toFixed(2) + 'mm';
+  });
+}
+
 // La rosa va anclada a la esquina de la hoja entera, asi que con el recorte de
 // la lamina se quedaba fuera del trozo visible, y ademas encogia con la hoja.
 // En vez de perseguirla dentro del escenario -que recorta lo que se salga- se
@@ -9510,9 +9535,11 @@ async function generarAgrupado(modo){
           const cajaLeyenda = papel.querySelector('.print-leyenda');
           const etapa = papel.querySelector('.print-map-stage');
           if(cajaLeyenda && etapa){
+            const escalaLeyenda = escalaDeLeyendaParaHueco(hueco, alturaRotulo);
+            aplicarEscalaDeLeyenda(cajaLeyenda, escalaLeyenda);
             const r = cajaLeyenda.getBoundingClientRect(), s = etapa.getBoundingClientRect();
             const anchoMm = Math.min(r.width * 297 / s.width, Math.max(0, hueco.w - 3.2));
-            const altoMm = Math.min(Math.max(r.height * 189 / s.height, 6 + referenciasDeLoc(loc).filter(ref => ref.ver).length * 4.2),
+            const altoMm = Math.min(Math.max(r.height * 189 / s.height, (6 + referenciasDeLoc(loc).filter(ref => ref.ver).length * 4.2) * escalaLeyenda),
               Math.max(0, hueco.h - alturaRotulo - 3.2));
             const pixelesPorMm = printRenderScale * 96 / 25.4 / Math.max(.05, directionLayoutScale);
             espacioLeyenda = {left:(anchoMm + 1) * pixelesPorMm, bottom:(altoMm + 1) * pixelesPorMm};
