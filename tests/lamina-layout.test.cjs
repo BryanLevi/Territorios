@@ -58,6 +58,13 @@ test('Vertical large groups use two main maps, a readable side column and a bott
     assert(slots[0].w > 130 && slots[0].h > 85, `${count}: main maps stay large`);
     assert(slots[2].w >= 52 && slots[2].w <= 58, `${count}: side column width`);
     assert(slots.slice(2).every(slot => slot.h >= 16), `${count}: small maps retain usable height`);
+    const bottom = slots.slice(2 + Math.min(7, Math.max(4, Math.ceil((count - 2) * .64))));
+    if(bottom.length){
+      const expectedAspect = 297 / 210;
+      const ratio = bottom[0].w / bottom[0].h;
+      assert(Math.abs(ratio - expectedAspect) < .35 || bottom.length > 6,
+        `${count}: bottom maps keep a readable paper proportion`);
+    }
   }
 });
 
@@ -70,4 +77,12 @@ test('Horizontal layout remains available as a deliberate user choice', () => {
   assert.equal(page.alto, 210);
   assert(slots.every(slot => slot.x >= 5 && slot.y >= 20 &&
     slot.x + slot.w <= page.ancho - 5 && slot.y + slot.h <= page.alto - 5));
+  // En horizontal la columna lateral conserva la mayoria de las celdas y la
+  // franja inferior queda reservada para un grupo mas corto y legible.
+  const side = slots.slice(1, 8);
+  const bottom = slots.slice(8);
+  assert.equal(side.length, 7);
+  assert.equal(bottom.length, 4);
+  assert(side.every(slot => slot.x > slots[0].x + slots[0].w));
+  assert(bottom.every(slot => slot.y > slots[0].y + slots[0].h));
 });

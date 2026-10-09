@@ -8893,8 +8893,23 @@ function huecosDeLamina(cuantos){
     const cantidadInferior = cuantos - 2 - cantidadLateral;
     const lateralW = Math.min(58, Math.max(52, ancho * .29));
     const izquierdaW = ancho - lateralW - hueco;
+    // La franja inferior conserva la proporcion de una hoja, en lugar de
+    // estirarse a toda la altura disponible. Asi tres mapas caben juntos como
+    // en la plantilla de referencia y los dos mapas grandes ganan altura.
+    const columnasInferior = cantidadInferior ? Math.min(3, cantidadInferior) : 0;
+    const filasInferior = cantidadInferior ? Math.ceil(cantidadInferior / columnasInferior) : 0;
+    const anchoCeldaInferior = cantidadInferior
+      ? (izquierdaW - hueco * (columnasInferior - 1)) / columnasInferior
+      : 0;
+    const altoCeldaIdeal = anchoCeldaInferior * A4_CORTO / A4_LARGO;
+    const altoInferiorIdeal = cantidadInferior
+      ? altoCeldaIdeal * filasInferior + hueco * (filasInferior - 1)
+      : 0;
+    const altoPrincipalMinimo = 65;
+    const altoInferiorMaximo = Math.max(36,
+      alto - hueco - altoPrincipalMinimo * 2);
     const inferiorH = cantidadInferior
-      ? Math.min(76, Math.max(64, alto * .28))
+      ? Math.min(altoInferiorMaximo, Math.max(30, altoInferiorIdeal))
       : 0;
     const superioresH = alto - (cantidadInferior ? inferiorH + hueco : 0);
     const grandesH = (superioresH - hueco) / 2;
@@ -8912,9 +8927,9 @@ function huecosDeLamina(cuantos){
       });
     }
     if(cantidadInferior){
-      const columnas = Math.min(3, cantidadInferior);
-      const filas = Math.ceil(cantidadInferior / columnas);
-      const celdaW = (izquierdaW - hueco * (columnas - 1)) / columnas;
+      const columnas = columnasInferior;
+      const filas = filasInferior;
+      const celdaW = anchoCeldaInferior;
       const celdaH = (inferiorH - hueco * (filas - 1)) / filas;
       for(let i = 0; i < cantidadInferior; i++){
         const fila = Math.floor(i / columnas);
@@ -8933,7 +8948,10 @@ function huecosDeLamina(cuantos){
   const resto = cuantos - 1;
   // La mitad larga a la derecha y el resto debajo, que es como se reparten
   // estos croquis de siempre.
-  const derecha = Math.min(resto, Math.max(1, Math.ceil(resto / 2)));
+  // La columna lateral recibe un poco mas de la mitad de los mapas. Esto
+  // evita que una seleccion grande deje demasiados recuadros bajos en la
+  // franja inferior, y mantiene una lectura parecida en horizontal y vertical.
+  const derecha = Math.min(resto, Math.max(1, Math.ceil(resto * .6)));
   const abajo = resto - derecha;
   // Los recuadros se miden con la forma de una hoja A4, que es la que tiene
   // el croquis que va dentro. Si no, el croquis se queda chico en medio del
@@ -10799,6 +10817,6 @@ if(document.readyState === 'loading'){
 <script src="edit-history.js?v=workspace-1"></script>
 <script src="territory-search.js?v=workspace-1"></script>
 <script src="walk-mode.js?v=workspace-1"></script>
-<script src="offline-controller.js?v=pdf-lamina-layout-1"></script>
+<script src="offline-controller.js?v=pdf-lamina-layout-2"></script>
 </body>
 </html>
