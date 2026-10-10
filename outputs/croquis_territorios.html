@@ -1260,19 +1260,18 @@ const FONDO_IMPRESION_STORAGE_KEY = 'croquis-fondo-impresion-v1';
 // blanco, que tambien esta en la lista, y el desplegable se replegaba solo a
 // "Blanco" antes de que diera tiempo a tocar el tono.
 let fondoPersonalizado = false;
-// 450 ppp bastan para las calles; los textos y contornos propios siguen
-// siendo vectoriales. Cada recuadro pide sólo el detalle que cabe en papel.
-const PRINT_RENDER_SCALE_MAX = 450 / 96;
-const PRINT_RENDER_SCALE_MIN = .5;
+// El mismo detalle geográfico de la versión anterior, en un lienzo de la
+// mitad de lado: la rejilla de teselas también se reduce a la mitad. Así
+// conserva los nombres pequeños sin crear un lienzo de más de 20.000 px.
+const PRINT_RENDER_SCALE_MAX = 9;
+const PRINT_RENDER_SCALE_MIN = 1.5;
 // La que se esta usando en la hoja que se dibuja ahora mismo.
 let printRenderScale = PRINT_RENDER_SCALE_MAX;
 const PRINT_TILE_TIMEOUT_MS = 180000;
-// La capa de nombres se saca un nivel de zoom mas abajo y se dibuja en celdas
-// del doble de lado: el mismo mapa, en su sitio exacto, pero con el trazo de
-// las calles y las letras al doble de grandes. La escala de dibujo no sirve
-// para esto: fitBounds la compensa y el tamano en papel queda igual.
-const PRINT_NAME_ZOOM_OFFSET = -1;
-const PRINT_NAME_TILE_SIZE = 512;
+// Rejilla nativa: compensada con el lienzo de mitad de tamaño mantiene el
+// mismo zoom del proveedor y el mismo tamaño de letras que la versión anterior.
+const PRINT_NAME_ZOOM_OFFSET = 0;
+const PRINT_NAME_TILE_SIZE = 256;
 const PRINT_MAX_ZOOM = 20;
 // Todo esto son proporciones de la escala, asi que al dividir la hoja entre
 // la escala vuelven a su tamano de siempre en el papel.
@@ -8166,22 +8165,19 @@ function navigate(delta){
 
 
 function choosePrintRenderScale(loc, bounds, src, layoutScale = 1){
-  const medida = Number(layoutScale);
-  const proporcion = Number.isFinite(medida) && medida > 0 ? Math.min(1, medida) : 1;
-  const presupuesto = Math.max(PRINT_RENDER_SCALE_MIN, PRINT_RENDER_SCALE_MAX * proporcion);
-  if(!window.L || !bounds?.isValid?.()) return presupuesto;
+  if(!window.L || !bounds?.isValid?.()) return PRINT_RENDER_SCALE_MAX;
   const zoomTope = Math.min(src?.maxZ || PRINT_MAX_ZOOM, loc?.printMaxZoom || PRINT_MAX_ZOOM);
   const noroeste = L.CRS.EPSG3857.latLngToPoint(bounds.getNorthWest(), zoomTope);
   const sureste = L.CRS.EPSG3857.latLngToPoint(bounds.getSouthEast(), zoomTope);
   const anchoPx = Math.abs(sureste.x - noroeste.x);
   const altoPx = Math.abs(sureste.y - noroeste.y);
-  if(!anchoPx || !altoPx) return presupuesto;
+  if(!anchoPx || !altoPx) return PRINT_RENDER_SCALE_MAX;
   // Cuanta escala cabe sin pedirle al mapa mas zoom del que tiene. Se
   // descuentan los margenes que deja fitBounds a los dos lados.
   const cabeDeAncho = anchoPx / (1123 - 36);
   const cabeDeAlto = altoPx / (714 - 36);
-  const escala = Math.min(cabeDeAncho, cabeDeAlto);
-  return Math.max(PRINT_RENDER_SCALE_MIN, Math.min(presupuesto, escala));
+  const escala = Math.min(cabeDeAncho, cabeDeAlto) / 2;
+  return Math.max(PRINT_RENDER_SCALE_MIN, Math.min(PRINT_RENDER_SCALE_MAX, escala));
 }
 
 // La rosa de los vientos de la hoja. Se mide en milimetros y va fuera del
@@ -9305,7 +9301,7 @@ function cuentasAgrupadas(){
     const ppp = (escala * 96) / Math.max(k, .01);
     pppMin = Math.min(pppMin, ppp);
     pppMax = Math.max(pppMax, ppp);
-    teselas += Math.ceil((1123 * escala) / 512 + 1) * Math.ceil((714 * escala) / 512 + 1);
+    teselas += Math.ceil((1123 * escala) / PRINT_NAME_TILE_SIZE + 1) * Math.ceil((714 * escala) / PRINT_NAME_TILE_SIZE + 1);
   });
   // Ajustado con hojas ya medidas: Ixhuatlan son 1107 teselas de rejilla y
   // pesa 5.4 MB, Zacamitla 70 y pesa 1.8. Antes se contaban el doble de
@@ -10323,11 +10319,8 @@ async function imprimir(opciones = {}){
         subdomains:fuente.sub || '',
         attribution:opciones.attribution ?? fuente.attr ?? '',
         opacity:opciones.opacity ?? 1,
-        // Las imagenes que sirven Google y Carto son de 512 px. Pedirlas sobre
-        // una rejilla de 256 obligaba a bajar CUATRO veces mas teselas de las
-        // necesarias, cada una con el doble de detalle del que se veia. Con la
-        // rejilla de 512 y un nivel menos de zoom cae exactamente sobre la
-        // misma tierra, con la misma nitidez y la cuarta parte de peticiones.
+        // Cada imagen de 512 px cubre una celda nativa de 256: conserva el
+        // detalle de la versión anterior con un lienzo cuatro veces menor.
         tileSize:opciones.tileSize ?? PRINT_NAME_TILE_SIZE,
         zoomOffset:opciones.zoomOffset ?? PRINT_NAME_ZOOM_OFFSET,
         keepBuffer:2,
@@ -10421,7 +10414,9 @@ async function imprimir(opciones = {}){
       printMap.invalidateSize();
       printMap.fitBounds(bounds, {
         padding:[10 * printRenderScale, 10 * printRenderScale],
-        maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM),
+        // La rejilla nativa usa un nivel menos para conservar el tamaño anterior
+        // de los nombres también cuando un territorio alcanza el zoom máximo.
+        maxZoom:Math.min(src.maxZ || PRINT_MAX_ZOOM, loc.printMaxZoom || PRINT_MAX_ZOOM) - 1,
         animate:false
       });
     };
@@ -11207,6 +11202,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=remove-walk-mode-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=pdf-complete-text-1"></script>
+<script src="offline-controller.js?v=pdf-classic-map-detail-1"></script>
 </body>
 </html>
