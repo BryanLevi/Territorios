@@ -412,6 +412,7 @@ body.print-preview{overflow:hidden}
 .print-cong{font-size:8.6px;font-weight:800;line-height:1;letter-spacing:.05em;text-transform:uppercase;color:#1f7a47}
 .print-meta{text-align:right;font-size:7.4px;line-height:1.25;color:#26372d;white-space:nowrap}
 .print-color-mask{position:absolute;pointer-events:none}
+.print-tile-mosaic{position:absolute;pointer-events:none;max-width:none!important;max-height:none!important}
 /* La lista de iconos del territorio. El recuadro se coloca por JS en la
    esquina que quede mas libre, en colocarLeyenda(). */
 .print-leyenda{position:absolute;z-index:700;background:rgba(255,255,255,.97);border:.35mm solid #2b3a32;border-radius:1.2mm;padding:2mm 2.6mm;display:flex;flex-direction:column;gap:1.2mm;color:#17251c;max-width:68mm;box-shadow:0 .3mm .8mm rgba(0,0,0,.14)}
@@ -1191,6 +1192,8 @@ body.print-preview{overflow:hidden}
 <script src="offline-data.js?v=details-2"></script>
 <script src="destination-placement.js?v=placement-1"></script>
 <script src="print-label-geometry.js?v=complete-names-1"></script>
+<script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
+<script src="print-frame-fit.js?v=fit-corners-1"></script>
 <script src="congregation-password.js"></script>
 <script>
 const MUNICIPIO = 'Ixhuatlán del Café';
@@ -1207,7 +1210,7 @@ const PRINT_ASPECT = 297 / 189;
 // Los numeros de zona y los textos se agrandan esto sobre su tamano
 // guardado. Estuvo en 1.5 y salian demasiado gordos en la hoja.
 const PRINT_ZONE_NUMBER_BOOST = 1.05;
-const PRINT_ZONE_NUMBER_SIZE_PT = 7;
+const PRINT_ZONE_NUMBER_SIZE_PT = 6;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
 const PRINT_BACKGROUND_BLUR = .38;
@@ -1248,6 +1251,7 @@ const PRINT_MASK_GROW_FONDO = 1;
 // pueden terminar fuera de la zona seleccionada. Este trazo abre 64 px por
 // lado sólo en la capa de nombres; el fondo sigue recortado al contorno.
 const PRINT_MASK_GROW_NOMBRES = 128;
+const PRINT_MASK_GROW_NOMBRES_VISIBLE = 24;
 
 // El color del area de fuera. 'transparente' no pinta nada, asi que por ahi
 // se asoma el mapa alrededor del territorio.
@@ -1276,6 +1280,11 @@ const PRINT_TILE_TIMEOUT_MS = 180000;
 const PRINT_NAME_ZOOM_OFFSET = 0;
 const PRINT_NAME_TILE_SIZE = 256;
 const PRINT_MAX_ZOOM = 20;
+// La cartografía raster se guarda a 600 ppp de su tamaño final en papel. El
+// zoom del proveedor sigue intacto: solamente se reúnen sus teselas cargadas.
+const PRINT_MOSAIC_DPI = 600;
+const PRINT_MOSAIC_MAX_PIXELS = 32000000;
+const PRINT_MOSAIC_MAX_SIDE = 8192;
 // Todo esto son proporciones de la escala, asi que al dividir la hoja entre
 // la escala vuelven a su tamano de siempre en el papel.
 const printVectorRoadScale = () => printRenderScale * .28;
@@ -5204,13 +5213,13 @@ function isPrintZoneNumber(label){
     && /^\d+$/.test(String(label?.text ?? '').trim());
 }
 
-// 7 pt en la hoja final, independientemente de la resolución del mapa y
+// 6 pt en la hoja final, independientemente de la resolución del mapa y
 // de cuánto se reduzca para entrar en el recuadro. También escala la cajita.
 function printZoneNumberStyle(renderScale = printRenderScale, layoutScale = 1){
   const factor = Math.max(.05, Number(renderScale) || 1) / Math.max(.05, Number(layoutScale) || 1);
   const badgeFactor = factor * PRINT_ZONE_NUMBER_SIZE_PT / 10;
   return 'font-size:' + (PRINT_ZONE_NUMBER_SIZE_PT * 96 / 72 * factor) + 'px;'
-    + 'padding:' + (2 * badgeFactor) + 'px ' + (4 * badgeFactor) + 'px;'
+    + 'padding:' + (.6 * factor) + 'px ' + (1.3 * factor) + 'px;'
     + 'border-width:' + (.5 * badgeFactor) + 'px;border-radius:' + (1.5 * badgeFactor) + 'px;';
 }
 
@@ -8545,9 +8554,9 @@ function recolocarNumerosImpresos(targetMap, layoutScale = 1){
     const element = marker.getElement?.()?.querySelector('.print-zone-number');
     const actual = element?.getBoundingClientRect();
     const width = actual?.width ? actual.width * size.x / container.width
-      : (String(label.text).trim().length * PRINT_ZONE_NUMBER_SIZE_PT * 96 / 72 * .68 + 6.3) * factor;
+      : (String(label.text).trim().length * PRINT_ZONE_NUMBER_SIZE_PT * 96 / 72 * .68 + 3.2) * factor;
     const height = actual?.height ? actual.height * size.y / container.height
-      : (PRINT_ZONE_NUMBER_SIZE_PT * 96 / 72 * 1.02 + 3.5) * factor;
+      : (PRINT_ZONE_NUMBER_SIZE_PT * 96 / 72 * 1.02 + 1.8) * factor;
     const boxAt = p => ({x0:p.x-width/2-2,x1:p.x+width/2+2,y0:p.y-height/2-2,y1:p.y+height/2+2});
     const obstacles = names.concat(ownMarks,placed);
     const cost = box => obstacles.reduce((sum,other) => sum + intersects(box,other),0);
@@ -8639,7 +8648,8 @@ function asegurarNumerosEnMarco(targetMap, frame, area){
     const a=project({x:b.x0,y:b.y0}),z=project({x:b.x1,y:b.y1});
     return {left:a.x,top:a.y,right:z.x,bottom:z.y};
   });
-  const marks=[...mapNode.querySelectorAll('.print-own-text,.destination-text-label,.manual-map-icon,.print-reference-label')]
+  const marks=[...mapNode.querySelectorAll('.print-own-text,.destination-text-label,.manual-map-icon,.print-reference-label'),
+    ...frame.querySelectorAll(':scope > .print-leyenda,:scope > .print-compass')]
     .map(node=>node.getBoundingClientRect());
   const rects=entries.map(({marker})=>marker.getElement().querySelector('.print-zone-number').getBoundingClientRect());
   const crosses=(a,b)=>Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))
@@ -9052,6 +9062,111 @@ function waitForPrintTiles(layer, timeoutMs = 8000){
   });
 }
 
+function printTileMosaicPlan(targetMap, layer, layoutScale = 1){
+  const container = targetMap?.getContainer?.();
+  const frame = container?.getBoundingClientRect?.();
+  const size = targetMap?.getSize?.();
+  if(!frame?.width || !frame?.height || !size?.x || !size?.y) return null;
+  const tiles = Object.values(layer?._tiles || {}).filter(tile =>
+    tile.current !== false && tile.el?.complete && tile.el.naturalWidth > 0);
+  if(!tiles.length) return null;
+  let nativeScale = Infinity;
+  const pieces = tiles.map(tile => {
+    const image = tile.el, rect = image.getBoundingClientRect();
+    const x = (rect.left-frame.left)*size.x/frame.width;
+    const y = (rect.top-frame.top)*size.y/frame.height;
+    const w = rect.width*size.x/frame.width;
+    const h = rect.height*size.y/frame.height;
+    if(!(w > 0 && h > 0)) return null;
+    if(x+w <= 0 || y+h <= 0 || x >= size.x || y >= size.y) return null;
+    nativeScale = Math.min(nativeScale,image.naturalWidth/w,image.naturalHeight/h);
+    return {image,x,y,w,h};
+  }).filter(Boolean);
+  if(!pieces.length || !Number.isFinite(nativeScale)) return null;
+  const scale = Math.min(nativeScale,
+    PRINT_MOSAIC_DPI/96*Math.max(.01,Number(layoutScale)||1)/printRenderScale,
+    PRINT_MOSAIC_MAX_SIDE/size.x,PRINT_MOSAIC_MAX_SIDE/size.y,
+    Math.sqrt(PRINT_MOSAIC_MAX_PIXELS/(size.x*size.y)));
+  return {pieces,width:size.x,height:size.y,scale,
+    pixelsX:Math.max(1,Math.floor(size.x*scale)),
+    pixelsY:Math.max(1,Math.floor(size.y*scale))};
+}
+
+// Miles de imágenes separadas, atravesadas por máscaras y mezclas, hacían
+// que un PDF de una sola página tardara en dibujarse. Se compacta únicamente
+// la cartografía: los números, textos propios, calles blancas y símbolos
+// permanecen vectoriales. Si una fuente impide leer sus imágenes, se conserva
+// la capa original completa en lugar de sacar una hoja vacía.
+async function compactPrintTileLayers(targetMap, layers, layoutScale = 1){
+  if(!targetMap || !layers?.length) return [];
+  const cache = new Map(), results = [];
+  for(const layer of layers){
+    if(layer._printMosaic){ results.push(layer._printMosaic); continue; }
+    const plan = printTileMosaicPlan(targetMap,layer,layoutScale);
+    if(!plan) continue;
+    let canvas;
+    try{
+      const key = JSON.stringify([plan.pixelsX,plan.pixelsY,
+        ...plan.pieces.map(p => [p.image.currentSrc || p.image.src,p.x,p.y,p.w,p.h])]);
+      let encoded = cache.get(key);
+      if(!encoded){
+        canvas = document.createElement('canvas');
+        canvas.width = plan.pixelsX; canvas.height = plan.pixelsY;
+        const context = canvas.getContext('2d');
+        if(!context) throw new Error('canvas-unavailable');
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        context.scale(plan.pixelsX/plan.width,plan.pixelsY/plan.height);
+        for(const p of plan.pieces) context.drawImage(p.image,p.x,p.y,p.w,p.h);
+        encoded = canvas.toDataURL('image/png');
+        if(!encoded.startsWith('data:image/png')) throw new Error('canvas-limit');
+        cache.set(key,encoded);
+      }
+      const image = new Image();
+      image.className = 'print-tile-mosaic';
+      image.alt = '';
+      image.src = encoded;
+      await image.decode();
+      const origin = targetMap.containerPointToLayerPoint([0,0]);
+      Object.assign(image.style,{left:origin.x+'px',top:origin.y+'px',
+        width:plan.width+'px',height:plan.height+'px',
+        opacity:String(layer.options?.opacity ?? 1)});
+      const original = layer.getContainer?.();
+      const pane = original?.parentElement || targetMap.getPane(layer.options?.pane || 'tilePane');
+      if(!original || !pane) throw new Error('layer-unavailable');
+      pane.appendChild(image);
+      original.style.display = 'none';
+      const result = {compacted:true,tiles:plan.pieces.length,
+        width:plan.pixelsX,height:plan.pixelsY,
+        dpi:Math.round(plan.pixelsX/plan.width*printRenderScale/Math.max(.01,Number(layoutScale)||1)*96)};
+      layer._printMosaic = result;
+      results.push(result);
+    }catch(error){
+      results.push({compacted:false,tiles:plan.pieces.length,reason:error?.name || 'unavailable'});
+    }finally{
+      if(canvas){ canvas.width=1; canvas.height=1; }
+    }
+  }
+  targetMap._printMosaics = results;
+  return results;
+}
+
+function enablePrintTileCorsFallback(layer){
+  if(!layer?.options?.crossOrigin || typeof layer._tileOnError !== 'function') return layer;
+  const original = layer._tileOnError;
+  layer._tileOnError = function(done,image,error){
+    const source = image?.getAttribute?.('src');
+    if(image?.crossOrigin && source && !image._printNoCorsRetry){
+      image._printNoCorsRetry = true;
+      image.removeAttribute('crossorigin');
+      image.src = source;
+      return;
+    }
+    return original.call(this,done,image,error);
+  };
+  return layer;
+}
+
 function getPrintTileUrl(tileSource, options = {}){
   let url = options.noLabels && (tileSource.dlNoLabelUrl || tileSource.noLabelUrl)
     ? (tileSource.dlNoLabelUrl || tileSource.noLabelUrl)
@@ -9092,6 +9207,7 @@ const AGRUPAR_HUECO = 3;     // mm entre recuadros
 const AGRUPAR_TITULO = 15;   // mm de la cabecera de la lamina
 
 let agruparOrden = [];       // los numeros, en el orden que manda el usuario
+let agruparHuecosManuales = null;
 let agruparPrincipal = '';   // cual va en grande
 // La lámina vertical deja una columna lateral y varias filas legibles cuando
 // se seleccionan muchos territorios, como en los croquis impresos de referencia.
@@ -9119,7 +9235,40 @@ function ordenDeLamina(){
 }
 
 // Los huecos de la lamina, en milimetros. El primero es el del principal.
-function huecosDeLamina(cuantos){
+function perfilDeCroquisParaLamina(loc){
+  const areas = getExportColorAreasForLoc(loc);
+  const points = areas.flatMap(area => area.points || []).filter(point =>
+    Number.isFinite(Number(point?.[0])) && Number.isFinite(Number(point?.[1])));
+  let bounds = getExportBoundsPlain(loc, loc.zoom || DETAIL_ZOOM);
+  if(points.length){
+    bounds = {south:Math.min(...points.map(p=>Number(p[0]))), north:Math.max(...points.map(p=>Number(p[0]))),
+      west:Math.min(...points.map(p=>Number(p[1]))), east:Math.max(...points.map(p=>Number(p[1])))};
+  }
+  const lat = (bounds.north+bounds.south)/2*Math.PI/180;
+  const aspect = Math.max(.000001,bounds.east-bounds.west)*Math.cos(lat) / Math.max(.000001,bounds.north-bounds.south);
+  const numbers = new Set(getTextLabelsForLoc(loc).filter(isPrintZoneNumber).map(label=>String(label.text).trim()));
+  // Una zona puede estar pintada con muchos trazos; esos fragmentos no son
+  // nuevas divisiones. La numeración guardada es la medida principal.
+  const colors = new Set(areas.map(area=>String(area.color || '').toLowerCase()).filter(Boolean));
+  return {aspect, divisions:Math.max(1,numbers.size || colors.size), references:tiposDeIconoEn(loc).length};
+}
+
+function fijarDistribucionManualDeLamina(){
+  if(agruparModo !== 'lamina') return;
+  const c = cuentasAgrupadas();
+  agruparHuecosManuales = {orientation:agruparOrientacion,
+    slots:c.huecos.map(({corteDiagonal,...hueco})=>({...hueco}))};
+}
+
+function huecosDeLamina(cuantos, perfiles = null){
+  if(perfiles?.length === cuantos && window.CroquisSheetLayout){
+    if(agruparHuecosManuales?.orientation === agruparOrientacion && agruparHuecosManuales.slots.length === cuantos){
+      return agruparHuecosManuales.slots.map(hueco=>({...hueco}));
+    }
+    const adaptados = window.CroquisSheetLayout.plan(perfiles,{orientation:agruparOrientacion,
+      margin:AGRUPAR_MARGEN,gap:2,title:AGRUPAR_TITULO});
+    if(adaptados.length === cuantos) return adaptados;
+  }
   const pagina = paginaAgrupada();
   const x0 = AGRUPAR_MARGEN;
   const y0 = AGRUPAR_MARGEN + AGRUPAR_TITULO;
@@ -9322,10 +9471,11 @@ function cuentasAgrupadas(){
   const elegidos = ordenDeLamina();
   const pagina = paginaAgrupada();
   const lamina = agruparModo === 'lamina';
-  const huecos = lamina ? decorarHuecosDeLamina(huecosDeLamina(elegidos.length), elegidos) : huecoDeHojaSuelta();
+  const huecos = lamina ? decorarHuecosDeLamina(huecosDeLamina(elegidos.length, elegidos.map(perfilDeCroquisParaLamina)), elegidos) : huecoDeHojaSuelta();
   const paginas = lamina ? (elegidos.length ? 1 : 0) : elegidos.length;
   const src = TILES[currentView] || TILES.osm;
   let teselas = 0;
+  let areaRaster = 0;
   let pppMin = Infinity;
   let pppMax = 0;
   elegidos.forEach((loc, i) => {
@@ -9336,16 +9486,20 @@ function cuentasAgrupadas(){
     const bounds = L.latLngBounds([b.south, b.west], [b.north, b.east]);
     const escala = choosePrintRenderScale(loc, bounds, src, layoutScale);
     const k = escalaDeHueco(hueco);
-    const ppp = (escala * 96) / Math.max(k, .01);
+    const ppp = Math.min(PRINT_MOSAIC_DPI, (escala * 96) / Math.max(k, .01));
     pppMin = Math.min(pppMin, ppp);
     pppMax = Math.max(pppMax, ppp);
+    const escalaHoja = Math.min(hueco.w / 297, hueco.h / 210);
+    const areaPapel = lamina ? Math.max(0,hueco.w-3.2)*Math.max(0,hueco.h-8)
+      : 297*189*escalaHoja*escalaHoja;
+    areaRaster += areaPapel * Math.pow(ppp / PRINT_MOSAIC_DPI, 2);
     teselas += Math.ceil((1123 * escala) / PRINT_NAME_TILE_SIZE + 1) * Math.ceil((714 * escala) / PRINT_NAME_TILE_SIZE + 1);
   });
-  // Ajustado con hojas ya medidas: Ixhuatlan son 1107 teselas de rejilla y
-  // pesa 5.4 MB, Zacamitla 70 y pesa 1.8. Antes se contaban el doble de
-  // teselas a 14 KB y una hoja de Ixhuatlan se anunciaba en 30 MB.
+  // Con mosaicos el peso depende del área raster final, no del número de
+  // teselas solicitadas. Es una estimación: las fotografías comprimen menos.
+  const factorFoto = currentView === 'g-sat' || currentView === 'g-hybrid' ? 3 : 1;
   const megas = elegidos.length
-    ? paginas * 0.4 + teselas * 0.0042 + elegidos.length * 0.8
+    ? paginas * .25 + areaRaster * .00012 * factorFoto + elegidos.length * .07
     : 0;
   return {
     elegidos, pagina, huecos, paginas, teselas, lamina,
@@ -9368,6 +9522,7 @@ function pintarPanelAgrupar(){
     marca.checked = puesto >= 0;
     marca.title = 'Incluir en el PDF';
     marca.addEventListener('change', () => {
+      agruparHuecosManuales = null;
       if(marca.checked){
         if(!agruparOrden.includes(clave)) agruparOrden.push(clave);
       }else{
@@ -9385,6 +9540,7 @@ function pintarPanelAgrupar(){
     jefe.title = 'Que este salga en grande';
     jefe.disabled = puesto < 0;
     jefe.addEventListener('click', () => {
+      agruparHuecosManuales = null;
       agruparPrincipal = clave;
       pintarPanelAgrupar();
     });
@@ -9405,6 +9561,7 @@ function pintarPanelAgrupar(){
         || (paso < 0 && puesto === 0)
         || (paso > 0 && puesto === agruparOrden.length - 1);
       b.addEventListener('click', () => {
+        fijarDistribucionManualDeLamina();
         const otro = puesto + paso;
         [agruparOrden[puesto], agruparOrden[otro]] = [agruparOrden[otro], agruparOrden[puesto]];
         pintarPanelAgrupar();
@@ -9424,6 +9581,7 @@ function pintarPanelAgrupar(){
 function moverEnLamina(desde, hasta){
   const actual = ordenDeLamina();
   if(desde === hasta || !actual[desde] || !actual[hasta]) return;
+  fijarDistribucionManualDeLamina();
   const copia = actual.slice();
   const guarda = copia[desde];
   copia[desde] = copia[hasta];
@@ -9523,12 +9681,12 @@ function pintarPreviaAgrupar(){
     + ' · <b>' + c.paginas + '</b> ' + (c.paginas === 1 ? 'pagina' : 'paginas')
     + ' · ' + (agruparOrientacion === 'portrait' ? 'vertical' : 'horizontal')
     + (c.lamina && jefe ? '<br>en grande: <b>' + escapeHtml(displayTerritoryName(jefe)) + '</b>' : '')
-    + '<br>resolucion <b>' + ppp + '</b>'
+    + '<br>resolucion maxima estimada <b>' + ppp + '</b>'
     + ' · tamano aproximado <b>' + (c.megas >= 1 ? c.megas.toFixed(1) + ' MB' : '—') + '</b>';
   const pista = $('agrupar-pista');
   if(pista){
     pista.textContent = c.elegidos.length > 1
-      ? 'Arrastra un croquis sobre otro para cambiarlos de sitio. En vertical, los dos primeros ocupan las secciones principales.'
+      ? 'Los cuadros se ajustan a la forma y las divisiones de cada mapa. Arrastra un croquis sobre otro para cambiarlos de sitio.'
       : '';
   }
   const boton = $('agrupar-generar');
@@ -9624,8 +9782,17 @@ function medidaDeMarcasImpresas(mapa){
   return limites;
 }
 
+function ajustarHaloDeNombresImpresos(mapa){
+  // La búsqueda amplia encuentra el nombre entero. Una vez medida su tinta,
+  // cada caja abre su propio hueco y el territorio sólo necesita un halo corto.
+  const grow = mapa._printNameDetection?.reason === null
+    ? PRINT_MASK_GROW_NOMBRES_VISIBLE : PRINT_MASK_GROW_NOMBRES;
+  mapa._printVisibleNameGrow = grow;
+  mapa._printVisibleNameBleed = mapa._printNameBleed > 0 ? grow * printRenderScale / 2 : 0;
+}
+
 function medidaDeNombresImpresos(mapa, loc){
-  const aire = Number(mapa?._printNameBleed);
+  const aire = Number(mapa?._printVisibleNameBleed ?? mapa?._printNameBleed);
   if(!Number.isFinite(aire) || aire <= 0) return null;
   // Si el navegador no permite leer la tinta, no sabemos dónde termina un
   // nombre. Conservar la capa completa evita volver a cortarlo por el margen.
@@ -9704,9 +9871,9 @@ function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1, e
   }
 }
 
-// Todos los rectángulos se expresan en milímetros del marco final. El mapa
-// y los adornos tienen áreas distintas: ninguna búsqueda de esquina puede
-// acabar colocando una referencia sobre un territorio.
+// El mapa puede aprovechar el papel libre entre los adornos. Las esquinas
+// se reservan por su tinta real; el ajuste conserva una alternativa segura
+// sobre ambos adornos cuando no se puede medir la silueta.
 function calcularAreaDeCroquis(hueco, alturaRotulo = 0, leyenda = null, rosa = null, margen = 1.6, separacion = 1){
   const ancho = Math.max(1, Number(hueco?.w) || 1);
   const alto = Math.max(1, Number(hueco?.h) || 1);
@@ -9726,10 +9893,12 @@ function calcularAreaDeCroquis(hueco, alturaRotulo = 0, leyenda = null, rosa = n
   const aire = pieH ? Math.max(0, Math.min(Number(separacion) || 0, utilH - pieH)) : 0;
   const pieY = alto - borde - pieH;
   return {
-    mapRect:{x:borde, y:techo, w:Math.max(.1,utilW - descuentoDerecho), h:Math.max(0, utilH - pieH - aire)},
+    mapRect:{x:borde, y:techo, w:Math.max(.1,utilW - descuentoDerecho), h:utilH},
+    safeMapRect:{x:borde, y:techo, w:Math.max(.1,utilW - descuentoDerecho), h:Math.max(.1, utilH - pieH - aire)},
     legendRect:lista.w && lista.h ? {x:borde, y:alto-borde-lista.h, ...lista} : null,
     compassRect:norte.w && norte.h ? {x:ancho-borde-norte.w, y:alto-borde-norte.h, ...norte} : null,
-    footerRect:pieH ? {x:borde,y:pieY,w:utilW,h:pieH} : null
+    footerRect:pieH ? {x:borde,y:pieY,w:utilW,h:pieH} : null,
+    clearance:aire
   };
 }
 
@@ -9754,7 +9923,8 @@ function prepararAdornosEnMarco(caso, papel, hueco, alturaRotulo = 0){
     caso.appendChild(leyenda);
     const escala = escalaDeLeyendaParaHueco(hueco, alturaRotulo);
     aplicarEscalaDeLeyenda(leyenda, escala);
-    const anchoMax = Math.max(1, disponible.w - anchoRosa - (rosa ? separacion : 0));
+    const anchoMax = Math.max(1,Math.min(disponible.w-anchoRosa-(rosa?separacion:0),
+      hueco.w > 100 ? Math.max(34,disponible.w*.34) : disponible.w*.76));
     Object.assign(leyenda.style, {left:'0mm',top:'0mm',right:'auto',bottom:'auto',
       width:'max-content',maxWidth:anchoMax+'mm',display:'flex',
       gridTemplateColumns:'',transform:'none',transformOrigin:'top left'});
@@ -9778,10 +9948,12 @@ function prepararAdornosEnMarco(caso, papel, hueco, alturaRotulo = 0){
       if(anchoMax < columnas * 18) break;
       candidatos.push(medir(columnas));
     }
-    const mejor = candidatos.reduce((a,b) => b.h < a.h - .1 || (Math.abs(b.h-a.h) <= .1 && b.w < a.w) ? b : a);
+    // Una lista estrecha deja sitio al territorio a su derecha. Buscar sólo
+    // menor altura extendía la leyenda por casi todo el ancho del recuadro.
+    const mejor = candidatos.reduce((a,b) => b.w*b.h < a.w*a.h-.1 ? b : a);
     const medida = medir(mejor.columnas);
     // Una lista excepcionalmente larga conserva un área de mapa de 12 mm.
-    const altoMax = Math.max(1, disponible.h - Math.min(12, disponible.h * .45) - separacion);
+    const altoMax = Math.max(1,disponible.h*.46);
     const ajuste = Math.min(1, anchoMax / Math.max(1,medida.w), altoMax / Math.max(1,medida.h));
     if(ajuste < 1) leyenda.style.transform = 'scale('+ajuste+')';
     medidaLeyenda = {w:medida.w*ajuste,h:medida.h*ajuste};
@@ -9829,18 +10001,18 @@ function aplicarEscalaDeLeyenda(caja, escala){
   if(!caja) return;
   const factor = Math.max(.62, Math.min(.9, Number(escala) || .78));
   caja.dataset.referenceScale = factor.toFixed(3);
-  caja.style.padding = (1.6 * factor).toFixed(2) + 'mm ' + (2 * factor).toFixed(2) + 'mm';
-  caja.style.gap = (.8 * factor).toFixed(2) + 'mm';
+  caja.style.padding = (1.1 * factor).toFixed(2) + 'mm ' + (2 * factor).toFixed(2) + 'mm';
+  caja.style.gap = (.45 * factor).toFixed(2) + 'mm';
   caja.style.borderRadius = (.8 * factor).toFixed(2) + 'mm';
   const titulo = caja.querySelector('b');
   if(titulo) titulo.style.fontSize = (7 * factor).toFixed(2) + 'pt';
   caja.querySelectorAll('.print-leyenda-fila').forEach(fila => {
-    fila.style.fontSize = (8 * factor).toFixed(2) + 'pt';
+    fila.style.fontSize = Math.min(6,8 * factor).toFixed(2) + 'pt';
     fila.style.gap = (1.2 * factor).toFixed(2) + 'mm';
   });
   caja.querySelectorAll('.print-leyenda-icono').forEach(icono => {
-    icono.style.width = (4 * factor).toFixed(2) + 'mm';
-    icono.style.height = (4 * factor).toFixed(2) + 'mm';
+    icono.style.width = (2.8 * factor).toFixed(2) + 'mm';
+    icono.style.height = (2.8 * factor).toFixed(2) + 'mm';
   });
 }
 
@@ -9851,6 +10023,57 @@ function aplicarEscalaDeLeyenda(caja, escala){
 // sin enterarse del recorte.
 function acomodarRosaEnHueco(caso, papel, hueco, alturaRotulo){
   return prepararAdornosEnMarco(caso,papel,hueco,alturaRotulo);
+}
+
+// Siluetas y cajas de tinta en milímetros de la hoja base de 297 x 210.
+// Los nombres que salen del color, las flechas y los iconos también cuentan.
+function ocupacionesDelCroquis(mapa,loc){
+  const shapes=[],sx=297/printMapW(),sy=189/printMapH();
+  const point=p=>({x:p.x*sx,y:15+p.y*sy});
+  const box=b=>({points:[point({x:b.x0,y:b.y0}),point({x:b.x1,y:b.y0}),
+    point({x:b.x1,y:b.y1}),point({x:b.x0,y:b.y1})]});
+  const reason=mapa?._printNameDetection?.reason;
+  const areas=getExportColorAreasForLoc(loc);
+  // A failed raster-name measurement leaves the full label layer visible.
+  // Its unknown ink cannot safely be placed behind a corner ornament.
+  if(!areas.length||(reason&&reason!=='no-ink'))return [];
+  areas.forEach(area=>{
+    const points=(area.points||[]).map(p=>mapa.latLngToContainerPoint(p)).map(point)
+      .filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
+    // La máscara puede revelar calles alrededor del color, además de los
+    // nombres medidos. Su crecimiento también deja libre cada adorno.
+    const bleed=Math.max(0,Number(mapa._printVisibleNameBleed ?? mapa._printNameBleed)||0)*Math.max(sx,sy);
+    if(points.length>2)shapes.push({points,padding:Math.max(.25,bleed)});
+  });
+  (mapa._printNameBoxes||[]).forEach(b=>shapes.push(box(b)));
+  for(const lines of [getWhiteRoadsForLoc(loc),getManualRiversForLoc(loc)]){
+    lines.forEach(line=>{
+      const points=(line.points||[]).map(p=>point(mapa.latLngToContainerPoint(p)));
+      const padding=(Math.max(4,Number(line.width)||8)+3.4)*printVectorRoadScale()*Math.max(sx,sy)/2;
+      for(let i=1;i<points.length;i++)shapes.push({points:[points[i-1],points[i]],padding});
+    });
+  }
+  const node=mapa.getContainer(),frame=node.getBoundingClientRect(),size=mapa.getSize();
+  if(frame.width&&frame.height){
+    const nodes=[...node.querySelectorAll('.territory-text-label,.manual-map-icon,.print-reference-label,.destination-text-label,.destination-arrow-path,.destination-arrow-head')];
+    mapa.getPane?.('territoryLabelPane')?.querySelectorAll?.('path').forEach(p=>nodes.push(p));
+    nodes.forEach(n=>{
+      const r=n.getBoundingClientRect();
+      if(!r.width&&!r.height)return;
+      const ink=n.tagName?.toLowerCase()==='path'?(parseFloat(getComputedStyle(n).strokeWidth)||0)/2:0;
+      shapes.push({...box({x0:(r.left-frame.left)*size.x/frame.width-ink,
+        y0:(r.top-frame.top)*size.y/frame.height-ink,x1:(r.right-frame.left)*size.x/frame.width+ink,
+        y1:(r.bottom-frame.top)*size.y/frame.height+ink}),padding:.15});
+    });
+  }
+  return shapes;
+}
+
+function encuadrarCroquisEnMarco(mapa,loc,rec,plan,maxScale=Infinity){
+  const fitting=typeof window==='object'&&window.CroquisPrintFrameFit;
+  if(fitting)return fitting.fit(rec,plan,ocupacionesDelCroquis(mapa,loc),maxScale);
+  const area=plan.safeMapRect||plan.mapRect,k=Math.min(area.w/rec.w,area.h/rec.h,maxScale);
+  return {scale:k,x:area.x+(area.w-rec.w*k)/2,y:area.y+(area.h-rec.h*k)/2,w:rec.w*k,h:rec.h*k};
 }
 
 async function generarAgrupado(modo){
@@ -9936,8 +10159,8 @@ async function generarAgrupado(modo){
         if(c.lamina){
           const plan = prepararAdornosEnMarco(caso,papel,hueco,alturaRotulo);
           const util = plan.mapRect;
-          // La ventana del mapa termina antes del pie; ninguna tesela ni
-          // nombre de calle puede pintarse detrás de la leyenda o la rosa.
+          // La ventana abarca el papel libre. El encuadre comprueba la tinta
+          // real del croquis contra la leyenda y la rosa de las esquinas.
           // La regla general de impresión vuelve estáticas las hojas.
           // Esta ventana conserva su posición y tamaño también en @media
           // print: son las mismas medidas usadas para encuadrar el mapa.
@@ -9945,7 +10168,8 @@ async function generarAgrupado(modo){
             width:util.w+'mm',height:util.h+'mm',overflow:'hidden'}).forEach(([property,value]) =>
               envoltura.style.setProperty(property,value,'important'));
           let rec = recorteDelCroquis(printMap, loc, null, directionLayoutScale);
-          k = Math.min(util.w / rec.w, util.h / rec.h);
+          let encuadre=encuadrarCroquisEnMarco(printMap,loc,rec,plan);
+          k = encuadre.scale;
           const hayDestinos = printDirectionLabelsForLoc(loc).length > 0;
           // El mapa encoge dentro del recuadro; el texto, el trazo y la
           // punta mantienen sus puntos/mm. Se mide a esa escala real para
@@ -9957,7 +10181,8 @@ async function generarAgrupado(modo){
               maxTextWidthMm:directionTextWidthMm, interactive:false
             }) : null;
             rec = recorteDelCroquis(printMap, loc, dibujadas?.bounds || null, k);
-            const siguiente = Math.min(util.w / rec.w, util.h / rec.h);
+            encuadre=encuadrarCroquisEnMarco(printMap,loc,rec,plan);
+            const siguiente = encuadre.scale;
             if(Math.abs(siguiente - k) < .00001 * Math.max(1, k)) break;
             k = siguiente;
           }
@@ -9969,15 +10194,24 @@ async function generarAgrupado(modo){
           rec = recorteDelCroquis(printMap, loc, finales?.bounds || null, k);
           // El ultimo ajuste solo reserva mas aire; no amplifica el papel
           // tras medir los textos y por tanto no puede cortar un extremo.
-          k = Math.min(k, util.w / rec.w, util.h / rec.h);
-          updatePrintTextLabels(printMap, k);
-          const sobraX = (util.w - rec.w * k) / 2;
-          const sobraY = (util.h - rec.h * k) / 2;
+          // Los rótulos tienen tamaño físico constante. Recalcular la tinta
+          // después del último ajuste evita colocarlos debajo de los adornos.
+          for(let paso=0;paso<12;paso++){
+            encuadre=encuadrarCroquisEnMarco(printMap,loc,rec,plan,k);
+            if(Math.abs(encuadre.scale-k)<.000001)break;
+            k=encuadre.scale;
+            updatePrintTextLabels(printMap,k);
+            const tinta=hayDestinos?renderDirectionAnnotations(printMap,loc,{printMode:true,scale:printRenderScale,
+              layoutScale:k,maxTextWidthMm:directionTextWidthMm,interactive:false}):null;
+            rec=recorteDelCroquis(printMap,loc,tinta?.bounds||null,k);
+          }
+          k=encuadre.scale;
           papel.style.transform = 'translate('
-            + (sobraX - rec.x * k).toFixed(2) + 'mm,'
-            + (sobraY - rec.y * k).toFixed(2) + 'mm) scale(' + k + ')';
+            + (encuadre.x-util.x-rec.x*k).toFixed(3) + 'mm,'
+            + (encuadre.y-util.y-rec.y*k).toFixed(3) + 'mm) scale(' + k + ')';
           papel.style.transformOrigin = 'top left';
           asegurarNumerosEnMarco(printMap,caso,util);
+          await compactPrintTileLayers(printMap,printMap._printTileLayers,k);
         }else{
           // La hoja base es horizontal. En una pagina vertical entra entera
           // al escalarla; la flecha ya compensa esta escala y conserva 10 pt.
@@ -10171,7 +10405,8 @@ function acomodarCroquisIndividual(targetMap, loc, sheet, outerScale = 1, maxTex
   const plan=prepararAdornosEnMarco(stage,paper,{w:297,h:189},0);
   const usable=plan.mapRect;
   let crop=recorteDelCroquis(targetMap,loc,null,outerScale);
-  let k=Math.min(usable.w/crop.w,usable.h/crop.h);
+  let fit=encuadrarCroquisEnMarco(targetMap,loc,crop,plan);
+  let k=fit.scale;
   const directions=printDirectionLabelsForLoc(loc).length>0;
   for(let step=0;step<48;step++){
     const scale=k*outerScale;
@@ -10179,13 +10414,25 @@ function acomodarCroquisIndividual(targetMap, loc, sheet, outerScale = 1, maxTex
     const marks=directions?renderDirectionAnnotations(targetMap,loc,{printMode:true,scale:printRenderScale,
       layoutScale:scale,maxTextWidthMm:Math.min(maxTextWidthMm,usable.w-3),interactive:false}):null;
     crop=recorteDelCroquis(targetMap,loc,marks?.bounds||null,scale);
-    const next=Math.min(usable.w/crop.w,usable.h/crop.h);
+    fit=encuadrarCroquisEnMarco(targetMap,loc,crop,plan);
+    const next=fit.scale;
     if(Math.abs(next-k)<.00001*Math.max(1,k)) break;
     k=next;
   }
   updatePrintTextLabels(targetMap,k*outerScale);
-  const x=usable.x+(usable.w-crop.w*k)/2-crop.x*k;
-  const y=usable.y+(usable.h-crop.h*k)/2-(crop.y-15)*k;
+  for(let step=0;step<12;step++){
+    const scale=k*outerScale;
+    const marks=directions?renderDirectionAnnotations(targetMap,loc,{printMode:true,scale:printRenderScale,
+      layoutScale:scale,maxTextWidthMm:Math.min(maxTextWidthMm,usable.w-3),interactive:false}):null;
+    crop=recorteDelCroquis(targetMap,loc,marks?.bounds||null,scale);
+    fit=encuadrarCroquisEnMarco(targetMap,loc,crop,plan,k);
+    if(Math.abs(fit.scale-k)<.000001)break;
+    k=fit.scale;
+    updatePrintTextLabels(targetMap,k*outerScale);
+  }
+  k=fit.scale;
+  const x=fit.x-crop.x*k;
+  const y=fit.y-(crop.y-15)*k;
   const node=targetMap.getContainer();
   node.style.transform='translate('+x.toFixed(3)+'mm,'+y.toFixed(3)+'mm) scale('+k/printRenderScale+')';
   stage.style.background=colorFondoImpresion()==='transparente'?'#fff':colorFondoImpresion();
@@ -10367,6 +10614,7 @@ async function imprimir(opciones = {}){
     printMap.getPane('territoryPoiPane').classList.add('territory-poi-pane');
     // Se imprime con el mismo mapa que se esta viendo en pantalla.
     const capasImpresas = [];
+    printMap._printTileLayers = capasImpresas;
     const anadirTeselas = (fuente, opciones = {}) => {
       const opcionesCapa = {
         maxZoom:fuente.maxZ || PRINT_MAX_ZOOM,
@@ -10382,9 +10630,9 @@ async function imprimir(opciones = {}){
         updateWhenIdle:false
       };
       if(opciones.pane) opcionesCapa.pane = opciones.pane;
-      if(opciones.crossOrigin) opcionesCapa.crossOrigin = 'anonymous';
       const direccion = opciones.url || getPrintTileUrl(fuente, { noLabels:!!opciones.sinNombres });
-      const capa = L.tileLayer(direccion, opcionesCapa).addTo(printMap);
+      if(opciones.crossOrigin || String(direccion).includes('google.com')) opcionesCapa.crossOrigin = 'anonymous';
+      const capa = enablePrintTileCorsFallback(L.tileLayer(direccion, opcionesCapa)).addTo(printMap);
       capasImpresas.push(capa);
       return capa;
     };
@@ -10447,6 +10695,7 @@ async function imprimir(opciones = {}){
       });
     }
     printMap._printNameBleed = capaNombres ? PRINT_MASK_GROW_NOMBRES * printRenderScale / 2 : 0;
+    ajustarHaloDeNombresImpresos(printMap);
     if(usingColorMask){
       drawPrintColorAreaOutlines(printMap, loc);
     }else if(!opciones.lamina){
@@ -10510,6 +10759,7 @@ async function imprimir(opciones = {}){
       const detection = window.CroquisPrintLabels?.measure(printMap,capaNombres) || {boxes:[],reason:'unavailable'};
       printMap._printNameDetection = {...detection,boxes:undefined};
       printMap._printNameBoxes = printNameBoxesForLoc(printMap,loc,detection.boxes);
+      ajustarHaloDeNombresImpresos(printMap);
     }
     drawPrintTextLabels(printMap, loc, ocupadas, directionLayoutScale);
     const referenciasImpresas = drawPrintReferences(printMap, referenciasAutomaticasDeLoc(loc), loc, ocupadas, zonasPintadas);
@@ -10526,7 +10776,7 @@ async function imprimir(opciones = {}){
       renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO, fondo:fondoTapa });
       // Y encima el de los nombres, con espacio para completar los rótulos.
       if(!printMap._printNameDetection?.reason || printMap._printNameDetection.reason === 'no-ink'){
-        renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:PRINT_MASK_GROW_NOMBRES,
+        renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:printMap._printVisibleNameGrow,
           labelBoxes:printMap._printNameBoxes,
           suppressedLabelBoxes:printMap._printSuppressedNameBoxes, fondo:fondoTapa });
       }
@@ -10547,7 +10797,10 @@ async function imprimir(opciones = {}){
     // Al final: antes de encuadrar el mapa no tiene tamano todavia, y la
     // esquina se elegiria con cuentas sin sentido.
     colocarLeyenda(printMap, loc);
-    if(!opciones.lamina) acomodarCroquisIndividual(printMap,loc,sheet,directionLayoutScale,directionTextWidthMm);
+    if(!opciones.lamina){
+      acomodarCroquisIndividual(printMap,loc,sheet,directionLayoutScale,directionTextWidthMm);
+      await compactPrintTileLayers(printMap,capasImpresas,printMap._printFitScale || directionLayoutScale);
+    }
     $('print-wait-text').textContent = 'Listo. El territorio se imprimirá desde esta misma hoja.';
     $('print-ready-button').disabled = false;
     if(opciones.soloPreparar){
@@ -11033,6 +11286,7 @@ $('agrupar-cerrar')?.addEventListener('click', cerrarPanelAgrupar);
 $('agrupar-generar')?.addEventListener('click', () => generarAgrupado('lamina'));
 $('agrupar-uno')?.addEventListener('click', () => generarAgrupado('sueltas'));
 $('agrupar-marcar')?.addEventListener('click', () => {
+  agruparHuecosManuales = null;
   LOCS.forEach(loc => {
     const clave = String(loc.num);
     if(!agruparOrden.includes(clave)) agruparOrden.push(clave);
@@ -11041,11 +11295,13 @@ $('agrupar-marcar')?.addEventListener('click', () => {
   pintarPanelAgrupar();
 });
 $('agrupar-desmarcar')?.addEventListener('click', () => {
+  agruparHuecosManuales = null;
   agruparOrden = [];
   agruparPrincipal = '';
   pintarPanelAgrupar();
 });
 $('agrupar-orientacion')?.addEventListener('change', event => {
+  agruparHuecosManuales = null;
   agruparOrientacion = event.target.value;
   pintarPreviaAgrupar();
 });

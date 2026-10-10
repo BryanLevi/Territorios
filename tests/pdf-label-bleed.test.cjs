@@ -6,11 +6,12 @@ const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '../outputs/croquis_territorios.html'), 'utf8');
 const nameMaskGrow = Number(html.match(/const PRINT_MASK_GROW_NOMBRES\s*=\s*([\d.]+)\s*;/)[1]);
+const visibleNameMaskGrow = Number(html.match(/const PRINT_MASK_GROW_NOMBRES_VISIBLE\s*=\s*([\d.]+)\s*;/)[1]);
 
 function extractFunction(name){
   const start = html.indexOf(`function ${name}(`);
   assert(start >= 0, `Function available: ${name}`);
-  const open = html.indexOf('{', start);
+  const open = html.indexOf('{', html.indexOf(')', start));
   let depth = 0, quote = null;
   for(let i = open; i < html.length; i++){
     const char = html[i], next = html[i + 1];
@@ -129,5 +130,54 @@ test('Name bleed near every map edge is clamped in the final grouped crop', () =
 test('The PDF background mask keeps its narrow border independently of name bleed', () => {
   assert.match(html, /const PRINT_MASK_GROW_FONDO\s*=\s*1\s*;/);
   assert.match(html, /pane:'territoryBaseMaskPane',\s*grow:PRINT_MASK_GROW_FONDO/);
-  assert.match(html, /pane:'territoryMaskPane',\s*grow:PRINT_MASK_GROW_NOMBRES/);
+  assert.match(html, /pane:'territoryMaskPane',\s*grow:printMap\._printVisibleNameGrow/);
+});
+
+test('Measured names need only a short visible halo while unknown raster keeps the broad margin', () => {
+  const context = vm.createContext({PRINT_MASK_GROW_NOMBRES:nameMaskGrow,
+    PRINT_MASK_GROW_NOMBRES_VISIBLE:visibleNameMaskGrow,printRenderScale:3});
+  vm.runInContext(extractFunction('ajustarHaloDeNombresImpresos'),context);
+  const map = {_printNameBleed:nameMaskGrow*3/2,_printNameDetection:{reason:null}};
+  context.ajustarHaloDeNombresImpresos(map);
+  assert.equal(map._printVisibleNameGrow,24);
+  assert.equal(map._printVisibleNameBleed,36);
+  assert.equal(map._printNameBleed,192,'Broad name selection is unchanged');
+  for(const reason of ['no-ink','canvas-unreadable','unavailable',undefined]){
+    map._printNameDetection={reason};
+    context.ajustarHaloDeNombresImpresos(map);
+    assert.equal(map._printVisibleNameGrow,128);
+    assert.equal(map._printVisibleNameBleed,192);
+  }
+  map._printNameBleed=0;
+  context.ajustarHaloDeNombresImpresos(map);
+  assert.equal(map._printVisibleNameBleed,0,'Maps without a names layer do not gain a crop margin');
+});
+
+test('A short geographic mask still opens each complete name outside the territory', () => {
+  function element(tag){
+    return {tag,attributes:{},children:[],style:{},classList:{add:()=>{}},
+      setAttribute(name,value){this.attributes[name]=value;},
+      appendChild(child){this.children.push(child);}};
+  }
+  const pane=element('pane');
+  pane.querySelectorAll=()=>[];
+  const context=vm.createContext({printRenderScale:3,
+    document:{createElementNS:(_ns,tag)=>element(tag)}});
+  vm.runInContext(extractFunction('renderPrintColorMask'),context);
+  const map={getContainer:()=>pane,getPane:()=>pane,getSize:()=>({x:1000,y:900}),
+    latLngToContainerPoint:([lat,lng])=>({x:lng,y:lat}),
+    containerPointToLayerPoint:()=>({x:0,y:0})};
+  const names=Object.freeze([Object.freeze({x0:80,y0:240,x1:320,y1:280}),
+    Object.freeze({x0:600,y0:650,x1:920,y1:700})]);
+  const snapshot=JSON.stringify(names);
+  context.renderPrintColorMask(map,{num:1},{grow:visibleNameMaskGrow,fondo:'#fff',
+    areas:[{points:[[200,300],[200,700],[700,700],[700,300]]}],labelBoxes:names});
+  const mask=pane.children[0].children[0].children[0];
+  const polygon=mask.children.find(node=>node.tag==='polygon');
+  assert.equal(Number(polygon.attributes['stroke-width']),72);
+  const holes=mask.children.filter(node=>node.tag==='rect'&&node.attributes.fill==='#000');
+  assert.deepEqual(holes.map(node=>({x0:Number(node.attributes.x),y0:Number(node.attributes.y),
+    x1:Number(node.attributes.x)+Number(node.attributes.width),
+    y1:Number(node.attributes.y)+Number(node.attributes.height)})),names);
+  assert.equal(JSON.stringify(names),snapshot,'Measured name bounds remain complete and immutable');
 });

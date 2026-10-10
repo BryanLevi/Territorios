@@ -171,8 +171,8 @@ test('Maps, complete names and footer ornaments remain inside diagonal frames in
           assertRectangleInside(plan.legendRect,slot,`${location}: references`);
           assertRectangleInside(plan.compassRect,slot,`${location}: compass`);
           assertRectangleInside({x:0,y:0,w:slot.w-slot.corteDiagonal,h:titleHeight},slot,`${location}: wrapped title`);
-          assert(!overlaps(plan.mapRect,plan.legendRect) && !overlaps(plan.mapRect,plan.compassRect),
-            `${location}: the map remains separate from its footer`);
+          assert(!overlaps(plan.safeMapRect,plan.legendRect) && !overlaps(plan.safeMapRect,plan.compassRect),
+            `${location}: fallback protects names when a silhouette cannot be measured`);
           assert(!overlaps(plan.legendRect,plan.compassRect),`${location}: footer ornaments do not overlap`);
           const full = plain(context.calcularAreaDeCroquis({...slot,corteDiagonal:0},titleHeight,legend,compass));
           assert.equal(plan.mapRect.y,full.mapRect.y,`${location}: the corner does not push the map down`);

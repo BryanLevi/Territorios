@@ -145,7 +145,7 @@ test('Una calle horizontal fuera del color conserva sus dos extremos y todo su g
   assert.deepEqual(copiar(e.contexto.medidaDeMarcasImpresas(mapa)),{x0:144,y0:174,x1:456,y1:186});
 });
 
-test('La leyenda y la rosa reservan papel propio fuera del mapa en marcos grandes y pequeños', () => {
+test('La leyenda y la rosa ancladas reservan tinta propia y conservan un encuadre seguro', () => {
   const e = entorno([]);
   const areaInterseccion = (a,b) => Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))
     * Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
@@ -155,10 +155,10 @@ test('La leyenda y la rosa reservan papel propio fuera del mapa en marcos grande
     const plan = copiar(e.contexto.calcularAreaDeCroquis(marco,titulo,leyenda,rosa));
     assert(plan.mapRect.y > titulo && plan.mapRect.h > 10);
     for(const adorno of [plan.legendRect,plan.compassRect]){
-      assert.equal(areaInterseccion(plan.mapRect,adorno),0, 'El mapa no toca la referencia ni la rosa');
+      assert.equal(areaInterseccion(plan.safeMapRect,adorno),0, 'El encuadre alternativo no toca la referencia ni la rosa');
       assert(adorno.x >= 1.6 && adorno.y >= titulo);
       assert(adorno.x+adorno.w <= marco.w-1.6+.0001 && adorno.y+adorno.h <= marco.h-1.6+.0001);
-      assert(adorno.y >= plan.mapRect.y+plan.mapRect.h+.999);
+      assert(adorno.y >= plan.safeMapRect.y+plan.safeMapRect.h+.999);
     }
     assert.equal(areaInterseccion(plan.legendRect,plan.compassRect),0, 'Los dos adornos tampoco se superponen');
     assert.equal(plan.legendRect.x,1.6, 'Referencias fijadas a la esquina inferior izquierda');
@@ -166,12 +166,13 @@ test('La leyenda y la rosa reservan papel propio fuera del mapa en marcos grande
   }
 });
 
-test('El mapa usa toda el área disponible si no hay adornos y el pie mide solo el adorno más alto', () => {
+test('Las esquinas no eliminan una franja completa del mapa; el encuadre alternativo conserva el pie', () => {
   const e=entorno([]), marco={w:100,h:80};
   const vacio=copiar(e.contexto.calcularAreaDeCroquis(marco,5));
   const conAdornos=copiar(e.contexto.calcularAreaDeCroquis(marco,5,{w:40,h:12},{w:8,h:10}));
   assert.equal(vacio.legendRect,null); assert.equal(vacio.compassRect,null); assert.equal(vacio.footerRect,null);
-  assert.equal(vacio.mapRect.h-conAdornos.mapRect.h,13, 'Se reserva altura máxima y un milímetro de separación');
+  assert.equal(vacio.mapRect.h,conAdornos.mapRect.h, 'El papel libre entre esquinas sigue disponible para la silueta');
+  assert.equal(vacio.mapRect.h-conAdornos.safeMapRect.h,13, 'La alternativa rectangular conserva un milímetro de separación');
   assert.equal(conAdornos.footerRect.h,12);
   assert.equal(conAdornos.mapRect.w,vacio.mapRect.w, 'No se resta una franja lateral al croquis');
 });

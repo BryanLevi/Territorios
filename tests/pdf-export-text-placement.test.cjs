@@ -103,6 +103,21 @@ test('The PDF crop includes the complete measured names beyond its original mask
   assert.deepEqual(copy(context.medidaDeNombresImpresos(withoutNames,{num:1})),{x0:88,y0:188,x1:712,y1:812});
 });
 
+test('The final crop uses the visible halo and keeps full measured names from the broad search', () => {
+  const context=environment(), names=Object.freeze([
+    Object.freeze({x0:40,y0:240,x1:140,y1:270}),
+    Object.freeze({x0:650,y0:730,x1:920,y1:890})
+  ]);
+  const map={_printNameBleed:192,_printVisibleNameBleed:12,
+    _printNameDetection:{reason:null},_printNameBoxes:names};
+  const snapshot=JSON.stringify(names);
+  assert.deepEqual(copy(context.medidaDeNombresImpresos(map,{num:1})),{x0:40,y0:188,x1:920,y1:890});
+  assert.deepEqual(copy(context.medidaDeNombresImpresos({...map,_printNameBoxes:[]},{num:1})),
+    {x0:88,y0:188,x1:712,y1:812});
+  assert.equal(JSON.stringify(names),snapshot,'A tighter halo does not trim any measured name');
+  assert.equal(map._printNameBleed,192,'Search bounds still find surrounding labels');
+});
+
 test('Incomplete remote names at source edges are suppressed while names touching actual territory survive', () => {
   const areas=[{points:[[30,30],[30,70],[70,70],[70,30]]}];
   const context=environment([],areas), placement={window:{}};
@@ -120,7 +135,8 @@ test('Incomplete remote names at source edges are suppressed while names touchin
 test('Unreadable raster ink preserves the full layer instead of cutting names at a guessed margin', () => {
   const context=environment();
   for(const reason of ['canvas-unreadable','unavailable','missing-tiles']){
-    const map={_printNameBleed:12,_printNameBoxes:[],_printNameDetection:{reason},getSize:()=>({x:1000,y:950})};
+    const map={_printNameBleed:192,_printVisibleNameBleed:12,_printNameBoxes:[],
+      _printNameDetection:{reason},getSize:()=>({x:1000,y:950})};
     assert.deepEqual(copy(context.medidaDeNombresImpresos(map,{num:1})),{x0:0,y0:0,x1:1000,y1:950});
   }
 });

@@ -48,6 +48,10 @@ La cabecera y las acciones de escritorio usan controles compactos de 36 px. Desd
 
 La selección de territorios del PDF usa texto de 11 px y filas compactas; las casillas pequeñas conservan su área táctil. Las pruebas se ejecutan con `node --test tests/*.test.cjs`.
 
+La lámina del PDF distribuye los cuadros según la forma y las divisiones de cada croquis. El mapa principal conserva su prioridad; en una lámina vertical grande, otro mapa con muchas divisiones puede recibir un segundo cuadro amplio. Los mapas horizontales aprovechan la franja inferior y los verticales la columna lateral. Arrastrar mapas en la vista previa conserva los cuadros elegidos para permitir una distribución manual; cambiar la selección u orientación vuelve a calcularlos.
+
+Las referencias permanecen abajo a la izquierda y la rosa abajo a la derecha. El encuadre aprovecha las esquinas libres de la silueta y reserva sólo el espacio ocupado por sus textos y símbolos; si no puede medir los nombres del fondo, conserva un encuadre seguro. Las capas de imágenes se compactan para el papel, conservando la misma cartografía y dejando números, dibujos y textos propios como vectores. La resolución raster se limita a 600 ppp o a la resolución nativa disponible; una fuente que impida leer sus imágenes conserva sus capas originales.
+
 Se traen de OpenStreetMap con Overpass, **una sola vez por territorio**, y quedan guardadas en el navegador. Moverse o acercarse ya no vuelve a pedirlas, y al reabrir la pagina se usan las guardadas sin tocar la red.
 
 Si el servidor esta saturado se reintenta hasta tres veces, alternando entre dos servidores y esperando cada vez mas. Un territorio ya cargado se sigue viendo aunque Overpass este caido.
@@ -100,7 +104,7 @@ Al crear o cambiar una contraseña se entrega un código de recuperación que pu
 
 Al colocar o seleccionar un destino, activa `Ver espacio del texto en el PDF`. La guía muestra el espacio físico del texto sobre el mapa, según la hoja individual o la lámina seleccionada en `Descargar PDF`; cambia al escribir el destino o ajustar sus puntos. Un aviso naranja indica si taparía una zona pintada u otro destino. Arrastra la guía o usa `Buscar espacio libre` y pulsa `Guardar` para aplicar la posición. Cerrar descarta la propuesta. En el teléfono, el panel se puede minimizar para dejar visible el mapa; el texto también se mueve con las flechas del teclado cuando tiene el foco.
 
-La lámina aprovecha casi todo el lado disponible de cada recuadro y mantiene las proporciones del territorio, los contornos y las marcas exteriores. Las referencias se colocan en una esquina con menos interferencias y conservan letras de 8 puntos e iconos de 4 mm, independientemente de la escala del mapa. En la hoja individual usan 9 puntos e iconos de 5 mm. Una lista muy larga usa columnas y se ajusta solo cuando no cabe completa en su recuadro.
+La lámina mantiene las proporciones del territorio, los contornos y las marcas exteriores. Las referencias usan letras e iconos compactos en la esquina inferior izquierda; el encuadre considera su tamaño para que no cubran el territorio ni sus nombres. Una lista muy larga puede usar columnas y se ajusta cuando no cabe completa en su recuadro. Los números de subterritorio conservan 6 puntos y cajas con poco margen en todos los tamaños de mapa.
 
 ## Mapa sin conexion
 
