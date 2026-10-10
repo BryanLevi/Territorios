@@ -344,6 +344,9 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
    para que ninguna capa del croquis tape sus lados al exportar. El borde
    transparente conserva las medidas y la posición del contenido. */
 .hueco-agrupado.en-lamina::after{content:"";position:absolute;inset:0;box-sizing:border-box;border:.3mm solid #000;z-index:1000;pointer-events:none}
+.hueco-agrupado.en-lamina.esquina-diagonal::after{display:none}
+.marco-diagonal{position:absolute;inset:0;width:100%;height:100%;z-index:1000;pointer-events:none;overflow:visible}
+.hueco-agrupado.esquina-diagonal .rotulo-hueco{border-bottom:0}
 /* El escenario del mapa tiene un gris verdoso de fondo que, dentro del
    recuadro, asomaba alrededor del croquis y parecia un segundo marco verde. */
 .hueco-agrupado.en-lamina .print-map-stage,
@@ -9265,6 +9268,41 @@ function huecoDeHojaSuelta(){
   return [{ x:0, y:0, w:pagina.ancho, h:pagina.alto }];
 }
 
+// Algunas cajas secundarias llevan el chaflán de los croquis tradicionales.
+// Los huecos mantienen su posición: la esquina sólo cambia el marco del PDF.
+function decorarHuecosDeLamina(huecos, elegidos){
+  return huecos.map((hueco, indice) => {
+    const pequeno = indice > 0 && !(hueco.w > 110 && hueco.h > 65)
+      && hueco.w >= 35 && hueco.h >= 30;
+    const cruzVerde = String(elegidos[indice]?.name || '').trim().toLowerCase() === 'cruz verde';
+    const diagonal = huecos.length >= 3 && pequeno && (indice % 3 === 1 || cruzVerde);
+    return {...hueco, corteDiagonal:diagonal ? Math.min(12, hueco.w * .18, hueco.h * .24) : 0};
+  });
+}
+
+function dibujarMarcoDiagonal(caso, hueco, alturaRotulo = 0, previa = false){
+  const corte = Number(hueco?.corteDiagonal) || 0;
+  if(!caso || !corte) return;
+  const w = hueco.w, h = hueco.h, filo = .15;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class','marco-diagonal');
+  svg.setAttribute('viewBox','0 0 '+w+' '+h);
+  svg.setAttribute('preserveAspectRatio','none');
+  svg.setAttribute('aria-hidden','true');
+  const contorno = document.createElementNS(svg.namespaceURI, 'path');
+  const trazo = 'M '+filo+' '+filo+' H '+(w-corte)
+    +' L '+(w-filo)+' '+corte+' V '+(h-filo)+' H '+filo+' Z';
+  const separador = alturaRotulo > 0
+    ? ' M '+filo+' '+alturaRotulo+' H '+(w-filo-Math.max(0,corte-alturaRotulo)) : '';
+  contorno.setAttribute('d',trazo+separador);
+  contorno.setAttribute('fill','none');
+  contorno.setAttribute('stroke',previa ? '#5a9e78' : '#000');
+  contorno.setAttribute('stroke-width',previa ? '.7' : '.3');
+  contorno.setAttribute('stroke-linejoin','miter');
+  svg.appendChild(contorno);
+  caso.appendChild(svg);
+}
+
 function escalaDeHueco(hueco){
   return Math.min(hueco.w / A4_LARGO, hueco.h / A4_CORTO);
 }
@@ -9284,7 +9322,7 @@ function cuentasAgrupadas(){
   const elegidos = ordenDeLamina();
   const pagina = paginaAgrupada();
   const lamina = agruparModo === 'lamina';
-  const huecos = lamina ? huecosDeLamina(elegidos.length) : huecoDeHojaSuelta();
+  const huecos = lamina ? decorarHuecosDeLamina(huecosDeLamina(elegidos.length), elegidos) : huecoDeHojaSuelta();
   const paginas = lamina ? (elegidos.length ? 1 : 0) : elegidos.length;
   const src = TILES[currentView] || TILES.osm;
   let teselas = 0;
@@ -9452,6 +9490,13 @@ function pintarPreviaAgrupar(){
       celda.style.top = (hueco.y * k) + 'px';
       celda.style.width = (hueco.w * k) + 'px';
       celda.style.height = (hueco.h * k) + 'px';
+      if(hueco.corteDiagonal){
+        const corte = hueco.corteDiagonal;
+        celda.style.clipPath = 'polygon(0 0,calc(100% - '+(corte*k)+'px) 0,100% '+(corte*k)+'px,100% 100%,0 100%)';
+        celda.style.borderColor = 'transparent';
+        celda.style.paddingRight = (corte*k)+'px';
+        dibujarMarcoDiagonal(celda,hueco,0,true);
+      }
       const puesto = c.lamina ? i : p;
       celda.title = displayTerritoryName(loc) + ' — arrastralo sobre otro para cambiarlos de sitio';
       const rotulo = document.createElement('span');
@@ -9668,6 +9713,10 @@ function calcularAreaDeCroquis(hueco, alturaRotulo = 0, leyenda = null, rosa = n
   const borde = Math.max(0, Math.min(Number(margen) || 0, ancho / 4, alto / 4));
   const techo = Math.max(borde, Math.min(alto - borde, (Number(alturaRotulo) || 0) + borde));
   const utilW = Math.max(.1, ancho - borde * 2);
+  // El lado derecho seguro a la altura del título deja el mapa entero dentro
+  // del chaflán. No se recortan ni rasterizan sus calles, textos o números.
+  const corte = Math.max(0, Math.min(Number(hueco?.corteDiagonal) || 0, ancho / 4, alto / 4));
+  const descuentoDerecho = Math.max(0, corte - (techo - borde));
   const utilH = Math.max(.1, alto - borde - techo);
   const medida = r => ({w:Math.max(0, Math.min(utilW, Number(r?.w) || 0)),
     h:Math.max(0, Math.min(utilH, Number(r?.h) || 0))});
@@ -9677,7 +9726,7 @@ function calcularAreaDeCroquis(hueco, alturaRotulo = 0, leyenda = null, rosa = n
   const aire = pieH ? Math.max(0, Math.min(Number(separacion) || 0, utilH - pieH)) : 0;
   const pieY = alto - borde - pieH;
   return {
-    mapRect:{x:borde, y:techo, w:utilW, h:Math.max(0, utilH - pieH - aire)},
+    mapRect:{x:borde, y:techo, w:Math.max(.1,utilW - descuentoDerecho), h:Math.max(0, utilH - pieH - aire)},
     legendRect:lista.w && lista.h ? {x:borde, y:alto-borde-lista.h, ...lista} : null,
     compassRect:norte.w && norte.h ? {x:ancho-borde-norte.w, y:alto-borde-norte.h, ...norte} : null,
     footerRect:pieH ? {x:borde,y:pieY,w:utilW,h:pieH} : null
@@ -9752,6 +9801,7 @@ function prepararAdornosEnMarco(caso, papel, hueco, alturaRotulo = 0){
 
 function ajustarRotuloDeMarco(rotulo, hueco, principal = false){
   if(!rotulo || !hueco) return 0;
+  rotulo.style.right = (Number(hueco.corteDiagonal) || 0)+'mm';
   rotulo.style.fontSize = (principal ? 8 : 6)+'pt';
   rotulo.style.lineHeight = '1.1';
   rotulo.style.whiteSpace = 'normal';
@@ -9854,6 +9904,10 @@ async function generarAgrupado(modo){
         });
         const caso = document.createElement('div');
         caso.className = 'hueco-agrupado' + (c.lamina ? ' en-lamina' : '');
+        if(c.lamina && hueco.corteDiagonal){
+          caso.classList.add('esquina-diagonal');
+          caso.dataset.cornerCutMm = hueco.corteDiagonal.toFixed(3);
+        }
         caso.style.left = hueco.x + 'mm';
         caso.style.top = hueco.y + 'mm';
         caso.style.width = hueco.w + 'mm';
@@ -9872,6 +9926,7 @@ async function generarAgrupado(modo){
           rotulo.textContent = displayTerritoryName(loc).toUpperCase();
           caso.appendChild(rotulo);
           alturaRotulo = ajustarRotuloDeMarco(rotulo, hueco, i === 0);
+          dibujarMarcoDiagonal(caso,hueco,alturaRotulo);
         }
         // Solo en la lamina se recorta: ahi el croquis comparte pagina y hay
         // que estirarlo hasta llenar su recuadro. Una hoja suelta es la misma
@@ -11202,6 +11257,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=remove-walk-mode-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=pdf-classic-map-detail-1"></script>
+<script src="offline-controller.js?v=pdf-diagonal-frames-1"></script>
 </body>
 </html>

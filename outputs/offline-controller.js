@@ -152,7 +152,7 @@
       });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v32');
+        const shellCache = await caches.open('croquis-app-shell-v33');
         shellReady = shellVerified && await shellComplete(shellCache);
       }
       if (version !== refreshVersion || group !== congregacionActivaId || (running && running.group === group)) return;
@@ -214,7 +214,7 @@
     if (!shellPromise) {
       shellVerified = false;
       shellPromise = offlineShell.prepare({
-        baseURI:document.baseURI || location.href, cacheName:'croquis-app-shell-v32', files:shellFiles
+        baseURI:document.baseURI || location.href, cacheName:'croquis-app-shell-v33', files:shellFiles
       }).then(() => { shellVerified = true; return true; }).finally(() => { shellPromise = null; });
     }
     return shellPromise;
