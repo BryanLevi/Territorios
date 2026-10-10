@@ -9257,7 +9257,7 @@ function fijarDistribucionManualDeLamina(){
   if(agruparModo !== 'lamina') return;
   const c = cuentasAgrupadas();
   agruparHuecosManuales = {orientation:agruparOrientacion,
-    slots:c.huecos.map(({corteDiagonal,...hueco})=>({...hueco}))};
+    slots:c.huecos.map(({corteDiagonal,esquinaDiagonal,...hueco})=>({...hueco}))};
 }
 
 function huecosDeLamina(cuantos, perfiles = null){
@@ -9417,16 +9417,34 @@ function huecoDeHojaSuelta(){
   return [{ x:0, y:0, w:pagina.ancho, h:pagina.alto }];
 }
 
-// Algunas cajas secundarias llevan el chaflán de los croquis tradicionales.
-// Los huecos mantienen su posición: la esquina sólo cambia el marco del PDF.
+// Sólo los marcos de las esquinas exteriores llevan un chaflán hacia fuera.
+// La posición del mapa, su nombre y el orden de selección no eligen el corte.
 function decorarHuecosDeLamina(huecos, elegidos){
-  return huecos.map((hueco, indice) => {
-    const pequeno = indice > 0 && !(hueco.w > 110 && hueco.h > 65)
-      && hueco.w >= 35 && hueco.h >= 30;
-    const cruzVerde = String(elegidos[indice]?.name || '').trim().toLowerCase() === 'cruz verde';
-    const diagonal = huecos.length >= 3 && pequeno && (indice % 3 === 1 || cruzVerde);
-    return {...hueco, corteDiagonal:diagonal ? Math.min(12, hueco.w * .18, hueco.h * .24) : 0};
+  if(!huecos.length) return [];
+  const izquierda = Math.min(...huecos.map(h => h.x));
+  const derecha = Math.max(...huecos.map(h => h.x + h.w));
+  const arriba = Math.min(...huecos.map(h => h.y));
+  const abajo = Math.max(...huecos.map(h => h.y + h.h));
+  const cerca = (a,b) => Math.abs(a-b) <= .05;
+  return huecos.map(hueco => {
+    const left = cerca(hueco.x,izquierda), right = cerca(hueco.x+hueco.w,derecha);
+    const top = cerca(hueco.y,arriba), bottom = cerca(hueco.y+hueco.h,abajo);
+    const esquina = top && left ? 'top-left' : top && right ? 'top-right'
+      : bottom && left ? 'bottom-left' : bottom && right ? 'bottom-right' : null;
+    const diagonal = huecos.length >= 3 && esquina && hueco.w >= 35 && hueco.h >= 30;
+    return {...hueco, esquinaDiagonal:diagonal ? esquina : null,
+      corteDiagonal:diagonal ? Math.min(6, hueco.w * .12, hueco.h * .16) : 0};
   });
+}
+
+function puntosDeMarcoDiagonal(hueco){
+  const {w,h} = hueco, corte = Number(hueco.corteDiagonal) || 0;
+  switch(hueco.esquinaDiagonal){
+    case 'top-left': return [[corte,0],[w,0],[w,h],[0,h],[0,corte]];
+    case 'bottom-left': return [[0,0],[w,0],[w,h],[corte,h],[0,h-corte]];
+    case 'bottom-right': return [[0,0],[w,0],[w,h-corte],[w-corte,h],[0,h]];
+    default: return [[0,0],[w-corte,0],[w,corte],[w,h],[0,h]];
+  }
 }
 
 function dibujarMarcoDiagonal(caso, hueco, alturaRotulo = 0, previa = false){
@@ -9439,10 +9457,14 @@ function dibujarMarcoDiagonal(caso, hueco, alturaRotulo = 0, previa = false){
   svg.setAttribute('preserveAspectRatio','none');
   svg.setAttribute('aria-hidden','true');
   const contorno = document.createElementNS(svg.namespaceURI, 'path');
-  const trazo = 'M '+filo+' '+filo+' H '+(w-corte)
-    +' L '+(w-filo)+' '+corte+' V '+(h-filo)+' H '+filo+' Z';
+  const puntos = puntosDeMarcoDiagonal(hueco).map(([x,y]) => [
+    x === 0 ? filo : x === w ? w-filo : x,
+    y === 0 ? filo : y === h ? h-filo : y]);
+  const trazo = 'M '+puntos.map(p => p.join(' ')).join(' L ')+' Z';
+  const inicio = hueco.esquinaDiagonal === 'top-left' ? Math.max(0,corte-alturaRotulo) : 0;
+  const fin = (hueco.esquinaDiagonal || 'top-right') === 'top-right' ? Math.max(0,corte-alturaRotulo) : 0;
   const separador = alturaRotulo > 0
-    ? ' M '+filo+' '+alturaRotulo+' H '+(w-filo-Math.max(0,corte-alturaRotulo)) : '';
+    ? ' M '+(filo+inicio)+' '+alturaRotulo+' H '+(w-filo-fin) : '';
   contorno.setAttribute('d',trazo+separador);
   contorno.setAttribute('fill','none');
   contorno.setAttribute('stroke',previa ? '#5a9e78' : '#000');
@@ -9650,9 +9672,11 @@ function pintarPreviaAgrupar(){
       celda.style.height = (hueco.h * k) + 'px';
       if(hueco.corteDiagonal){
         const corte = hueco.corteDiagonal;
-        celda.style.clipPath = 'polygon(0 0,calc(100% - '+(corte*k)+'px) 0,100% '+(corte*k)+'px,100% 100%,0 100%)';
+        celda.style.clipPath = 'polygon('+puntosDeMarcoDiagonal(hueco)
+          .map(([x,y]) => (x/hueco.w*100)+'% '+(y/hueco.h*100)+'%').join(',')+')';
         celda.style.borderColor = 'transparent';
-        celda.style.paddingRight = (corte*k)+'px';
+        if(hueco.esquinaDiagonal === 'top-left') celda.style.paddingLeft = (corte*k)+'px';
+        if(hueco.esquinaDiagonal === 'top-right') celda.style.paddingRight = (corte*k)+'px';
         dibujarMarcoDiagonal(celda,hueco,0,true);
       }
       const puesto = c.lamina ? i : p;
@@ -9880,23 +9904,32 @@ function calcularAreaDeCroquis(hueco, alturaRotulo = 0, leyenda = null, rosa = n
   const borde = Math.max(0, Math.min(Number(margen) || 0, ancho / 4, alto / 4));
   const techo = Math.max(borde, Math.min(alto - borde, (Number(alturaRotulo) || 0) + borde));
   const utilW = Math.max(.1, ancho - borde * 2);
-  // El lado derecho seguro a la altura del título deja el mapa entero dentro
-  // del chaflán. No se recortan ni rasterizan sus calles, textos o números.
+  // El mapa y los adornos conservan aire junto al corte exterior. Los nombres
+  // se encuadran dentro del espacio útil, sin recortarlos con el chaflán.
   const corte = Math.max(0, Math.min(Number(hueco?.corteDiagonal) || 0, ancho / 4, alto / 4));
-  const descuentoDerecho = Math.max(0, corte - (techo - borde));
+  const esquina = hueco?.esquinaDiagonal || 'top-right';
+  const inferior = Math.max(0,corte-borde*2+.4);
+  const descuentoIzquierdo = esquina === 'bottom-left' ? inferior
+    : esquina === 'top-left' ? Math.max(0,corte-techo-borde+.4) : 0;
+  const descuentoDerecho = esquina === 'bottom-right' ? inferior
+    : esquina === 'top-right' ? Math.max(0,corte-techo-borde+.4) : 0;
+  const xMapa = borde + descuentoIzquierdo;
+  const anchoMapa = Math.max(.1,utilW-descuentoIzquierdo-descuentoDerecho);
   const utilH = Math.max(.1, alto - borde - techo);
   const medida = r => ({w:Math.max(0, Math.min(utilW, Number(r?.w) || 0)),
     h:Math.max(0, Math.min(utilH, Number(r?.h) || 0))});
   const norte = medida(rosa), lista = medida(leyenda);
   lista.w = Math.min(lista.w, Math.max(0, utilW - norte.w - (norte.w ? separacion : 0)));
-  const pieH = Math.max(lista.h, norte.h);
+  const subirLista = lista.h && esquina === 'bottom-left' ? inferior : 0;
+  const subirNorte = norte.h && esquina === 'bottom-right' ? inferior : 0;
+  const pieH = Math.max(lista.h+subirLista, norte.h+subirNorte);
   const aire = pieH ? Math.max(0, Math.min(Number(separacion) || 0, utilH - pieH)) : 0;
   const pieY = alto - borde - pieH;
   return {
-    mapRect:{x:borde, y:techo, w:Math.max(.1,utilW - descuentoDerecho), h:utilH},
-    safeMapRect:{x:borde, y:techo, w:Math.max(.1,utilW - descuentoDerecho), h:Math.max(.1, utilH - pieH - aire)},
-    legendRect:lista.w && lista.h ? {x:borde, y:alto-borde-lista.h, ...lista} : null,
-    compassRect:norte.w && norte.h ? {x:ancho-borde-norte.w, y:alto-borde-norte.h, ...norte} : null,
+    mapRect:{x:xMapa, y:techo, w:anchoMapa, h:utilH},
+    safeMapRect:{x:xMapa, y:techo, w:anchoMapa, h:Math.max(.1, utilH - pieH - aire)},
+    legendRect:lista.w && lista.h ? {x:borde, y:alto-borde-lista.h-subirLista, ...lista} : null,
+    compassRect:norte.w && norte.h ? {x:ancho-borde-norte.w, y:alto-borde-norte.h-subirNorte, ...norte} : null,
     footerRect:pieH ? {x:borde,y:pieY,w:utilW,h:pieH} : null,
     clearance:aire
   };
@@ -9973,7 +10006,9 @@ function prepararAdornosEnMarco(caso, papel, hueco, alturaRotulo = 0){
 
 function ajustarRotuloDeMarco(rotulo, hueco, principal = false){
   if(!rotulo || !hueco) return 0;
-  rotulo.style.right = (Number(hueco.corteDiagonal) || 0)+'mm';
+  const corte = Number(hueco.corteDiagonal) || 0;
+  rotulo.style.left = (hueco.esquinaDiagonal === 'top-left' ? corte : 0)+'mm';
+  rotulo.style.right = ((hueco.esquinaDiagonal || 'top-right') === 'top-right' ? corte : 0)+'mm';
   rotulo.style.fontSize = (principal ? 8 : 6)+'pt';
   rotulo.style.lineHeight = '1.1';
   rotulo.style.whiteSpace = 'normal';
@@ -10130,6 +10165,7 @@ async function generarAgrupado(modo){
         if(c.lamina && hueco.corteDiagonal){
           caso.classList.add('esquina-diagonal');
           caso.dataset.cornerCutMm = hueco.corteDiagonal.toFixed(3);
+          caso.dataset.cornerDirection = hueco.esquinaDiagonal;
         }
         caso.style.left = hueco.x + 'mm';
         caso.style.top = hueco.y + 'mm';
@@ -11513,6 +11549,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=remove-walk-mode-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=pdf-diagonal-frames-1"></script>
+<script src="offline-controller.js?v=pdf-outer-corners-1"></script>
 </body>
 </html>

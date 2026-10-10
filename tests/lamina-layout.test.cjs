@@ -34,7 +34,7 @@ function environment(orientation){
     agruparOrientacion:orientation
   });
   vm.runInContext(['paginaAgrupada', 'huecosDeLamina', 'decorarHuecosDeLamina',
-    'calcularAreaDeCroquis'].map(extractFunction).join('\n'), context);
+    'puntosDeMarcoDiagonal', 'calcularAreaDeCroquis'].map(extractFunction).join('\n'), context);
   return context;
 }
 
@@ -98,9 +98,16 @@ function plain(value){
 
 function insideFrame(point, slot){
   const cut = Number(slot.corteDiagonal) || 0;
-  return point.x >= -1e-8 && point.y >= -1e-8
+  if(!(point.x >= -1e-8 && point.y >= -1e-8
     && point.x <= slot.w + 1e-8 && point.y <= slot.h + 1e-8
-    && point.x - point.y <= slot.w - cut + 1e-8;
+  )) return false;
+  if(!cut) return true;
+  switch(slot.esquinaDiagonal){
+    case 'top-left': return point.x + point.y >= cut - 1e-8;
+    case 'bottom-left': return point.y - point.x <= slot.h - cut + 1e-8;
+    case 'bottom-right': return point.x + point.y <= slot.w + slot.h - cut + 1e-8;
+    default: return point.x - point.y <= slot.w - cut + 1e-8;
+  }
 }
 
 function assertRectangleInside(rect, slot, message){
@@ -112,41 +119,80 @@ function assertRectangleInside(rect, slot, message){
   }
 }
 
-test('Diagonal corners decorate selected secondary maps and preserve small and principal frames', () => {
+test('Only the four exterior corners receive outward diagonals regardless of names or selection order', () => {
   const context = environment('portrait');
-  const slots = [
-    {x:5,y:20,w:180,h:145},
-    {x:190,y:20,w:50,h:35},
-    {x:190,y:58,w:50,h:35},
-    {x:190,y:96,w:50,h:35},
-    {x:190,y:134,w:34,h:35},
-    {x:5,y:168,w:120,h:70},
-    {x:5,y:242,w:50,h:29},
-    {x:58,y:242,w:45,h:35}
-  ];
-  const territories = slots.map((_,index) => ({num:index+1,name:[2,5,6].includes(index) ? 'Cruz Verde' : `Mapa ${index+1}`}));
+  const slots = Array.from({length:9},(_,index)=>({
+    x:5+(index%3)*48,y:20+Math.floor(index/3)*38,w:45,h:35
+  }));
+  const territories = slots.map((_,index) => ({num:index+1,name:[1,3,4].includes(index) ? 'Cruz Verde' : `Mapa ${index+1}`}));
   const before = plain(slots), selectedBefore = plain(territories);
   slots.forEach(Object.freeze); territories.forEach(Object.freeze);
   Object.freeze(slots); Object.freeze(territories);
   const returned = context.decorarHuecosDeLamina(slots,territories);
   const decorated = plain(returned);
   assert.equal(decorated.length,slots.length);
-  assert.equal(decorated[0].corteDiagonal,0,'The principal map keeps its full frame');
-  assert.equal(decorated[4].corteDiagonal,0,'A narrow map does not lose useful space');
-  assert.equal(decorated[5].corteDiagonal,0,'A large map keeps its full frame even when named Cruz Verde');
-  assert.equal(decorated[6].corteDiagonal,0,'A short map keeps its full frame even when named Cruz Verde');
-  assert(decorated[2].corteDiagonal > 0,'Cruz Verde receives the requested diagonal even outside the alternating selection');
+  const corners=new Map([[0,'top-left'],[2,'top-right'],[6,'bottom-left'],[8,'bottom-right']]);
+  for(const [index,slot] of decorated.entries()){
+    assert.equal(slot.esquinaDiagonal,corners.get(index)||null);
+    assert.equal(slot.corteDiagonal>0,corners.has(index),'An edge frame without two exterior edges remains rectangular');
+  }
   const cuts = decorated.filter(slot => slot.corteDiagonal > 0);
-  assert(cuts.length > 1 && cuts.length < decorated.length-1,'Only some secondary frames have diagonal corners');
-  assert(cuts.every(slot => slot.corteDiagonal <= 12 && slot.corteDiagonal < slot.w*.2 && slot.corteDiagonal < slot.h*.25),
+  assert.equal(cuts.length,4,'The grid has four exterior corners');
+  assert(cuts.every(slot => slot.corteDiagonal <= 6 && slot.corteDiagonal <= slot.w*.12 && slot.corteDiagonal <= slot.h*.16),
     'The corner is visible without consuming the frame');
-  assert.deepEqual(decorated.map(({corteDiagonal,...slot}) => slot),before,'Decoration leaves the layout coordinates and sizes unchanged');
+  assert.deepEqual(decorated.map(({corteDiagonal,esquinaDiagonal,...slot}) => slot),before,'Decoration leaves the layout coordinates and sizes unchanged');
   assert.deepEqual(plain(slots),before,'Saved input frames are not mutated');
   assert.deepEqual(plain(territories),selectedBefore,'Territory selections and names are not mutated');
   assert(returned.every((slot,index) => slot !== slots[index]),'Decoration returns independent frames');
+  const shuffledIndices=[4,8,3,0,2,7,6,1,5];
+  const shuffled=context.decorarHuecosDeLamina(shuffledIndices.map(index=>slots[index]),
+    shuffledIndices.map(index=>({...territories[index],name:'Otro nombre'})));
+  assert.deepEqual(plain(shuffled),shuffledIndices.map(index=>decorated[index]),
+    'Only physical positions choose corner cuts after selection order and names change');
   for(const count of [1,2]){
     const smallSelection = context.decorarHuecosDeLamina(slots.slice(0,count),territories.slice(0,count));
     assert(smallSelection.every(slot => slot.corteDiagonal === 0),'One or two maps preserve rectangular frames');
+  }
+});
+
+test('Small exterior frames remain rectangular and submillimetric layout rounding preserves corner identity', () => {
+  const context=environment('portrait');
+  assert.deepEqual(plain(context.decorarHuecosDeLamina([],[])),[]);
+  const small=[{x:5,y:20,w:100,h:80},{x:108,y:20,w:34,h:80},
+    {x:5,y:103,w:100,h:29},{x:108,y:103,w:34,h:29}];
+  const selected=small.map((_,index)=>({num:index+1,name:'Cruz Verde'}));
+  const decorated=plain(context.decorarHuecosDeLamina(small,selected));
+  assert.equal(decorated[0].esquinaDiagonal,'top-left','The main exterior corner receives its outward cut');
+  assert(decorated[0].corteDiagonal>0);
+  assert(decorated.slice(1).every(slot=>slot.corteDiagonal===0&&slot.esquinaDiagonal===null),
+    'Narrow or short exterior frames keep their complete space');
+  for(const delta of [.03,.08]){
+    const grid=[{x:5,y:20,w:45,h:35},{x:53,y:20,w:45,h:35},
+      {x:5+delta,y:58,w:45,h:35},{x:53,y:58,w:45,h:35}];
+    const corners=plain(context.decorarHuecosDeLamina(grid,selected));
+    assert.equal(corners[2].esquinaDiagonal,delta<.05?'bottom-left':null,
+      'Only a rounding error within .05 mm counts as the exterior left edge');
+  }
+});
+
+test('The preview and exported frame points cut the corresponding exterior corner in each orientation', () => {
+  const context=environment('portrait'),base={w:50,h:35,corteDiagonal:6};
+  const expected={
+    'top-left':[[6,0],[50,0],[50,35],[0,35],[0,6]],
+    'top-right':[[0,0],[44,0],[50,6],[50,35],[0,35]],
+    'bottom-left':[[0,0],[50,0],[50,35],[6,35],[0,29]],
+    'bottom-right':[[0,0],[50,0],[50,29],[44,35],[0,35]]
+  };
+  const removed={'top-left':{x:0,y:0},'top-right':{x:50,y:0},
+    'bottom-left':{x:0,y:35},'bottom-right':{x:50,y:35}};
+  for(const esquinaDiagonal of Object.keys(expected)){
+    const slot={...base,esquinaDiagonal};
+    const points=plain(context.puntosDeMarcoDiagonal(slot));
+    assert.deepEqual(points,expected[esquinaDiagonal]);
+    assert(points.every(([x,y])=>insideFrame({x,y},slot)),'Every frame vertex lies on its oriented boundary');
+    assert(!insideFrame(removed[esquinaDiagonal],slot),'The outer corner is the only removed corner');
+    assert(Object.entries(removed).filter(([corner])=>corner!==esquinaDiagonal)
+      .every(([,point])=>insideFrame(point,slot)),'The three remaining corners are complete');
   }
 });
 
@@ -170,15 +216,23 @@ test('Maps, complete names and footer ornaments remain inside diagonal frames in
           assertRectangleInside(plan.mapRect,slot,`${location}: map and its fitted labels`);
           assertRectangleInside(plan.legendRect,slot,`${location}: references`);
           assertRectangleInside(plan.compassRect,slot,`${location}: compass`);
-          assertRectangleInside({x:0,y:0,w:slot.w-slot.corteDiagonal,h:titleHeight},slot,`${location}: wrapped title`);
+          const left=slot.esquinaDiagonal==='top-left'?slot.corteDiagonal:0;
+          const right=slot.esquinaDiagonal==='top-right'?slot.corteDiagonal:0;
+          assertRectangleInside({x:left,y:0,w:slot.w-left-right,h:titleHeight},slot,`${location}: wrapped title`);
           assert(!overlaps(plan.safeMapRect,plan.legendRect) && !overlaps(plan.safeMapRect,plan.compassRect),
             `${location}: fallback protects names when a silhouette cannot be measured`);
           assert(!overlaps(plan.legendRect,plan.compassRect),`${location}: footer ornaments do not overlap`);
           const full = plain(context.calcularAreaDeCroquis({...slot,corteDiagonal:0},titleHeight,legend,compass));
           assert.equal(plan.mapRect.y,full.mapRect.y,`${location}: the corner does not push the map down`);
           assert.equal(plan.mapRect.h,full.mapRect.h,`${location}: the corner preserves map height`);
-          assert.deepEqual(plan.legendRect,full.legendRect,`${location}: references keep their lower-left position`);
-          assert.deepEqual(plan.compassRect,full.compassRect,`${location}: the compass keeps its lower-right position`);
+          assert.equal(plan.legendRect.x,full.legendRect.x,`${location}: references keep their left position`);
+          assert.equal(plan.compassRect.x,full.compassRect.x,`${location}: compass keeps its right position`);
+          if(slot.esquinaDiagonal==='bottom-left'){
+            assert(plan.legendRect.y<full.legendRect.y,`${location}: references rise above the exterior cut`);
+          }else assert.deepEqual(plan.legendRect,full.legendRect,`${location}: references keep their lower-left position`);
+          if(slot.esquinaDiagonal==='bottom-right'){
+            assert(plan.compassRect.y<full.compassRect.y,`${location}: compass rises above the exterior cut`);
+          }else assert.deepEqual(plan.compassRect,full.compassRect,`${location}: compass keeps its lower-right position`);
           assert(plan.mapRect.w >= full.mapRect.w*.8,`${location}: most of the map width remains available`);
         }
       }
