@@ -27,7 +27,8 @@ function extractFunction(name){
 }
 const functions = ['isPrintZoneNumber', 'splitColonyLabelText', 'printOwnTextPoints',
   'printOwnTextStyle', 'getPrintOwnTextExportBoundsPlain', 'medidaDeNombresImpresos',
-  'buildPrintZoneShapes', 'isInsidePrintZones', 'recolocarNumerosImpresos'].map(extractFunction).join('\n');
+  'buildPrintZoneShapes', 'isInsidePrintZones', 'recolocarNumerosImpresos', 'distribuirNumerosDeMarco',
+  'printNameBoxesForLoc'].map(extractFunction).join('\n');
 const copy = value => JSON.parse(JSON.stringify(value));
 function environment(labels = [], areas = []){
   const context = vm.createContext({
@@ -100,6 +101,20 @@ test('The PDF crop includes the complete measured names beyond its original mask
   assert.equal(JSON.stringify(names),snapshot,'Measured names are never rewritten by the crop');
   const withoutNames={_printNameBleed:12,_printNameBoxes:[]};
   assert.deepEqual(copy(context.medidaDeNombresImpresos(withoutNames,{num:1})),{x0:88,y0:188,x1:712,y1:812});
+});
+
+test('Incomplete remote names at source edges are suppressed while names touching actual territory survive', () => {
+  const areas=[{points:[[30,30],[30,70],[70,70],[70,30]]}];
+  const context=environment([],areas), placement={window:{}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../outputs/destination-placement.js'),'utf8'),placement);
+  context.window=placement.window;
+  const remote={x0:0,y0:35,x1:20,y1:50}, nearby={x0:15,y0:35,x1:35,y1:50};
+  const touchesTerritory={x0:35,y0:0,x1:50,y1:40};
+  const map={_printNameBleed:20,getSize:()=>({x:100,y:100}),
+    latLngToContainerPoint:([lat,lng])=>({x:lng,y:lat})};
+  assert.deepEqual(copy(context.printNameBoxesForLoc(map,{num:1},[remote,nearby,touchesTerritory])),[nearby,touchesTerritory]);
+  assert.deepEqual(copy(map._printSuppressedNameBoxes),[remote]);
+  assert.match(html,/suppressedLabelBoxes:printMap\._printSuppressedNameBoxes/);
 });
 
 test('Unreadable raster ink preserves the full layer instead of cutting names at a guessed margin', () => {
@@ -266,4 +281,23 @@ test('A fully covered narrow zone moves only the exported badge outside with a p
   assert.equal(map._printNumberLeaders[0],leaders[1]);
   assert(Math.abs(leaders[1].options.weight * .5 / 3 * 72 / 96 - .45)<1e-9);
   assert.equal(JSON.stringify({label,areas}),snapshot);
+});
+
+test('Seven numbers use blank sides of a small frame without covering its map, footer or each other', () => {
+  const context=environment();
+  const shape={puntos:[{x:17,y:3},{x:23,y:3},{x:23,y:8},{x:17,y:8}],minX:17,maxX:23,minY:3,maxY:8};
+  const entries=Object.freeze(Array.from({length:7},(_,i)=>Object.freeze({
+    origin:Object.freeze({x:18+i*.4,y:5}),w:4.7,h:3.4,shape
+  })));
+  const obstacles=Object.freeze([Object.freeze({x0:12,y0:0,x1:28,y1:10.8})]);
+  const snapshot=JSON.stringify({entries,obstacles});
+  const placements=context.distribuirNumerosDeMarco({w:41,h:10.8},entries,obstacles);
+  assert.equal(placements.length,7);
+  placements.forEach((item,i)=>{
+    assert.equal(intersects(item.box,obstacles[0]),0);
+    assert(item.box.x0>=0 && item.box.x1<=41 && item.box.y0>=0 && item.box.y1<=10.8);
+    placements.slice(0,i).forEach(other=>assert.equal(intersects(item.box,other.box),0));
+    assert(item.leader,'A number outside its zone retains a guide to its original anchor');
+  });
+  assert.equal(JSON.stringify({entries,obstacles}),snapshot);
 });

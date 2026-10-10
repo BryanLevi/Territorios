@@ -40,16 +40,17 @@ test('A word crossing the geographic clipping edge yields one complete padded re
     'The label extends beyond the old polygon edge rather than clipping there');
 });
 
-test('Adjacent words and two close rows stay together while a remote name stays separate', () => {
+test('Adjacent words remain complete and close rows stay separate from a remote name', () => {
   const bitmap = image(300, 150);
   word(bitmap, 18, 20, 4);
   word(bitmap, 64, 20, 5);
   word(bitmap, 35, 40, 6);
   word(bitmap, 210, 100, 4);
   const result = scan(bitmap);
-  assert.equal(result.boxes.length, 2);
-  assert(encloses(result.boxes[0], 18, 20, 115, 54));
-  assert(encloses(result.boxes[1], 210, 100, 250, 114));
+  assert.equal(result.boxes.length, 3);
+  assert(encloses(result.boxes[0], 18, 20, 115, 34));
+  assert(encloses(result.boxes[1], 35, 40, 97, 54));
+  assert(encloses(result.boxes[2], 210, 100, 250, 114));
 });
 
 test('An inclined street name is measured in full, including its upper and lower strokes', () => {
@@ -59,6 +60,14 @@ test('An inclined street name is measured in full, including its upper and lower
   assert.equal(result.boxes.length, 1);
   const box = result.boxes[0];
   assert(box.x0 <= 44 && box.x1 >= 128 && box.y0 <= 40 && box.y1 >= 104);
+});
+
+test('A dense cluster keeps each complete row without one box covering the whole map', () => {
+  const bitmap=image(850,370);
+  for(let row=0;row<15;row++)word(bitmap,20,30+row*20,70);
+  const result=scan(bitmap);
+  assert.equal(result.boxes.length,15);
+  for(let row=0;row<15;row++)assert(encloses(result.boxes[row],20,30+row*20,786,44+row*20));
 });
 
 test('Road strokes and isolated dots do not create enormous label boxes', () => {
@@ -91,7 +100,7 @@ test('Translucent road edges cannot connect two otherwise distant opaque names',
   word(bitmap, 170, 115, 8);
   for (let x = 0; x < 320; x++) {
     const y = Math.round(25 + x * .4);
-    for (let thickness = 0; thickness < 3; thickness++) dot(bitmap, x, y + thickness, [25, 26, 28, 203]);
+    for (let thickness = 0; thickness < 3; thickness++) dot(bitmap, x, y + thickness, [25, 26, 28, 239]);
   }
   const result = scan(bitmap);
   assert.equal(result.boxes.length, 2);

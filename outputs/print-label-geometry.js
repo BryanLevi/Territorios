@@ -41,7 +41,7 @@
         // Google dibuja el borde antialias de las carreteras con el mismo
         // RGB oscuro que el halo de las letras, pero con menos alfa. Pedir
         // tinta opaca evita que esos bordes unan todos los nombres del mapa.
-        if (rgba[pixel + 3] < 224 || Math.max(r, g, b) > 135
+        if (rgba[pixel + 3] < 250 || Math.max(r, g, b) > 135
           || r * .2126 + g * .7152 + b * .0722 > 90) continue;
         ink[row + Math.floor(x / step)] = 1;
         darkPixels++;
@@ -98,9 +98,11 @@
     for (let i = 0; i < total; i++) ink[i] = ink[i] ? 1 : 0;
 
     const horizontal = new Uint8Array(total), joined = new Uint8Array(total);
-    // Dos expansiones de cuatro px salvan espacios de hasta ocho px. La
-    // pasada vertical también conserva rótulos inclinados y de dos líneas.
+    // La unión horizontal salva espacios entre letras y palabras. Un margen
+    // vertical menor conserva rótulos inclinados sin encadenar filas de
+    // nombres cercanos en una sola caja que abarque toda la ciudad.
     const radius = Math.max(1, Math.ceil(4 * scale / step));
+    const verticalRadius = Math.max(1, Math.ceil(2 * scale / step));
     for (let y = 0; y < rows; y++) {
       const start = y * columns;
       let sum = 0;
@@ -113,11 +115,11 @@
     }
     for (let x = 0; x < columns; x++) {
       let sum = 0;
-      for (let y = 0; y <= Math.min(rows - 1, radius); y++) sum += horizontal[y * columns + x];
+      for (let y = 0; y <= Math.min(rows - 1, verticalRadius); y++) sum += horizontal[y * columns + x];
       for (let y = 0; y < rows; y++) {
         joined[y * columns + x] = sum ? 1 : 0;
-        if (y - radius >= 0) sum -= horizontal[(y - radius) * columns + x];
-        if (y + radius + 1 < rows) sum += horizontal[(y + radius + 1) * columns + x];
+        if (y - verticalRadius >= 0) sum -= horizontal[(y - verticalRadius) * columns + x];
+        if (y + verticalRadius + 1 < rows) sum += horizontal[(y + verticalRadius + 1) * columns + x];
       }
     }
 
@@ -150,9 +152,11 @@
       components++;
       const w = (x1 - x0 + 1) * step / scale, h = (y1 - y0 + 1) * step / scale;
       const area = (x1 - x0 + 1) * (y1 - y0 + 1);
+      // En mapas densos varios nombres cercanos forman una caja grande.
+      // Descartarla por su tamaño volvía a cortar las palabras del borde.
+      // Los trazos de carretera ya se filtraron antes de unir la tinta.
       if (count < 4 || Math.min(w, h) < 4 || Math.max(w, h) < 7
-        || Math.max(w, h) > 720 || (w > 240 && h > 240)
-        || count / area < .045) continue;
+        || count / area < .008) continue;
       boxes.push({
         x0:Math.max(0, x0 * step - padding),
         y0:Math.max(0, y0 * step - padding),

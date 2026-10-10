@@ -8599,13 +8599,114 @@ function recolocarNumerosImpresos(targetMap, layoutScale = 1){
   });
 }
 
+// Una caja muy pequeña puede tener papel libre a los lados del lienzo de
+// Leaflet. Ese papel también sirve para los números y sus líneas guía.
+function distribuirNumerosDeMarco(area, entries, obstacles = []){
+  const occupied = obstacles.slice();
+  const cols=Math.max(1,Math.floor(area.w/(Math.max(...entries.map(e=>e.w))+.5)));
+  const rows=Math.max(1,Math.floor(area.h/(Math.max(...entries.map(e=>e.h))+.5)));
+  const overlap = (a,b) => Math.max(0,Math.min(a.x1,b.x1)-Math.max(a.x0,b.x0))
+    * Math.max(0,Math.min(a.y1,b.y1)-Math.max(a.y0,b.y0));
+  return entries.map(entry => {
+    const at = point => ({x0:point.x-entry.w/2-.25,x1:point.x+entry.w/2+.25,
+      y0:point.y-entry.h/2-.25,y1:point.y+entry.h/2+.25});
+    const fits = box => box.x0>=0 && box.y0>=0 && box.x1<=area.w && box.y1<=area.h;
+    const free = box => fits(box) && occupied.every(other => overlap(box,other)<.0001);
+    const inside = box => entry.shape && [[box.x0,box.y0],[box.x1,box.y0],[box.x1,box.y1],[box.x0,box.y1]]
+      .every(p => isInsidePrintZones([entry.shape],{x:p[0],y:p[1]}));
+    let point = entry.origin, box = at(point);
+    if(!free(box) || !inside(box)){
+      const candidates = [];
+      for(let row=0;row<rows;row++) for(let col=0;col<cols;col++){
+          const x=(col+.5)*area.w/cols,y=(row+.5)*area.h/rows;
+          const p={x,y},b=at(p);
+          if(free(b)) candidates.push({point:p,box:b,inside:!!inside(b),distance:Math.hypot(x-point.x,y-point.y)});
+        }
+      candidates.sort((a,b) => Number(b.inside)-Number(a.inside) || a.distance-b.distance);
+      if(candidates.length){point=candidates[0].point;box=candidates[0].box;}
+    }
+    occupied.push(box);
+    return {point,box,leader:!inside(box) && Math.hypot(point.x-entry.origin.x,point.y-entry.origin.y)>.1};
+  });
+}
+
+function asegurarNumerosEnMarco(targetMap, frame, area){
+  const entries = (targetMap?._printTextMarkers || []).filter(({label,marker}) => isPrintZoneNumber(label)
+    && marker.getElement?.()?.querySelector('.print-zone-number'));
+  if(!entries.length || !frame || !(area?.w>0 && area?.h>0)) return;
+  const mapNode=targetMap.getContainer(), mapRect=mapNode.getBoundingClientRect(),size=targetMap.getSize();
+  const project = p => ({x:mapRect.left+p.x*mapRect.width/size.x,y:mapRect.top+p.y*mapRect.height/size.y});
+  const names=(targetMap._printNameBoxes || []).map(b=>{
+    const a=project({x:b.x0,y:b.y0}),z=project({x:b.x1,y:b.y1});
+    return {left:a.x,top:a.y,right:z.x,bottom:z.y};
+  });
+  const marks=[...mapNode.querySelectorAll('.print-own-text,.destination-text-label,.manual-map-icon,.print-reference-label')]
+    .map(node=>node.getBoundingClientRect());
+  const rects=entries.map(({marker})=>marker.getElement().querySelector('.print-zone-number').getBoundingClientRect());
+  const crosses=(a,b)=>Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))
+    * Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top))>.2;
+  if(!rects.some((r,i)=>rects.slice(0,i).concat(names,marks).some(other=>crosses(r,other)))) return;
+  (targetMap._printNumberLeaders || []).forEach(line=>line.remove());
+  targetMap._printNumberLeaders=[];
+  const overlay=document.createElement('div');
+  overlay.className='print-numbers-overlay';
+  Object.assign(overlay.style,{position:'absolute',left:area.x+'mm',top:area.y+'mm',
+    width:area.w+'mm',height:area.h+'mm',overflow:'hidden',zIndex:'650',pointerEvents:'none'});
+  frame.appendChild(overlay);
+  const outer=overlay.getBoundingClientRect(),pxMm=outer.width/area.w;
+  const mm=p=>({x:(p.x-outer.left)/pxMm,y:(p.y-outer.top)/pxMm});
+  const toBox=r=>({x0:(r.left-outer.left)/pxMm-.15,y0:(r.top-outer.top)/pxMm-.15,
+    x1:(r.right-outer.left)/pxMm+.15,y1:(r.bottom-outer.top)/pxMm+.15});
+  const shapes=getExportColorAreasForLoc(targetMap._printLoc).map(a=>{
+    const puntos=a.points.map(p=>mm(project(targetMap.latLngToContainerPoint(p))));
+    return {puntos,minX:Math.min(...puntos.map(p=>p.x)),maxX:Math.max(...puntos.map(p=>p.x)),
+      minY:Math.min(...puntos.map(p=>p.y)),maxY:Math.max(...puntos.map(p=>p.y))};
+  });
+  const measured=entries.map(entry=>{
+    const icon=entry.marker.getElement(),label=icon.querySelector('.print-zone-number');
+    const origin=mm(project(targetMap.latLngToContainerPoint([Number(entry.label.lat),Number(entry.label.lng)])));
+    overlay.appendChild(icon);
+    Object.assign(icon.style,{left:origin.x+'mm',top:origin.y+'mm',transform:'none',marginLeft:'0px',marginTop:'0px'});
+    label.style.cssText=label.style.cssText+';'+printZoneNumberStyle(1,1);
+    label.style.boxShadow='none';
+    Object.assign(label.style,{position:'absolute',left:'0px',top:'0px'});
+    const r=label.getBoundingClientRect();
+    return {icon,origin,w:r.width/pxMm,h:r.height/pxMm,
+      shape:shapes.find(s=>isInsidePrintZones([s],origin))};
+  });
+  const placements=distribuirNumerosDeMarco(area,measured,names.concat(marks).map(toBox));
+  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 '+area.w+' '+area.h);
+  Object.assign(svg.style,{position:'absolute',inset:'0',width:'100%',height:'100%',pointerEvents:'none'});
+  overlay.prepend(svg);
+  placements.forEach((placement,i)=>{
+    const item=measured[i];
+    item.icon.style.left=placement.point.x+'mm';item.icon.style.top=placement.point.y+'mm';
+    if(placement.leader){
+      const path=document.createElementNS(ns,'path');
+      path.setAttribute('d','M'+item.origin.x+' '+item.origin.y+'L'+placement.point.x+' '+placement.point.y);
+      path.setAttribute('class','print-number-leader');path.setAttribute('fill','none');
+      path.setAttribute('stroke','#51645b');path.setAttribute('stroke-width',String(.45*25.4/72));
+      svg.appendChild(path);
+    }
+  });
+}
+
 function printNameBoxesForLoc(targetMap, loc, boxes){
   const polygons = getExportColorAreasForLoc(loc).map(area => area.points.map(point =>
     targetMap.latLngToContainerPoint([Number(point[0]),Number(point[1])])));
   const bleed = Number(targetMap._printNameBleed) || 0;
   const geometry = window.CroquisDestinationPlacement;
   if(!polygons.length || !geometry?.polygonIntersectsRect) return [];
-  return (boxes || []).filter(box => ['x0','y0','x1','y1'].every(key => Number.isFinite(box[key]))
+  const size = targetMap.getSize?.();
+  const valid = (boxes || []).filter(box => ['x0','y0','x1','y1'].every(key => Number.isFinite(box[key])));
+  // Un nombre remoto que nace incompleto en el borde del lienzo no pertenece
+  // al croquis. Cerrar ese hueco evita mostrar fragmentos de pueblos vecinos.
+  const suppressed = valid.filter(box => size?.x > 0 && size?.y > 0
+    && (box.x0 <= 0 || box.y0 <= 0 || box.x1 >= size.x || box.y1 >= size.y)
+    && !polygons.some(points => geometry.polygonIntersectsRect(points,box)));
+  targetMap._printSuppressedNameBoxes = suppressed;
+  return valid.filter(box => !suppressed.includes(box)
     && polygons.some(points => geometry.polygonIntersectsRect(points,{
       x0:box.x0-bleed,y0:box.y0-bleed,x1:box.x1+bleed,y1:box.y1+bleed
     })));
@@ -8852,6 +8953,12 @@ function renderPrintColorMask(targetMap, loc, opciones = {}){
     rect.setAttribute('x', String(box.x0)); rect.setAttribute('y', String(box.y0));
     rect.setAttribute('width', String(box.x1-box.x0)); rect.setAttribute('height', String(box.y1-box.y0));
     rect.setAttribute('fill', '#000'); mask.appendChild(rect); holes++;
+  });
+  (opciones.suppressedLabelBoxes || []).forEach(box => {
+    const rect = document.createElementNS(ns, 'rect');
+    rect.setAttribute('x', String(box.x0)); rect.setAttribute('y', String(box.y0));
+    rect.setAttribute('width', String(box.x1-box.x0)); rect.setAttribute('height', String(box.y1-box.y0));
+    rect.setAttribute('fill', '#fff'); mask.appendChild(rect);
   });
   if(!holes) return;
 
@@ -9819,6 +9926,7 @@ async function generarAgrupado(modo){
             + (sobraX - rec.x * k).toFixed(2) + 'mm,'
             + (sobraY - rec.y * k).toFixed(2) + 'mm) scale(' + k + ')';
           papel.style.transformOrigin = 'top left';
+          asegurarNumerosEnMarco(printMap,caso,util);
         }else{
           // La hoja base es horizontal. En una pagina vertical entra entera
           // al escalarla; la flecha ya compensa esta escala y conserva 10 pt.
@@ -10369,7 +10477,8 @@ async function imprimir(opciones = {}){
       // Y encima el de los nombres, con espacio para completar los rótulos.
       if(!printMap._printNameDetection?.reason || printMap._printNameDetection.reason === 'no-ink'){
         renderPrintColorMask(printMap, loc, { pane:'territoryMaskPane', grow:PRINT_MASK_GROW_NOMBRES,
-          labelBoxes:printMap._printNameBoxes, fondo:fondoTapa });
+          labelBoxes:printMap._printNameBoxes,
+          suppressedLabelBoxes:printMap._printSuppressedNameBoxes, fondo:fondoTapa });
       }
     }else if(opciones.lamina){
       // Sin zonas pintadas no habia tapado ninguno. Se usa el marco de la hoja
