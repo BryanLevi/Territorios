@@ -179,10 +179,11 @@ test('la actualización comparte la preparación en curso y espera la página nu
   assert.equal(app.calls.set.length, 0);
   assert.equal(app.calls.fetch.length, 0);
   assert.equal(app.calls.prepare.length,1);
-  assert.equal(app.calls.prepare[0].cacheName,'croquis-app-shell-v35');
+  assert.equal(app.calls.prepare[0].cacheName,'croquis-app-shell-v36');
   assert.ok(app.calls.prepare[0].files.includes('offline-shell.js'));
   assert.ok(app.calls.prepare[0].files.includes('pdf-sheet-layout.js'));
   assert.ok(app.calls.prepare[0].files.includes('print-frame-fit.js'));
+  assert.ok(app.calls.prepare[0].files.includes('print-direction-layout.js'));
   assert.equal(app.element('offline-download').attributes['aria-busy'],'true');
   waiting.resolve();
   await pending;

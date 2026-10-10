@@ -25,7 +25,7 @@ function funcion(nombre){
   }
   throw new Error(`Funcion incompleta: ${nombre}`);
 }
-const funciones = ['isPrintZoneNumber', 'printDirectionLabelsForLoc', 'getDirectionExportBoundsPlain',
+const funciones = ['isPrintZoneNumber', 'printDirectionLabelsForLoc', 'printDirectionTextPoints', 'getDirectionExportBoundsPlain',
   'medidaDeLasZonas', 'medidaDeMarcasImpresas', 'medidaDeNombresImpresos', 'recorteDelCroquis', 'calcularAreaDeCroquis', 'recolocarNumerosImpresos', 'printOwnTextPoints', 'drawPrintTextLabels',
   'escalaDeHueco', 'acomodarHojaSueltaEnHueco'].map(funcion).join('\n');
 const copiar = valor => JSON.parse(JSON.stringify(valor));
@@ -72,6 +72,24 @@ test('Reserva mas espacio para texto de tamano fisico constante en laminas peque
   assert(Object.values(lamina).every(Number.isFinite));
 });
 
+test('El texto de dirección impreso se compacta según el marco sin modificar el tamaño guardado', () => {
+  const e=entorno(), grande=Object.freeze(destino({sizePt:22}));
+  const normal=Object.freeze(destino({sizePt:10})), pequeno=Object.freeze(destino({sizePt:6}));
+  const snapshot=JSON.stringify([grande,normal,pequeno]);
+  assert.equal(e.contexto.printDirectionTextPoints(grande,64),9,'Una flecha grande no domina la hoja individual');
+  assert.equal(e.contexto.printDirectionTextPoints(grande,32),6.5,'El rótulo se compacta dentro de un marco pequeño');
+  assert.equal(e.contexto.printDirectionTextPoints(normal,64),7.5,'Un rótulo normal conserva tres cuartos de su tamaño');
+  assert.equal(e.contexto.printDirectionTextPoints(pequeno,20),5.5,'El mínimo mantiene el rótulo legible al acercar el PDF');
+  for(const ancho of [20,32,64]){
+    for(const scale of [.2,.5,1]){
+      const puntos=e.contexto.printDirectionTextPoints(grande,ancho);
+      const fuentePx=puntos*96/72/scale;
+      assert(Math.abs(fuentePx*scale*72/96-puntos)<1e-10,'La escala del marco no agranda físicamente la flecha');
+    }
+  }
+  assert.equal(JSON.stringify([grande,normal,pequeno]),snapshot,'La edición guardada mantiene sus tamaños originales');
+});
+
 test('Las flechas incompletas no cambian el encuadre ni generan coordenadas invalidas', () => {
   const e = entorno([destino({points:[[.5,.2],[NaN,0]]}), destino({text:' '}),
     destino({points:[[.5,.2]]}), destino({lat:undefined})]);
@@ -87,8 +105,8 @@ test('El recorte de la lamina incluye la referencia que queda fuera de las zonas
   assert(conDestino.y < normal.y && conDestino.h > normal.h);
   const inicioTexto = bounds.x0 / (1123 * 3) * 297;
   const finalTexto = bounds.x1 / (1123 * 3) * 297;
-  assert(conDestino.x <= inicioTexto - 1.6 + .0001);
-  assert(conDestino.x + conDestino.w >= finalTexto + 1.6 - .0001);
+  assert(Math.abs((inicioTexto-conDestino.x)*.5-.4)<.0001,'El inicio completo conserva 0.4 mm de aire físico');
+  assert(Math.abs((conDestino.x+conDestino.w-finalTexto)*.5-.4)<.0001,'El extremo completo conserva 0.4 mm de aire físico');
 });
 
 test('El territorio ocupa casi todo el lado disponible sin deformarse ni cortar el contorno', () => {
@@ -131,8 +149,8 @@ test('El ajuste conserva iconos o etiquetas que sobresalen del color', () => {
   const limites = copiar(e.contexto.medidaDeMarcasImpresas(mapa));
   assert.deepEqual(limites,{x0:66,y0:300,x1:192,y1:360});
   const rec = e.contexto.recorteDelCroquis(mapa,{num:1},null,.5);
-  assert(rec.x <= 22/1123*297 - 1.6 + .001);
-  assert(rec.y <= 15+100/714*189 - 1.6 + .001);
+  assert(Math.abs((22/1123*297-rec.x)*.5-.4)<.001,'El icono completo conserva 0.4 mm a su izquierda');
+  assert(Math.abs((15+100/714*189-rec.y)*.5-.4)<.001,'La etiqueta completa conserva 0.4 mm por arriba');
 });
 
 test('Una calle horizontal fuera del color conserva sus dos extremos y todo su grosor', () => {
@@ -156,13 +174,13 @@ test('La leyenda y la rosa ancladas reservan tinta propia y conservan un encuadr
     assert(plan.mapRect.y > titulo && plan.mapRect.h > 10);
     for(const adorno of [plan.legendRect,plan.compassRect]){
       assert.equal(areaInterseccion(plan.safeMapRect,adorno),0, 'El encuadre alternativo no toca la referencia ni la rosa');
-      assert(adorno.x >= 1.6 && adorno.y >= titulo);
-      assert(adorno.x+adorno.w <= marco.w-1.6+.0001 && adorno.y+adorno.h <= marco.h-1.6+.0001);
+      assert(adorno.x >= 1.2 && adorno.y >= titulo);
+      assert(adorno.x+adorno.w <= marco.w-1.2+.0001 && adorno.y+adorno.h <= marco.h-1.2+.0001);
       assert(adorno.y >= plan.safeMapRect.y+plan.safeMapRect.h+.999);
     }
     assert.equal(areaInterseccion(plan.legendRect,plan.compassRect),0, 'Los dos adornos tampoco se superponen');
-    assert.equal(plan.legendRect.x,1.6, 'Referencias fijadas a la esquina inferior izquierda');
-    assert(Math.abs(plan.legendRect.y+plan.legendRect.h-(marco.h-1.6)) < 1e-10);
+    assert.equal(plan.legendRect.x,1.2, 'Referencias fijadas a la esquina inferior izquierda');
+    assert(Math.abs(plan.legendRect.y+plan.legendRect.h-(marco.h-1.2)) < 1e-10);
   }
 });
 
@@ -196,10 +214,12 @@ test('Una hoja suelta vertical contiene el papel completo y compensa el texto fi
   assert(297 * k <= hueco.w && 210 * k <= hueco.h);
   assert.equal(papel.style.transformOrigin, 'top left');
   assert.match(papel.style.transform, /^translate\(0\.00mm,74\.26mm\) scale\(/);
-  // El render recibe esta misma escala: fuente multiplicada por 1/k y luego
-  // papel multiplicado por k producen los 10 puntos pedidos en el PDF.
-  const fuentePx = 10 * 96 / 72 / k;
-  assert(Math.abs(fuentePx * k * 72 / 96 - 10) < 1e-10);
+  // El render recibe esta misma escala: compensarla conserva físicamente
+  // el tamaño compacto impreso, aunque el editor guarde diez puntos.
+  const puntos=e.contexto.printDirectionTextPoints(destino(),64);
+  assert.equal(puntos,7.5);
+  const fuentePx = puntos * 96 / 72 / k;
+  assert(Math.abs(fuentePx * k * 72 / 96 - puntos) < 1e-10);
   const normal = {style:{}};
   assert.equal(e.contexto.acomodarHojaSueltaEnHueco(normal, {w:297,h:210}), 1);
   assert.deepEqual(normal.style, {});

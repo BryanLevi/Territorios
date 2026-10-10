@@ -1,5 +1,5 @@
 /* App shell for the croquis. Map tiles and external APIs are never cached here. */
-const APP_CACHE = 'croquis-app-shell-v35';
+const APP_CACHE = 'croquis-app-shell-v36';
 const APP_FILES = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const APP_FILES = [
   './outputs/print-label-geometry.js',
   './outputs/pdf-sheet-layout.js',
   './outputs/print-frame-fit.js',
+  './outputs/print-direction-layout.js',
   './outputs/offline-controller.js',
   './outputs/congregation-password.js',
   './outputs/congregation-access.js',

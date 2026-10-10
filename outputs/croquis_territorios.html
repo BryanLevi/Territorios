@@ -1194,6 +1194,7 @@ body.print-preview{overflow:hidden}
 <script src="print-label-geometry.js?v=complete-names-1"></script>
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
+<script src="print-direction-layout.js?v=compact-directions-1"></script>
 <script src="congregation-password.js"></script>
 <script>
 const MUNICIPIO = 'Ixhuatlán del Café';
@@ -5010,7 +5011,29 @@ function directionInteractionAllowed(){
     && !territoryAddMode && !colorDrawMode && !roadPencilMode && !riverPencilMode && !textAddMode && !iconAddMode && !contourEditMode;
 }
 
-// Los tamaños se expresan en la hoja final; layoutScale compensa cada hueco.
+function printDirectionTextPoints(label, maxTextWidthMm = 64){
+  const layout = typeof window === 'object' && window.CroquisPrintDirectionLayout;
+  if(layout) return layout.textPoints(label.sizePt,maxTextWidthMm);
+  const limite = Math.max(6.5,Math.min(9,(Number(maxTextWidthMm)||64)*.15));
+  return Math.max(5.5,Math.min(limite,(Number(label.sizePt)||10)*.75));
+}
+
+function obstaculosDeDestinosImpresos(targetMap,loc){
+  const polygons = getExportColorAreasForLoc(loc).map(area => (area.points||[])
+    .map(p => targetMap.latLngToContainerPoint(p)).filter(p => Number.isFinite(p.x+p.y)));
+  const occupied = (targetMap._printNameBoxes||[]).map(b =>
+    ({x:b.x0,y:b.y0,w:b.x1-b.x0,h:b.y1-b.y0}));
+  const node=targetMap.getContainer(),frame=node.getBoundingClientRect(),size=targetMap.getSize();
+  if(frame.width&&frame.height) node.querySelectorAll('.territory-text-label,.manual-map-icon,.print-reference-label').forEach(n => {
+    const r=n.getBoundingClientRect();
+    if(r.width>0&&r.height>0) occupied.push({x:(r.left-frame.left)*size.x/frame.width,
+      y:(r.top-frame.top)*size.y/frame.height,w:r.width*size.x/frame.width,h:r.height*size.y/frame.height});
+  });
+  return {polygons,occupied,canvas:{w:size.x,h:size.y}};
+}
+
+// El PDF usa rótulos compactos y un espacio libre junto a la flecha.
+// Sus coordenadas guardadas y el tamaño del editor se conservan.
 function renderDirectionAnnotations(targetMap, loc, options = {}){
   if(!targetMap || !window.L) return {bounds:null};
   if(targetMap._directionLayer) targetMap.removeLayer(targetMap._directionLayer);
@@ -5020,6 +5043,8 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
   const scale = Number(options.scale) || 1;
   const layoutScale = Math.max(.05, Number(options.layoutScale) || 1);
   const factor = scale / layoutScale;
+  const placement = printMode && window.CroquisPrintDirectionLayout;
+  const obstacles = placement ? obstaculosDeDestinosImpresos(targetMap,loc) : null;
   const canEdit = !printMode && options.interactive !== false && directionInteractionAllowed();
   const namespace = congregacionActivaId, locNum = String(loc?.num);
   const paneName = 'territoryDirectionPane';
@@ -5049,12 +5074,27 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
       L.polyline(label.points,{...style,weight:20,opacity:0,className:'destination-arrow-hit'}).addTo(layer).on('click',select);
     }
     const selected = !printMode && selectedTextIndex === index;
-    const font = label.sizePt * 96 / 72 * factor;
+    const sizePt = printMode ? printDirectionTextPoints(label,options.maxTextWidthMm) : label.sizePt;
+    const font = sizePt * 96 / 72 * factor;
     const maxWidth = (Number(options.maxTextWidthMm) || 64) * 96 / 25.4 * factor;
+    const padY = printMode ? 1.5 : 2, padX = printMode ? 2 : 3;
     const marker = L.marker([label.lat,label.lng],{pane:paneName,draggable:canEdit,interactive:canEdit,bubblingMouseEvents:false,keyboard:canEdit,zIndexOffset:selected && canEdit ? 2400 : 0,
-      icon:L.divIcon({className:'destination-label-marker',iconAnchor:[0,0],html:'<div class="destination-text-label'+(selected?' is-selected':'')+'" data-size-pt="'+label.sizePt+'" data-layout-scale="'+layoutScale+'" data-print-scale="'+scale+'" style="font-size:'+font+'px;max-width:'+maxWidth+'px;padding:'+(2*factor)+'px '+(3*factor)+'px">'+escapeHtml(label.text)+'</div>'})}).addTo(layer);
+      icon:L.divIcon({className:'destination-label-marker',iconAnchor:[0,0],html:'<div class="destination-text-label'+(selected?' is-selected':'')+'" data-size-pt="'+sizePt+'" data-layout-scale="'+layoutScale+'" data-print-scale="'+scale+'" style="font-size:'+font+'px;max-width:'+maxWidth+'px;padding:'+(padY*factor)+'px '+(padX*factor)+'px">'+escapeHtml(label.text)+'</div>'})}).addTo(layer);
     const element = marker.getElement()?.querySelector('.destination-text-label');
     marker.getElement()?.setAttribute('aria-label','Destino: '+label.text+'. Arrastra para mover el texto.');
+    if(element && obstacles){
+      const r=element.getBoundingClientRect(),m=targetMap.getContainer().getBoundingClientRect(),size=targetMap.getSize();
+      if(m.width>0&&m.height>0&&r.width>0&&r.height>0){
+        const width=r.width*size.x/m.width,height=r.height*size.y/m.height;
+        const anchor=targetMap.latLngToContainerPoint([label.lat,label.lng]);
+        const next=placement.placeLabel({...obstacles,anchor,tip:geometry.tip,width,height,
+          arrowPoints:[geometry.start,geometry.tip,geometry.wings[0],geometry.tip,geometry.wings[1]],
+          gap:.6*96/25.4*factor,unitScale:96/25.4*factor});
+        marker.setLatLng(targetMap.containerPointToLatLng(next));
+        element.dataset.printDirectionMoved=String(next.moved);
+        obstacles.occupied.push({x:next.x-width/2,y:next.y-height/2,w:width,h:height});
+      }
+    }
     if(element){
       const r = element.getBoundingClientRect(), m = targetMap.getContainer().getBoundingClientRect(), size = targetMap.getSize();
       if(m.width > 0 && m.height > 0 && r.width > 0){
@@ -9882,7 +9922,7 @@ function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1, e
     if(!(x1 > x0 && y1 > y0)) return hoja;
     // Reserva física para el contorno y la tinta, sin sumar un porcentaje
     // del territorio: en recuadros pequeños ese porcentaje dejaba mucho blanco.
-    const aire = Math.max(.12, .8 / Math.max(.05, layoutScale));
+    const aire = Math.max(.12, .4 / Math.max(.05, layoutScale));
     const izquierda = Math.max(0, x0 * 297 - aire);
     const arriba = Math.max(15, 15 + y0 * 189 - aire);
     const derecha = Math.min(297, x1 * 297 + aire);
@@ -9898,7 +9938,7 @@ function recorteDelCroquis(mapa, loc, directionBounds = null, layoutScale = 1, e
 // El mapa puede aprovechar el papel libre entre los adornos. Las esquinas
 // se reservan por su tinta real; el ajuste conserva una alternativa segura
 // sobre ambos adornos cuando no se puede medir la silueta.
-function calcularAreaDeCroquis(hueco, alturaRotulo = 0, leyenda = null, rosa = null, margen = 1.6, separacion = 1){
+function calcularAreaDeCroquis(hueco, alturaRotulo = 0, leyenda = null, rosa = null, margen = 1.2, separacion = 1){
   const ancho = Math.max(1, Number(hueco?.w) || 1);
   const alto = Math.max(1, Number(hueco?.h) || 1);
   const borde = Math.max(0, Math.min(Number(margen) || 0, ancho / 4, alto / 4));
@@ -9939,7 +9979,7 @@ function prepararAdornosEnMarco(caso, papel, hueco, alturaRotulo = 0){
   if(!caso || !papel || !hueco) return calcularAreaDeCroquis(hueco, alturaRotulo);
   const leyenda = papel.querySelector('.print-leyenda') || caso.querySelector(':scope > .print-leyenda');
   const rosa = papel.querySelector('.print-compass') || caso.querySelector(':scope > .print-compass');
-  const margen = 1.6, separacion = 1;
+  const margen = 1.2, separacion = 1;
   const disponible = calcularAreaDeCroquis(hueco, alturaRotulo, null, null, margen, separacion).mapRect;
   const altoRosa = rosa ? Math.max(7, Math.min(13, disponible.h * .14, hueco.w * .11)) : 0;
   const anchoRosa = altoRosa * 100 / 132;
@@ -10501,7 +10541,7 @@ function getDirectionExportBoundsPlain(loc, z = DETAIL_ZOOM, layoutScale = 1, ma
       bounds.west = Math.min(bounds.west, Number(point[1]));
       bounds.east = Math.max(bounds.east, Number(point[1]));
     });
-    const fuenteMm = Math.max(7, Math.min(18, Number(label.sizePt) || 10)) * 25.4 / 72;
+    const fuenteMm = printDirectionTextPoints(label,anchoTexto) * 25.4 / 72;
     const renglones = String(label.text).trim().split(/\r?\n|\s*\/\s*/);
     let lineas = 0, ancho = 0;
     renglones.forEach(renglon => {
@@ -11549,6 +11589,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=remove-walk-mode-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=pdf-outer-corners-1"></script>
+<script src="offline-controller.js?v=compact-directions-1"></script>
 </body>
 </html>

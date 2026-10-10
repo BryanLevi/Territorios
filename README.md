@@ -106,6 +106,8 @@ Al colocar o seleccionar un destino, activa `Ver espacio del texto en el PDF`. L
 
 La lámina mantiene las proporciones del territorio, los contornos y las marcas exteriores. Las referencias usan letras e iconos compactos en la esquina inferior izquierda; el encuadre considera su tamaño para que no cubran el territorio ni sus nombres. Una lista muy larga puede usar columnas y se ajusta cuando no cabe completa en su recuadro. Los números de subterritorio conservan 6 puntos y cajas con poco margen en todos los tamaños de mapa.
 
+Al exportar, los textos de dirección se reducen según el tamaño de su recuadro. Si se cruzan con una zona pintada, una flecha u otro nombre, se busca un espacio libre cercano en el PDF. El texto y la posición guardados en el editor se conservan. Los márgenes compactos permiten ampliar el croquis sin deformarlo ni recortar sus nombres.
+
 ## Mapa sin conexion
 
 El mapa descargado muestra los nombres de calles y carreteras, localidades y lugares disponibles en los datos guardados. Incluye edificios, parques, áreas verdes, campos y zonas de agua cartografiados en OpenStreetMap. Las letras llevan un halo blanco para mantener el contraste sobre las zonas pintadas y se recolocan al acercar o mover el mapa, sin nuevas peticiones a internet. Los nombres de las referencias aparecen junto a sus iconos cuando hay espacio, sin estorbar los números del territorio ni la edición.
