@@ -113,16 +113,16 @@ test('The search preserves all source data and keeps the saved anchor when no wh
 });
 
 test('Printed destination fonts are compact, finite and bounded in narrow and wide frames',()=>{
-  assert.equal(textPoints(10,64),7.5);
-  assert.equal(textPoints(7,64),5.5);
-  assert.equal(textPoints(18,64),9);
-  assert.equal(textPoints(18,32),6.5);
+  assert.equal(textPoints(10,64),6);
+  assert.equal(textPoints(7,64),5);
+  assert.equal(textPoints(18,64),7);
+  assert.equal(textPoints(18,32),5.5);
   for(const size of [-100,0,1,7,10,18,999,NaN,Infinity,undefined])
     for(const width of [12,32,48,64,999,0,-1,NaN,Infinity,undefined]){
-      const value=textPoints(size,width),maximum=Math.max(6.5,Math.min(9,
-        (Number.isFinite(Number(width)) ? Number(width) : 64)*.15));
+      const value=textPoints(size,width),maximum=Math.max(5.5,Math.min(7,
+        (Number.isFinite(Number(width)) ? Number(width) : 64)*.12));
       assert(Number.isFinite(value));
-      assert(value>=5.5 && value<=maximum);
+      assert(value>=5 && value<=maximum);
     }
 });
 

@@ -8,8 +8,8 @@
 
   function textPoints(sizePt,maxWidthMm){
     const saved=Number(sizePt),width=Number(maxWidthMm);
-    const maximum=Math.max(6.5,Math.min(9,(Number.isFinite(width) ? width : 64)*.15));
-    return Math.max(5.5,Math.min(maximum,(Number.isFinite(saved) ? saved : 10)*.75));
+    const maximum=Math.max(5.5,Math.min(7,(Number.isFinite(width) ? width : 64)*.12));
+    return Math.max(5,Math.min(maximum,(Number.isFinite(saved) ? saved : 10)*.6));
   }
 
   // All geometry, including gap, is in native map pixels. unitScale is pixels/mm.

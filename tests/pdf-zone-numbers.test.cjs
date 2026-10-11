@@ -66,11 +66,11 @@ function physicalDimensions(css, renderScale, layoutScale){
 }
 function uniformBadge(css, renderScale, layoutScale){
   const actual = physicalDimensions(css, renderScale, layoutScale);
-  close(actual.fontPt, 6, 'Printed number in points');
-  close(actual.paddingY, .6, 'Vertical padding in final CSS pixels');
-  close(actual.paddingX, 1.3, 'Horizontal padding in final CSS pixels');
-  close(actual.border, .3, 'Final badge border');
-  close(actual.radius, .9, 'Final badge corner radius');
+  close(actual.fontPt, 5.5, 'Printed number in points');
+  close(actual.paddingY, .5, 'Vertical padding in final CSS pixels');
+  close(actual.paddingX, 1, 'Horizontal padding in final CSS pixels');
+  close(actual.border, .275, 'Final badge border');
+  close(actual.radius, .825, 'Final badge corner radius');
 }
 
 test('Only whole numeric zone labels use uniform PDF numbering', () => {
@@ -124,6 +124,9 @@ test('Screen labels preserve editor sizes while printed own text stays physicall
   assert.match(screen.attributes, /is-selected/);
   assert.equal(parseFloat(screen.css['font-size']), 28);
   assert.equal(parseFloat(screen.css.opacity), .75);
+  const screenHighway = labelDiv(context.createTextIcon({text:'A OCOTITLÁN', type:'carretera', size:38}));
+  assert.doesNotMatch(screenHighway.attributes, /print-zone-number|print-own-text|data-print-scale/);
+  assert.equal(parseFloat(screenHighway.css['font-size']), 16, 'Road destinations keep their editor size');
   const colony = labelDiv(context.createTextIcon({text:'Colonia <Centro>', size:20}, false, 8 * 1.2, 13, .25));
   assert.doesNotMatch(colony.attributes, /print-zone-number/);
   assert.match(colony.attributes, /print-own-text/);
@@ -131,7 +134,7 @@ test('Screen labels preserve editor sizes while printed own text stays physicall
   assert.equal(colony.contents, '<span>Colonia &lt;Centro&gt;</span>');
   const highway = labelDiv(context.createTextIcon({text:'38', type:'carretera', size:38}, false, 8, 13, .25));
   assert.doesNotMatch(highway.attributes, /print-zone-number/);
-  close(physicalDimensions(highway.css,8,.25).fontPt, 6, 'Printed road name in points');
+  close(physicalDimensions(highway.css,8,.25).fontPt, 5.5, 'Printed road destination in points');
 });
 
 test('Printed own text and road names retain readable points and wrapping width across frame sizes', () => {
@@ -141,7 +144,7 @@ test('Printed own text and road names retain readable points and wrapping width 
       {text:'Colonia Centro / Iglesia San Rafael',size:38},{text:'Av. Independencia',type:'carretera'}]){
       const snapshot=JSON.stringify(label);
       const div=labelDiv(context.createTextIcon(label,false,renderScale,13,layoutScale,24));
-      const expected=label.type==='carretera'?6:label.size===13?9.75:12;
+      const expected=label.type==='carretera'?5.5:label.size===13?9.75:12;
       close(physicalDimensions(div.css,renderScale,layoutScale).fontPt,expected,'Physical text size');
       close(parseFloat(div.css['max-width'])*layoutScale/renderScale*25.4/96,24,'Wrap width on paper');
       assert.equal(div.css['white-space'],'normal');

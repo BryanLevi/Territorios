@@ -8,7 +8,7 @@ const html = fs.readFileSync(path.join(__dirname, '../outputs/croquis_territorio
 function funcion(nombre){
   let inicio = html.indexOf(`function ${nombre}(`);
   assert(inicio >= 0, `Funcion disponible: ${nombre}`);
-  const apertura = html.indexOf('{', inicio);
+  const apertura = html.indexOf('){', inicio) + 1;
   let nivel = 0, comilla = null;
   for(let i = apertura; i < html.length; i++){
     const actual = html[i], siguiente = html[i + 1];
@@ -76,10 +76,10 @@ test('El texto de dirección impreso se compacta según el marco sin modificar e
   const e=entorno(), grande=Object.freeze(destino({sizePt:22}));
   const normal=Object.freeze(destino({sizePt:10})), pequeno=Object.freeze(destino({sizePt:6}));
   const snapshot=JSON.stringify([grande,normal,pequeno]);
-  assert.equal(e.contexto.printDirectionTextPoints(grande,64),9,'Una flecha grande no domina la hoja individual');
-  assert.equal(e.contexto.printDirectionTextPoints(grande,32),6.5,'El rótulo se compacta dentro de un marco pequeño');
-  assert.equal(e.contexto.printDirectionTextPoints(normal,64),7.5,'Un rótulo normal conserva tres cuartos de su tamaño');
-  assert.equal(e.contexto.printDirectionTextPoints(pequeno,20),5.5,'El mínimo mantiene el rótulo legible al acercar el PDF');
+  assert.equal(e.contexto.printDirectionTextPoints(grande,64),7,'Una flecha grande no domina la hoja individual');
+  assert.equal(e.contexto.printDirectionTextPoints(grande,32),5.5,'El rótulo se compacta dentro de un marco pequeño');
+  assert.equal(e.contexto.printDirectionTextPoints(normal,64),6,'Un rótulo normal conserva seis puntos en el PDF');
+  assert.equal(e.contexto.printDirectionTextPoints(pequeno,20),5,'El mínimo mantiene el rótulo legible al acercar el PDF');
   for(const ancho of [20,32,64]){
     for(const scale of [.2,.5,1]){
       const puntos=e.contexto.printDirectionTextPoints(grande,ancho);
@@ -88,6 +88,76 @@ test('El texto de dirección impreso se compacta según el marco sin modificar e
     }
   }
   assert.equal(JSON.stringify([grande,normal,pequeno]),snapshot,'La edición guardada mantiene sus tamaños originales');
+});
+
+test('El fallback y el módulo de destinos producen los mismos puntos físicos', () => {
+  const e = entorno(), layout = require('../outputs/print-direction-layout.js');
+  for(const sizePt of [7,10,18]) for(const width of [12,32,48,64]){
+    const label = Object.freeze(destino({sizePt}));
+    assert.equal(e.contexto.printDirectionTextPoints(label,width),layout.textPoints(sizePt,width));
+  }
+});
+
+test('Las flechas renderizadas se reducen sólo en PDF y conservan extremos y datos del editor', () => {
+  const label = Object.freeze(destino({lat:.5,lng:.8,
+    points:Object.freeze([Object.freeze([.5,.2]),Object.freeze([.5,.8])])}));
+  const snapshot = JSON.stringify(label);
+  const sources = ['normalizeDestinationPoint','normalizeDestinationLabel','directionAnnotationGeometry',
+    'printDirectionTextPoints','renderDirectionAnnotations'].map(funcion).join('\n');
+  const close = (actual,expected,message) => assert(Math.abs(actual-expected)<1e-8,
+    `${message}: ${actual} en lugar de ${expected}`);
+  function render(printMode,scale,layoutScale){
+    const paths = [], markers = [], panes = new Map();
+    const L = {
+      point:(x,y) => ({x,y}),
+      layerGroup:() => ({addTo(){return this;}}),
+      polyline:(points,options) => {
+        paths.push({points:copiar(points),options:copiar(options)});
+        return {addTo(){return this;}};
+      },
+      divIcon:options => options,
+      marker:(position,options) => {
+        markers.push({position:copiar(position),options:copiar(options)});
+        return {addTo(){return this;},getElement:() => null};
+      }
+    };
+    const context = vm.createContext({window:{L},L,
+      getTextLabelsForLoc:() => [label],stateFingerprint:JSON.stringify,
+      directionInteractionAllowed:() => true,congregacionActivaId:'a',selectedTextIndex:null,
+      escapeHtml:text => text});
+    vm.runInContext(sources,context);
+    const map = {
+      getPane:name => panes.get(name),createPane:name => panes.set(name,{style:{}}),
+      latLngToContainerPoint:point => ({x:point[1]*1000,y:point[0]*1000}),
+      containerPointToLatLng:point => ({lat:point.y/1000,lng:point.x/1000})
+    };
+    context.renderDirectionAnnotations(map,{num:1},{printMode,scale,layoutScale,
+      maxTextWidthMm:64,interactive:false});
+    assert.equal(paths.length,2,'Se renderizan el eje y la punta de la flecha');
+    const shaft = paths.find(path => path.options.className==='destination-arrow-path');
+    const head = paths.find(path => path.options.className==='destination-arrow-head');
+    assert.deepEqual(shaft.points,copiar(label.points),'La reducción conserva los extremos geográficos');
+    assert.deepEqual(head.points[1],{lat:.5,lng:.8},'La punta permanece en su extremo guardado');
+    const factor = layoutScale/scale;
+    return {
+      strokePt:shaft.options.weight*factor*72/96,
+      headMm:(head.points[1].lng-head.points[0].lng)*1000*factor*25.4/96,
+      wingMm:Math.abs(head.points[0].lat-head.points[1].lat)*1000*factor*25.4/96,
+      textPt:Number(markers[0].options.icon.html.match(/font-size:([\d.e+-]+)px/)[1])*factor*72/96
+    };
+  }
+  const editor = render(false,1,1);
+  close(editor.strokePt,1.2,'El editor conserva el trazo original');
+  close(editor.headMm,3,'El editor conserva la punta original');
+  close(editor.textPt,10,'El editor conserva el texto original');
+  for(const scale of [.5,3,8]) for(const layoutScale of [.2,1,2]){
+    const printed = render(true,scale,layoutScale);
+    close(printed.strokePt,.78,'El trazo impreso conserva su nueva medida física');
+    close(printed.headMm,1.95,'La punta impresa conserva su nueva medida física');
+    close(printed.wingMm,1.0725,'Las alas impresas mantienen su proporción');
+    close(printed.textPt,6,'El texto impreso conserva seis puntos');
+  }
+  assert.equal(JSON.stringify(label),snapshot,'La impresión no modifica los tamaños ni las coordenadas guardadas');
 });
 
 test('Las flechas incompletas no cambian el encuadre ni generan coordenadas invalidas', () => {
@@ -217,7 +287,7 @@ test('Una hoja suelta vertical contiene el papel completo y compensa el texto fi
   // El render recibe esta misma escala: compensarla conserva físicamente
   // el tamaño compacto impreso, aunque el editor guarde diez puntos.
   const puntos=e.contexto.printDirectionTextPoints(destino(),64);
-  assert.equal(puntos,7.5);
+  assert.equal(puntos,6);
   const fuentePx = puntos * 96 / 72 / k;
   assert(Math.abs(fuentePx * k * 72 / 96 - puntos) < 1e-10);
   const normal = {style:{}};

@@ -1210,7 +1210,7 @@ body.print-preview{overflow:hidden}
 <script src="print-label-geometry.js?v=scaled-names-1"></script>
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
-<script src="print-direction-layout.js?v=compact-directions-1"></script>
+<script src="print-direction-layout.js?v=compact-directions-2"></script>
 <script src="../vendor/clipper-lib/clipper.js?v=6.4.2"></script>
 <script src="print-clip-geometry.js?v=pdf-hd-1"></script>
 <script src="congregation-password.js"></script>
@@ -1229,7 +1229,7 @@ const PRINT_ASPECT = 297 / 189;
 // Los numeros de zona y los textos se agrandan esto sobre su tamano
 // guardado. Estuvo en 1.5 y salian demasiado gordos en la hoja.
 const PRINT_ZONE_NUMBER_BOOST = 1.05;
-const PRINT_ZONE_NUMBER_SIZE_PT = 6;
+const PRINT_ZONE_NUMBER_SIZE_PT = 5.5;
 // Cuanto se desenfoca el mapa de fondo, en pixeles de la hoja. Medio pixel
 // basta para deshacer las letras, que en el papel miden algo mas de uno.
 const PRINT_BACKGROUND_BLUR = .38;
@@ -5123,8 +5123,8 @@ function directionInteractionAllowed(){
 function printDirectionTextPoints(label, maxTextWidthMm = 64){
   const layout = typeof window === 'object' && window.CroquisPrintDirectionLayout;
   if(layout) return layout.textPoints(label.sizePt,maxTextWidthMm);
-  const limite = Math.max(6.5,Math.min(9,(Number(maxTextWidthMm)||64)*.15));
-  return Math.max(5.5,Math.min(limite,(Number(label.sizePt)||10)*.75));
+  const limite = Math.max(5.5,Math.min(7,(Number(maxTextWidthMm)||64)*.12));
+  return Math.max(5,Math.min(limite,(Number(label.sizePt)||10)*.6));
 }
 
 function obstaculosDeDestinosImpresos(targetMap,loc){
@@ -5172,8 +5172,10 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
     const fingerprint = stateFingerprint(label);
     const live = () => !printMode && targetMap === map && targetMap._directionLayer === layer && namespace === congregacionActivaId && locNum === String(LOCS[currentIndex]?.num) && directionInteractionAllowed() && stateFingerprint(getTextLabelsForLoc(loc)[index]) === fingerprint;
     const select = event => {if(event?.originalEvent) L.DomEvent.stop(event.originalEvent);if(live()) selectDestinationAnnotation(index);};
-    const geometry = directionAnnotationGeometry(targetMap, label, factor);
-    const weight = label.strokePt * 96 / 72 * factor;
+    // La punta y el trazo impresos ocupan menos espacio en la lámina.
+    const arrowScale = printMode ? .65 : 1;
+    const geometry = directionAnnotationGeometry(targetMap, label, factor * arrowScale);
+    const weight = label.strokePt * 96 / 72 * factor * arrowScale;
     const style = {pane:paneName,color:'#17202c',weight,opacity:1,lineCap:'round',lineJoin:'round',interactive:canEdit,bubblingMouseEvents:false};
     const line = L.polyline(label.points,{...style,className:'destination-arrow-path'}).addTo(layer);
     const head = L.polyline([geometry.wings[0],geometry.tip,geometry.wings[1]].map(p=>targetMap.containerPointToLatLng(p)),{...style,className:'destination-arrow-head'}).addTo(layer);
@@ -5186,7 +5188,7 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
     const sizePt = printMode ? printDirectionTextPoints(label,options.maxTextWidthMm) : label.sizePt;
     const font = sizePt * 96 / 72 * factor;
     const maxWidth = (Number(options.maxTextWidthMm) || 64) * 96 / 25.4 * factor;
-    const padY = printMode ? 1.5 : 2, padX = printMode ? 2 : 3;
+    const padY = printMode ? 1 : 2, padX = printMode ? 1.5 : 3;
     const marker = L.marker([label.lat,label.lng],{pane:paneName,draggable:canEdit,interactive:canEdit,bubblingMouseEvents:false,keyboard:canEdit,zIndexOffset:selected && canEdit ? 2400 : 0,
       icon:L.divIcon({className:'destination-label-marker',iconAnchor:[0,0],html:'<div class="destination-text-label'+(selected?' is-selected':'')+'" data-size-pt="'+sizePt+'" data-layout-scale="'+layoutScale+'" data-print-scale="'+scale+'" style="font-size:'+font+'px;max-width:'+maxWidth+'px;padding:'+(padY*factor)+'px '+(padX*factor)+'px">'+escapeHtml(label.text)+'</div>'})}).addTo(layer);
     const element = marker.getElement()?.querySelector('.destination-text-label');
@@ -5362,13 +5364,13 @@ function isPrintZoneNumber(label){
     && /^\d+$/.test(String(label?.text ?? '').trim());
 }
 
-// 6 pt en la hoja final, independientemente de la resolución del mapa y
+// 5.5 pt en la hoja final, independientemente de la resolución del mapa y
 // de cuánto se reduzca para entrar en el recuadro. También escala la cajita.
 function printZoneNumberStyle(renderScale = printRenderScale, layoutScale = 1){
   const factor = Math.max(.05, Number(renderScale) || 1) / Math.max(.05, Number(layoutScale) || 1);
   const badgeFactor = factor * PRINT_ZONE_NUMBER_SIZE_PT / 10;
   return 'font-size:' + (PRINT_ZONE_NUMBER_SIZE_PT * 96 / 72 * factor) + 'px;'
-    + 'padding:' + (.6 * factor) + 'px ' + (1.3 * factor) + 'px;'
+    + 'padding:' + (.5 * factor) + 'px ' + factor + 'px;'
     + 'border-width:' + (.5 * badgeFactor) + 'px;border-radius:' + (1.5 * badgeFactor) + 'px;';
 }
 
@@ -5382,7 +5384,7 @@ function updatePrintZoneNumbers(targetMap, layoutScale = 1){
 }
 
 function printOwnTextPoints(label){
-  if(label?.type === 'carretera') return 6;
+  if(label?.type === 'carretera') return 5.5;
   return Math.max(7, Math.min(12, (Number(label?.size) || 22) * 72 / 96));
 }
 
@@ -11928,6 +11930,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=order-numbers-2"></script>
+<script src="offline-controller.js?v=compact-directions-2"></script>
 </body>
 </html>
