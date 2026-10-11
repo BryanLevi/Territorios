@@ -5,28 +5,38 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname,'../outputs/croquis_territorios.html'),'utf8');
-const start = html.indexOf('function printTileMosaicPlan(');
+const start = html.indexOf('function printMosaicVisibleRect(');
 const end = html.indexOf('\nfunction getPrintTileUrl(',start);
 assert(start >= 0 && end > start);
+const constants = Object.fromEntries(['PRINT_MOSAIC_DPI','PRINT_MOSAIC_MAX_PIXELS','PRINT_MOSAIC_MAX_SIDE']
+  .map(name => [name,Number(html.match(new RegExp(`const ${name}\\s*=\\s*([\\d.]+)\\s*;`))[1])]));
+const clone = value => JSON.parse(JSON.stringify(value));
 
-function environment({tainted=false,renderScale=3}={}){
-  const appended=[],draws=[];
+function environment({tainted=false,renderScale=3,
+  frame={left:100,top:40,width:500,height:300},size={x:1500,y:900},
+  origin={x:23,y:-11},ancestors={}}={}){
+  const appended=[],draws=[],scales=[],encodedSizes=[];
   let encodings=0;
   const pane={appendChild:node=>appended.push(node)};
   const context=vm.createContext({
-    printRenderScale:renderScale,PRINT_MOSAIC_DPI:600,
-    PRINT_MOSAIC_MAX_PIXELS:32000000,PRINT_MOSAIC_MAX_SIDE:8192,
+    printRenderScale:renderScale,...constants,
+    window:{innerWidth:800,innerHeight:600},
     Image:class {constructor(){this.style={};} async decode(){}},
     document:{createElement:()=>({
-      getContext:()=>({scale:()=>{},drawImage:(...args)=>draws.push(args)}),
-      toDataURL:()=>{encodings++;if(tainted)throw Object.assign(new Error(),{name:'SecurityError'});return 'data:image/png;base64,QA';}
+      getContext:()=>({scale:(...args)=>scales.push(args),drawImage:(...args)=>draws.push(args)}),
+      toDataURL(){
+        encodings++;encodedSizes.push({width:this.width,height:this.height});
+        if(tainted)throw Object.assign(new Error(),{name:'SecurityError'});
+        return 'data:image/png;base64,QA';
+      }
     })}
   });
   vm.runInContext(html.slice(start,end),context);
+  const container={getBoundingClientRect:()=>frame,
+    closest:selector=>ancestors[selector] ? {getBoundingClientRect:()=>ancestors[selector]} : null};
   const map={
-    getContainer:()=>({getBoundingClientRect:()=>({left:100,top:40,width:500,height:300})}),
-    getSize:()=>({x:1500,y:900}),getPane:()=>pane,
-    containerPointToLayerPoint:()=>({x:23,y:-11})
+    getContainer:()=>container,getSize:()=>size,getPane:()=>pane,
+    containerPointToLayerPoint:()=>origin
   };
   const tile=(left=100,top=40,width=100,height=100,status='ready')=>({
     current:status!=='old',el:{complete:status!=='pending',naturalWidth:600,naturalHeight:600,src:'tile-'+left,
@@ -37,8 +47,23 @@ function environment({tainted=false,renderScale=3}={}){
     return {_tiles:Object.fromEntries(pieces.map((piece,i)=>[i,piece])),options:{opacity:.6},
       getContainer:()=>container};
   };
-  return {context,map,tile,layer,appended,draws,get encodings(){return encodings;}};
+  return {context,map,tile,layer,appended,draws,scales,encodedSizes,get encodings(){return encodings;}};
 }
+
+test('The configured HD target is 1200 dpi and is reached when native tiles and memory permit it',async()=>{
+  assert.equal(constants.PRINT_MOSAIC_DPI,1200);
+  const e=environment(),tile=e.tile();
+  tile.el.naturalWidth=tile.el.naturalHeight=2400;
+  const layer=e.layer([tile]);
+  const source=tile.el.src,before=JSON.stringify(layer._tiles);
+  const plan=e.context.printTileMosaicPlan(e.map,layer,1);
+  assert.equal(plan.pixelsX,6250);
+  assert.equal(plan.pixelsY,3750);
+  const [result]=await e.context.compactPrintTileLayers(e.map,[layer],1);
+  assert.equal(result.dpi,1200);
+  assert.equal(tile.el.src,source,'Higher output dpi keeps the same provider content');
+  assert.equal(JSON.stringify(layer._tiles),before);
+});
 
 test('PDF mosaics preserve transformed map coordinates and native detail without changing provider zoom',()=>{
   const e=environment();
@@ -63,6 +88,99 @@ test('Small paper frames retain the same provider images while raster memory has
   const plan=e.context.printTileMosaicPlan(huge,layer,1);
   assert(plan.pixelsX<=8192 && plan.pixelsY<=8192);
   assert(plan.pixelsX*plan.pixelsY<=32000000);
+});
+
+test('Native source resolution caps the HD mosaic without artificial upscaling',()=>{
+  const e=environment({renderScale:1}),tile=e.tile();
+  tile.el.naturalWidth=tile.el.naturalHeight=128;
+  const layer=e.layer([tile]),plan=e.context.printTileMosaicPlan(e.map,layer,1);
+  assert.equal(plan.scale,128/300);
+  assert.equal(plan.pixelsX,640);
+  assert.equal(plan.pixelsY,384);
+  assert(plan.scale<constants.PRINT_MOSAIC_DPI/96);
+  assert(plan.pieces.every(piece=>piece.w*plan.scale<=piece.image.naturalWidth
+    &&piece.h*plan.scale<=piece.image.naturalHeight),'Every drawn tile uses at most its available source pixels');
+});
+
+test('Each encoded HD canvas respects the pixel and side caps before canvas storage is released',async()=>{
+  assert.equal(constants.PRINT_MOSAIC_MAX_PIXELS,32000000);
+  assert.equal(constants.PRINT_MOSAIC_MAX_SIDE,8192);
+  const e=environment({renderScale:1,size:{x:24000,y:16000}});
+  const first=e.tile(),second=e.tile(200,100);
+  first.el.naturalWidth=first.el.naturalHeight=50000;
+  second.el.naturalWidth=second.el.naturalHeight=50000;
+  const layers=[e.layer([first]),e.layer([second])];
+  const results=await e.context.compactPrintTileLayers(e.map,layers,1);
+  assert.equal(e.encodings,2,'Distinct source images have separate bounded canvases');
+  assert(results.every(result=>result.compacted&&result.dpi<1200),'Oversized maps are capped rather than claiming the target dpi');
+  for(const dimensions of e.encodedSizes){
+    assert(dimensions.width<=constants.PRINT_MOSAIC_MAX_SIDE);
+    assert(dimensions.height<=constants.PRINT_MOSAIC_MAX_SIDE);
+    assert(dimensions.width*dimensions.height<=constants.PRINT_MOSAIC_MAX_PIXELS);
+    assert(dimensions.width>1&&dimensions.height>1,'Check the actual encoded size before the final 1×1 release');
+  }
+  assert.equal(results[0].width,e.encodedSizes[0].width);
+  assert.equal(results[0].height,e.encodedSizes[0].height);
+});
+
+test('A very wide visible crop reaches the side limit before its total pixel budget',async()=>{
+  const e=environment({renderScale:1,size:{x:96000,y:1600}}),tile=e.tile();
+  tile.el.naturalWidth=tile.el.naturalHeight=50000;
+  const layer=e.layer([tile]);
+  const plan=e.context.printTileMosaicPlan(e.map,layer,1);
+  assert.equal(plan.pixelsX,8192);
+  assert(plan.pixelsX*plan.pixelsY<32000000,'The side limit independently bounds long, thin canvases');
+  const [result]=await e.context.compactPrintTileLayers(e.map,[layer],1);
+  assert.equal(result.width,8192);
+  assert.equal(e.encodedSizes[0].width,8192);
+});
+
+test('An offscreen grouped frame crops only known print ancestors in transformed map coordinates',async()=>{
+  const frame={left:20100,top:12040,width:500,height:300};
+  const e=environment({frame,ancestors:{
+    '.print-map-stage':frame,
+    '.hoja-guardada':{left:20120,top:12060,width:280,height:220},
+    '.hueco-agrupado':{left:20220,top:12100,width:180,height:120}
+  }});
+  const inside=e.tile(20220,12100,100,100),outside=e.tile(20100,12040,100,20);
+  const layer=e.layer([inside,outside]);
+  const plan=e.context.printTileMosaicPlan(e.map,layer,1);
+  assert.deepEqual(clone({x:plan.x,y:plan.y,width:plan.width,height:plan.height}),
+    {x:359,y:179,width:542,height:362},'One source pixel of safety padding surrounds the visible print window');
+  assert.equal(plan.pieces.length,1);
+  assert.equal(plan.pieces[0].image,inside.el);
+  const [result]=await e.context.compactPrintTileLayers(e.map,[layer],1);
+  assert.equal(result.compacted,true,'A frame outside the browser viewport still exports');
+  assert.deepEqual(e.draws[0].slice(1),[1,1,300,300],'Canvas drawing subtracts the crop offset once');
+  assert.equal(e.appended[0].style.left,'382px');
+  assert.equal(e.appended[0].style.top,'168px');
+  assert.equal(e.appended[0].style.width,'542px');
+  assert.equal(e.appended[0].style.height,'362px');
+});
+
+test('Screen-sized unrelated ancestors do not crop an offscreen single print map',()=>{
+  const frame={left:20100,top:12040,width:500,height:300};
+  const e=environment({frame,ancestors:{'.some-scroll-panel':{left:0,top:0,width:800,height:600}}});
+  const layer=e.layer([e.tile(20100,12040)]);
+  const plan=e.context.printTileMosaicPlan(e.map,layer,1);
+  assert(plan);
+  assert.deepEqual(clone({x:plan.x,y:plan.y,width:plan.width,height:plan.height}),
+    {x:0,y:0,width:1500,height:900});
+});
+
+test('Missing or entirely clipped current tiles never hide the original layer',async()=>{
+  const e=environment();
+  const pending=e.tile(100,40,100,100,'pending'),old=e.tile(100,40,100,100,'old');
+  const broken=e.tile();broken.el.naturalWidth=0;
+  const layers=[e.layer([]),e.layer([pending,old,broken])];
+  assert.equal(e.context.printTileMosaicPlan(e.map,layers[1],1),null);
+  assert.deepEqual(clone(await e.context.compactPrintTileLayers(e.map,layers,1)),[]);
+  const clipped=environment({ancestors:{'.hueco-agrupado':{left:900,top:900,width:100,height:100}}});
+  const clippedLayer=clipped.layer();
+  assert.equal(clipped.context.printTileMosaicPlan(clipped.map,clippedLayer,1),null);
+  assert.deepEqual(clone(await clipped.context.compactPrintTileLayers(clipped.map,[clippedLayer],1)),[]);
+  for(const layer of [...layers,clippedLayer]) assert.equal(layer.getContainer().style.display,undefined);
+  assert.equal(e.encodings+clipped.encodings,0);
 });
 
 test('Repeated silhouette passes reuse one PNG without changing opacity or vector panes',async()=>{

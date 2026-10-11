@@ -15,11 +15,11 @@
   let refreshVersion = 0;
   let downloadNotice = null;
   let readiness = {group:null, signature:'', ready:false, usable:false};
-  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-shell.js', 'offline-map-details.js', 'offline-data.js', 'offline-controller.js', 'destination-placement.js', 'print-label-geometry.js', 'pdf-sheet-layout.js', 'print-frame-fit.js', 'print-direction-layout.js',
+  const shellFiles = ['../index.html', 'croquis_territorios.html', 'offline-shell.js', 'offline-map-details.js', 'offline-data.js', 'offline-controller.js', 'destination-placement.js', 'print-label-geometry.js', 'pdf-sheet-layout.js', 'print-frame-fit.js', 'print-direction-layout.js', 'print-clip-geometry.js',
     'congregation-password.js', 'congregation-access.js', 'favicon.svg',
     'edit-history.js', 'draft-recovery.js', 'territory-search.js', 'workspace-tools.css',
     '../croquis-territorios-jw/', '../croquis-territorios-jw/index.html', '../croquis-territorio-jw/', '../croquis-territorio-jw/index.html', '../coquis-territorios-jw/', '../coquis-territorios-jw/index.html', '../tokens.css', 'welcome-premium.css',
-    'toolbar-premium.css', 'editor-premium.css', '../vendor/leaflet/leaflet.js', '../vendor/leaflet/leaflet.css',
+    'toolbar-premium.css', 'editor-premium.css', '../vendor/clipper-lib/clipper.js', '../vendor/leaflet/leaflet.js', '../vendor/leaflet/leaflet.css',
     '../vendor/leaflet/images/layers.png', '../vendor/leaflet/images/layers-2x.png',
     '../vendor/leaflet/images/marker-icon.png', '../vendor/leaflet/images/marker-icon-2x.png',
     '../vendor/leaflet/images/marker-shadow.png'];
@@ -152,7 +152,7 @@
       });
       let shellReady = false;
       if ('caches' in window) {
-        const shellCache = await caches.open('croquis-app-shell-v36');
+        const shellCache = await caches.open('croquis-app-shell-v37');
         shellReady = shellVerified && await shellComplete(shellCache);
       }
       if (version !== refreshVersion || group !== congregacionActivaId || (running && running.group === group)) return;
@@ -214,7 +214,7 @@
     if (!shellPromise) {
       shellVerified = false;
       shellPromise = offlineShell.prepare({
-        baseURI:document.baseURI || location.href, cacheName:'croquis-app-shell-v36', files:shellFiles
+        baseURI:document.baseURI || location.href, cacheName:'croquis-app-shell-v37', files:shellFiles
       }).then(() => { shellVerified = true; return true; }).finally(() => { shellPromise = null; });
     }
     return shellPromise;

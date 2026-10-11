@@ -1195,6 +1195,8 @@ body.print-preview{overflow:hidden}
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
 <script src="print-direction-layout.js?v=compact-directions-1"></script>
+<script src="../vendor/clipper-lib/clipper.js?v=6.4.2"></script>
+<script src="print-clip-geometry.js?v=pdf-hd-1"></script>
 <script src="congregation-password.js"></script>
 <script>
 const MUNICIPIO = 'Ixhuatlán del Café';
@@ -1281,9 +1283,9 @@ const PRINT_TILE_TIMEOUT_MS = 180000;
 const PRINT_NAME_ZOOM_OFFSET = 0;
 const PRINT_NAME_TILE_SIZE = 256;
 const PRINT_MAX_ZOOM = 20;
-// La cartografía raster se guarda a 600 ppp de su tamaño final en papel. El
+// La cartografía raster se conserva hasta 1200 ppp de su tamaño final en papel. El
 // zoom del proveedor sigue intacto: solamente se reúnen sus teselas cargadas.
-const PRINT_MOSAIC_DPI = 600;
+const PRINT_MOSAIC_DPI = 1200;
 const PRINT_MOSAIC_MAX_PIXELS = 32000000;
 const PRINT_MOSAIC_MAX_SIDE = 8192;
 // Todo esto son proporciones de la escala, asi que al dividir la hoja entre
@@ -8930,7 +8932,72 @@ function sincronizarFondoImpresion(){
   });
 }
 
+// clipPath conserva el filo como geometría PDF. Una máscara SVG de
+// luminancia se convertía a 300 ppp aunque las imágenes fueran de 600 ppp.
+function renderPrintVectorClip(targetMap, loc, opciones = {}){
+  const geometry = typeof window === 'object' && window.CroquisPrintClipGeometry;
+  if(!geometry?.unionPath) return false;
+  const container = targetMap?.getContainer?.();
+  const size = targetMap?.getSize?.();
+  if(!container || !size?.x || !size?.y) return false;
+  const paneName = opciones.pane || 'territoryBaseMaskPane';
+  const destino = targetMap.getPane(paneName) || container;
+  destino.querySelectorAll?.('.print-color-mask').forEach(node => node.remove());
+  const fondo = opciones.fondo || colorFondoImpresion();
+  const areas = opciones.areas || getExportColorAreasForLoc(loc);
+  if(!areas.length || fondo === 'transparente') return true;
+  const origin = targetMap.containerPointToLayerPoint([0,0]);
+  const polygons = areas.map(area => area.points.map(point => {
+    const lat = Number(point[0]), lng = Number(point[1]);
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)) return {x:NaN,y:NaN};
+    const p = targetMap.latLngToContainerPoint([lat,lng]);
+    return {x:Math.round(p.x*10)/10+origin.x,y:Math.round(p.y*10)/10+origin.y};
+  }));
+  const boxes = (opciones.labelBoxes || []).map(b => ({
+    x0:b.x0+origin.x,y0:b.y0+origin.y,x1:b.x1+origin.x,y1:b.y1+origin.y
+  }));
+  const d = geometry.unionPath(polygons,boxes,Math.max(0,Number(opciones.grow)||0)*printRenderScale/2);
+  if(!d) return false;
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns,'svg');
+  svg.classList.add('print-color-mask');
+  svg.setAttribute('aria-hidden','true');
+  // Los defs no pintan nada. La cobertura blanca de rótulos suprimidos sí
+  // sigue en el mismo carril que antes, encima de los nombres del proveedor.
+  const sobra = Math.max(size.x,size.y);
+  svg.setAttribute('viewBox',`${-sobra} ${-sobra} ${size.x+2*sobra} ${size.y+2*sobra}`);
+  Object.assign(svg.style,{left:(origin.x-sobra)+'px',top:(origin.y-sobra)+'px',
+    width:(size.x+2*sobra)+'px',height:(size.y+2*sobra)+'px'});
+  const id = 'print-vector-clip-'+Date.now()+'-'+Math.round(Math.random()*1e9);
+  const defs = document.createElementNS(ns,'defs');
+  const clip = document.createElementNS(ns,'clipPath');
+  clip.setAttribute('id',id);
+  clip.setAttribute('clipPathUnits','userSpaceOnUse');
+  const path = document.createElementNS(ns,'path');
+  path.setAttribute('d',d);
+  path.setAttribute('clip-rule','nonzero');
+  clip.appendChild(path); defs.appendChild(clip); svg.appendChild(defs);
+  for(const b of opciones.suppressedLabelBoxes || []){
+    if(![b.x0,b.y0,b.x1,b.y1].every(Number.isFinite) || b.x1<=b.x0 || b.y1<=b.y0) continue;
+    const rect = document.createElementNS(ns,'rect');
+    rect.setAttribute('x',String(b.x0)); rect.setAttribute('y',String(b.y0));
+    rect.setAttribute('width',String(b.x1-b.x0)); rect.setAttribute('height',String(b.y1-b.y0));
+    rect.setAttribute('fill',fondo); svg.appendChild(rect);
+  }
+  destino.appendChild(svg);
+  const names = paneName === 'territoryMaskPane' ? ['territoryRoadPane']
+    : ['tilePane','overlayPane','shadowPane','territoryColorPane','territoryRestorePane',
+      'territoryOutlinePane','territoryWhiteRoadPane'];
+  for(const name of names){
+    const pane = targetMap.getPane(name);
+    if(pane) pane.style.clipPath = 'url(#'+id+')';
+  }
+  if(paneName !== 'territoryMaskPane') container.style.background = fondo;
+  return true;
+}
+
 function renderPrintColorMask(targetMap, loc, opciones = {}){
+  if(typeof renderPrintVectorClip === 'function' && renderPrintVectorClip(targetMap,loc,opciones)) return;
   const container = targetMap?.getContainer?.();
   if(!container) return;
   // Va en su propio carril: colgado suelto del contenedor taparia el mapa
@@ -9102,11 +9169,33 @@ function waitForPrintTiles(layer, timeoutMs = 8000){
   });
 }
 
+function printMosaicVisibleRect(container,frame,size){
+  let left=frame.left,top=frame.top,right=frame.left+frame.width,bottom=frame.top+frame.height;
+  // Se descarta únicamente lo que ya está fuera de las ventanas de impresión.
+  // No usamos la pantalla del móvil: las hojas agrupadas viven fuera de ella.
+  for(const selector of ['.print-map-stage','.hoja-guardada','.hueco-agrupado']){
+    const ancestor=container.closest?.(selector);
+    const box=ancestor?.getBoundingClientRect?.();
+    if(!box?.width || !box?.height) continue;
+    left=Math.max(left,box.left);top=Math.max(top,box.top);
+    right=Math.min(right,box.left+box.width);bottom=Math.min(bottom,box.top+box.height);
+  }
+  if(right<=left || bottom<=top) return null;
+  const x=Math.max(0,Math.floor((left-frame.left)*size.x/frame.width)-1);
+  const y=Math.max(0,Math.floor((top-frame.top)*size.y/frame.height)-1);
+  const x1=Math.min(size.x,Math.ceil((right-frame.left)*size.x/frame.width)+1);
+  const y1=Math.min(size.y,Math.ceil((bottom-frame.top)*size.y/frame.height)+1);
+  return {x,y,width:x1-x,height:y1-y};
+}
+
 function printTileMosaicPlan(targetMap, layer, layoutScale = 1){
   const container = targetMap?.getContainer?.();
   const frame = container?.getBoundingClientRect?.();
   const size = targetMap?.getSize?.();
   if(!frame?.width || !frame?.height || !size?.x || !size?.y) return null;
+  const visible=typeof printMosaicVisibleRect === 'function'
+    ? printMosaicVisibleRect(container,frame,size) : {x:0,y:0,width:size.x,height:size.y};
+  if(!visible) return null;
   const tiles = Object.values(layer?._tiles || {}).filter(tile =>
     tile.current !== false && tile.el?.complete && tile.el.naturalWidth > 0);
   if(!tiles.length) return null;
@@ -9118,18 +9207,18 @@ function printTileMosaicPlan(targetMap, layer, layoutScale = 1){
     const w = rect.width*size.x/frame.width;
     const h = rect.height*size.y/frame.height;
     if(!(w > 0 && h > 0)) return null;
-    if(x+w <= 0 || y+h <= 0 || x >= size.x || y >= size.y) return null;
+    if(x+w <= visible.x || y+h <= visible.y || x >= visible.x+visible.width || y >= visible.y+visible.height) return null;
     nativeScale = Math.min(nativeScale,image.naturalWidth/w,image.naturalHeight/h);
     return {image,x,y,w,h};
   }).filter(Boolean);
   if(!pieces.length || !Number.isFinite(nativeScale)) return null;
   const scale = Math.min(nativeScale,
     PRINT_MOSAIC_DPI/96*Math.max(.01,Number(layoutScale)||1)/printRenderScale,
-    PRINT_MOSAIC_MAX_SIDE/size.x,PRINT_MOSAIC_MAX_SIDE/size.y,
-    Math.sqrt(PRINT_MOSAIC_MAX_PIXELS/(size.x*size.y)));
-  return {pieces,width:size.x,height:size.y,scale,
-    pixelsX:Math.max(1,Math.floor(size.x*scale)),
-    pixelsY:Math.max(1,Math.floor(size.y*scale))};
+    PRINT_MOSAIC_MAX_SIDE/visible.width,PRINT_MOSAIC_MAX_SIDE/visible.height,
+    Math.sqrt(PRINT_MOSAIC_MAX_PIXELS/(visible.width*visible.height)));
+  return {pieces,...visible,scale,
+    pixelsX:Math.max(1,Math.floor(visible.width*scale)),
+    pixelsY:Math.max(1,Math.floor(visible.height*scale))};
 }
 
 // Miles de imágenes separadas, atravesadas por máscaras y mezclas, hacían
@@ -9146,7 +9235,7 @@ async function compactPrintTileLayers(targetMap, layers, layoutScale = 1){
     if(!plan) continue;
     let canvas;
     try{
-      const key = JSON.stringify([plan.pixelsX,plan.pixelsY,
+      const key = JSON.stringify([plan.x,plan.y,plan.pixelsX,plan.pixelsY,
         ...plan.pieces.map(p => [p.image.currentSrc || p.image.src,p.x,p.y,p.w,p.h])]);
       let encoded = cache.get(key);
       if(!encoded){
@@ -9157,7 +9246,7 @@ async function compactPrintTileLayers(targetMap, layers, layoutScale = 1){
         context.imageSmoothingEnabled = true;
         context.imageSmoothingQuality = 'high';
         context.scale(plan.pixelsX/plan.width,plan.pixelsY/plan.height);
-        for(const p of plan.pieces) context.drawImage(p.image,p.x,p.y,p.w,p.h);
+        for(const p of plan.pieces) context.drawImage(p.image,p.x-plan.x,p.y-plan.y,p.w,p.h);
         encoded = canvas.toDataURL('image/png');
         if(!encoded.startsWith('data:image/png')) throw new Error('canvas-limit');
         cache.set(key,encoded);
@@ -9168,7 +9257,7 @@ async function compactPrintTileLayers(targetMap, layers, layoutScale = 1){
       image.src = encoded;
       await image.decode();
       const origin = targetMap.containerPointToLayerPoint([0,0]);
-      Object.assign(image.style,{left:origin.x+'px',top:origin.y+'px',
+      Object.assign(image.style,{left:(origin.x+plan.x)+'px',top:(origin.y+plan.y)+'px',
         width:plan.width+'px',height:plan.height+'px',
         opacity:String(layer.options?.opacity ?? 1)});
       const original = layer.getContainer?.();
@@ -9554,7 +9643,9 @@ function cuentasAgrupadas(){
     const escalaHoja = Math.min(hueco.w / 297, hueco.h / 210);
     const areaPapel = lamina ? Math.max(0,hueco.w-3.2)*Math.max(0,hueco.h-8)
       : 297*189*escalaHoja*escalaHoja;
-    areaRaster += areaPapel * Math.pow(ppp / PRINT_MOSAIC_DPI, 2);
+    // El peso se estima respecto al perfil anterior de 600 ppp; subir el
+    // detalle también debe reflejarse en la estimación de la descarga.
+    areaRaster += areaPapel * Math.pow(ppp / 600, 2);
     teselas += Math.ceil((1123 * escala) / PRINT_NAME_TILE_SIZE + 1) * Math.ceil((714 * escala) / PRINT_NAME_TILE_SIZE + 1);
   });
   // Con mosaicos el peso depende del área raster final, no del número de
@@ -11589,6 +11680,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=remove-walk-mode-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=compact-directions-1"></script>
+<script src="offline-controller.js?v=pdf-hd-1"></script>
 </body>
 </html>
