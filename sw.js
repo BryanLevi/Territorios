@@ -1,5 +1,5 @@
 /* App shell for the croquis. Map tiles and external APIs are never cached here. */
-const APP_CACHE = 'croquis-app-shell-v42';
+const APP_CACHE = 'croquis-app-shell-v43';
 const APP_FILES = [
   './',
   './index.html',
@@ -18,6 +18,10 @@ const APP_FILES = [
   './outputs/pdf-sheet-layout.js',
   './outputs/print-frame-fit.js',
   './outputs/print-direction-layout.js',
+  './outputs/print-cartography-vector.js',
+  './outputs/print-cartography-worker.js',
+  './outputs/print-cartography-trace.js',
+  './vendor/imagetracer/imagetracer.js',
   './outputs/print-clip-geometry.js',
   './vendor/clipper-lib/clipper.js',
   './outputs/offline-controller.js',

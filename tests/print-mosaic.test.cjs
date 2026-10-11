@@ -221,3 +221,33 @@ test('A print tile blocked by CORS retries as an ordinary image before reporting
   assert.equal(errors.length,1,'A genuine network failure is reported after one bounded retry');
   assert.equal(errors[0][0],done);
 });
+
+test('Vector cartography replaces compatible tiles without encoding a bitmap mosaic',async()=>{
+  const e=environment(),layer=e.layer(),calls=[];
+  const vector={compacted:true,vectorized:true,kind:'names',blocks:1,paths:3,tiles:1};
+  e.context.window.CroquisPrintCartography={vectorize:async(map,input,plan,cache)=>{
+    calls.push({map,input,plan,cache});return vector;
+  }};
+  assert.deepEqual(clone(await e.context.compactPrintTileLayers(e.map,[layer],1)),[vector]);
+  assert.equal(calls[0].map,e.map);assert.equal(calls[0].input,layer);
+  assert.equal(calls[0].plan.pieces.length,1);assert.equal(e.encodings,0);
+  await e.context.compactPrintTileLayers(e.map,[layer],1);
+  assert.equal(calls.length,1,'An already prepared layer is reused');
+});
+
+test('An unavailable vector worker still exports the original provider content as a mosaic',async()=>{
+  const e=environment(),layer=e.layer(),warnings=[];
+  e.context.console={warn:(...args)=>warnings.push(args)};
+  e.context.window.CroquisPrintCartography={vectorize:async()=>{throw new Error('Worker blocked');}};
+  const [result]=await e.context.compactPrintTileLayers(e.map,[layer],1);
+  assert.equal(result.compacted,true);assert.equal(result.vectorized,undefined);
+  assert.equal(e.encodings,1);assert.equal(e.appended.length,1);
+  assert.equal(layer.getContainer().style.display,'none');assert.equal(warnings.length,1);
+});
+
+test('A photograph keeps the normal raster export when vectorization declines its source',async()=>{
+  const e=environment(),layer=e.layer();
+  e.context.window.CroquisPrintCartography={vectorize:async()=>null};
+  const [result]=await e.context.compactPrintTileLayers(e.map,[layer],1);
+  assert.equal(result.compacted,true);assert.equal(e.encodings,1);
+});

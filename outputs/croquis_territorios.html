@@ -1211,6 +1211,7 @@ body.print-preview{overflow:hidden}
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
 <script src="print-direction-layout.js?v=compact-directions-2"></script>
+<script src="print-cartography-vector.js?v=vector-hd-1"></script>
 <script src="../vendor/clipper-lib/clipper.js?v=6.4.2"></script>
 <script src="print-clip-geometry.js?v=pdf-hd-1"></script>
 <script src="congregation-password.js"></script>
@@ -9464,17 +9465,23 @@ function printTileMosaicPlan(targetMap, layer, layoutScale = 1){
 }
 
 // Miles de imágenes separadas, atravesadas por máscaras y mezclas, hacían
-// que un PDF de una sola página tardara en dibujarse. Se compacta únicamente
-// la cartografía: los números, textos propios, calles blancas y símbolos
-// permanecen vectoriales. Si una fuente impide leer sus imágenes, se conserva
-// la capa original completa en lugar de sacar una hoja vacía.
+// que un PDF de una sola página tardara en dibujarse. La cartografía del
+// croquis se convierte en curvas; fotos y fuentes incompatibles conservan
+// su mosaico. Números, textos propios, calles blancas y símbolos permanecen
+// vectoriales. Si una fuente impide leer sus imágenes, se conserva la capa.
 async function compactPrintTileLayers(targetMap, layers, layoutScale = 1){
   if(!targetMap || !layers?.length) return [];
-  const cache = new Map(), results = [];
+  const cache = new Map(), vectorCache = new Map(), results = [];
   for(const layer of layers){
     if(layer._printMosaic){ results.push(layer._printMosaic); continue; }
     const plan = printTileMosaicPlan(targetMap,layer,layoutScale);
     if(!plan) continue;
+    if(window.CroquisPrintCartography){
+      try{
+        const vector = await window.CroquisPrintCartography.vectorize(targetMap,layer,plan,vectorCache);
+        if(vector){layer._printMosaic=vector;results.push(vector);continue;}
+      }catch(error){console.warn('Croquis: se conserva la imagen original de esta capa.',error.message);}
+    }
     let canvas;
     try{
       const key = JSON.stringify([plan.x,plan.y,plan.pixelsX,plan.pixelsY,
@@ -11930,6 +11937,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=compact-directions-2"></script>
+<script src="offline-controller.js?v=vector-hd-1"></script>
 </body>
 </html>
