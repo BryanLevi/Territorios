@@ -133,7 +133,7 @@ function browser({ saved = {}, congregation = 'ixhuatlan' } = {}){
   };
 }
 
-test('ordenar conserva localidad activa, números, dibujos, zoom, borrador e historial', () => {
+test('ordenar renumera las localidades conservando la activa, los dibujos, zoom, borrador e historial', () => {
   const e = browser(), before = plain({view:e.view, draft:e.c.draftPoints, areas:e.c.colorAreaSettings,
     labels:e.c.textLabelSettings, undo:e.c.undoHistory, pdf:e.c.agruparOrden});
   assert.equal(e.c.applyLocalityOrder(['custom-1','1','17']), true);
@@ -141,7 +141,11 @@ test('ordenar conserva localidad activa, números, dibujos, zoom, borrador e his
   assert.equal(e.c.currentIndex, 2);
   assert.equal(e.c.LOCS[e.c.currentIndex].num, 17);
   assert.equal(e.select.value, '2');
-  assert.deepEqual(plain(e.c.LOCS.map(loc => loc.displayNum)), [3,1,2]);
+  assert.deepEqual(plain(e.c.LOCS.map(loc => loc.displayNum)), [1,2,3]);
+  assert.deepEqual(e.select.options.map(option => option.textContent), [
+    '#1 - Los Lirios', '#2 - Ixhuatlán del Café', '#3 - Nevería'
+  ]);
+  assert.equal(e.info.at(-1).displayNum, 3);
   assert.deepEqual(e.savedOrder(), ['custom-1','1','17']);
   assert.deepEqual(plain({view:e.view, draft:e.c.draftPoints, areas:e.c.colorAreaSettings,
     labels:e.c.textLabelSettings, undo:e.c.undoHistory, pdf:e.c.agruparOrden}), before);
@@ -155,13 +159,16 @@ test('el orden se conserva al recargar y permanece separado por congregación', 
   assert.equal(e.c.applyLocalityOrder(['custom-1','17','1']), true);
   const next = browser({saved:Object.fromEntries(e.values)});
   assert.deepEqual(ids(next.c.LOCS), ['custom-1','17','1']);
+  assert.deepEqual(plain(next.c.LOCS.map(loc => loc.displayNum)), [1,2,3]);
   next.c.congregacionActivaId = 'otra';
   next.run('applyCustomTerritories(); populateSelect();');
   assert.deepEqual(ids(next.c.LOCS), ['1','17','custom-1']);
+  assert.deepEqual(plain(next.c.LOCS.map(loc => loc.displayNum)), [1,2,3]);
   assert.equal(next.c.applyLocalityOrder(['17','1','custom-1']), true);
   next.c.congregacionActivaId = 'ixhuatlan';
   next.run('applyCustomTerritories(); populateSelect();');
   assert.deepEqual(ids(next.c.LOCS), ['custom-1','17','1']);
+  assert.deepEqual(plain(next.c.LOCS.map(loc => loc.displayNum)), [1,2,3]);
   assert.deepEqual(next.savedOrder('otra'), ['17','1','custom-1']);
 });
 
@@ -192,6 +199,7 @@ test('datos de orden dañados no impiden cargar localidades y los IDs ausentes n
   }
   const e = browser({saved:{'croquis-locality-order-v1':'["removed","custom-1","custom-1",1]'}});
   assert.deepEqual(ids(e.c.LOCS), ['custom-1','1','17']);
+  assert.deepEqual(plain(e.c.LOCS.map(loc => loc.displayNum)), [1,2,3]);
   assert.equal(e.c.LOCS[e.c.currentIndex].num, 17);
 });
 
@@ -208,6 +216,9 @@ test('recibir un orden compartido mantiene la localidad y el dibujo en curso; un
   const e = browser(), draft = e.c.draftPoints;
   e.c.aplicarListaRemota({localityOrder:'["custom-1","1","17"]', porQuien:'Otro equipo'});
   assert.deepEqual(ids(e.c.LOCS), ['custom-1','1','17']);
+  assert.deepEqual(plain(e.c.LOCS.map(loc => loc.displayNum)), [1,2,3]);
+  assert.equal(e.info.at(-1).num, 17);
+  assert.equal(e.info.at(-1).displayNum, 3);
   assert.equal(e.c.LOCS[e.c.currentIndex].num, 17);
   assert.equal(e.select.value, '2');
   assert.strictEqual(e.c.draftPoints, draft);
@@ -225,4 +236,35 @@ test('un orden manual cuenta como trabajo guardado y evita que GitHub lo reempla
   assert.equal(e.c.hasLocalSavedWork(), false);
   e.c.saveLocalityOrder(['17','1','custom-1']);
   assert.equal(e.c.hasLocalSavedWork(), true);
+});
+
+test('Los Lirios pasa de 22 a 6 y recorre la numeración sin trasladar dibujos entre localidades', () => {
+  const e = browser();
+  e.c.BASE_LOCS = Array.from({length:21}, (_, index) => ({num:index + 1,
+    displayNum:index + 1, name:'Localidad ' + (index + 1), lat:19.04, lon:-96.91}));
+  e.run('applyCustomTerritories(); populateSelect();');
+  assert.equal(e.c.LOCS.length, 22);
+  assert.equal(e.c.LOCS.at(-1).name, 'Los Lirios');
+  assert.equal(e.c.LOCS.at(-1).displayNum, 22);
+  const originalIds = ids(e.c.LOCS), activeId = e.c.LOCS[e.c.currentIndex].num;
+  const drawings = plain({areas:e.c.colorAreaSettings, labels:e.c.textLabelSettings, history:e.c.undoHistory});
+  const reordered = order.moveTo(originalIds,'custom-1',6);
+  assert.equal(e.c.applyLocalityOrder(reordered), true);
+  assert.equal(e.c.LOCS[5].num, 'custom-1');
+  assert.equal(e.c.LOCS[5].displayNum, 6);
+  assert.equal(e.select.options[5].textContent, '#6 - Los Lirios');
+  assert.deepEqual(plain(e.c.LOCS.map(loc => loc.displayNum)), Array.from({length:22}, (_, index) => index + 1));
+  assert.deepEqual(ids(e.c.LOCS).slice().sort(), originalIds.slice().sort());
+  assert.equal(e.c.LOCS[e.c.currentIndex].num, activeId);
+  assert.deepEqual(plain({areas:e.c.colorAreaSettings, labels:e.c.textLabelSettings, history:e.c.undoHistory}), drawings);
+});
+
+test('localidades nuevas y retiradas conservan números consecutivos al reconstruir un orden guardado', () => {
+  const e = browser({saved:{'croquis-locality-order-v1':'["custom-1","17","1"]'}});
+  e.c.loadHiddenTerritorySettings = () => ['17'];
+  e.c.loadCustomTerritorySettings = () => locations().slice(2).concat({num:'new',displayNum:80,name:'Nueva',lat:19.04,lon:-96.91});
+  e.run('applyCustomTerritories(); populateSelect();');
+  assert.deepEqual(ids(e.c.LOCS), ['custom-1','1','new']);
+  assert.deepEqual(plain(e.c.LOCS.map(loc => loc.displayNum)), [1,2,3]);
+  assert.deepEqual(e.select.options.map(option => option.textContent), ['#1 - Los Lirios','#2 - Ixhuatlán del Café','#3 - Nueva']);
 });

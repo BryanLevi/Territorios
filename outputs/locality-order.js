@@ -7,7 +7,8 @@
     const start = () => api.mount(document, {
       getLocalities:() => typeof LOCS === 'undefined' ? [] : LOCS,
       getGroup:() => typeof congregacionActivaId === 'undefined' ? '' : congregacionActivaId,
-      label:loc => typeof territorySelectorLabel === 'function' ? territorySelectorLabel(loc) : loc.name,
+      label:(loc, index) => typeof territorySelectorLabel === 'function'
+        ? territorySelectorLabel({...loc, displayNum:index + 1}) : loc.name,
       save:(order, group) => typeof applyLocalityOrder === 'function' && applyLocalityOrder(order, group)
     });
     if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true});
@@ -67,7 +68,7 @@
       const byId = new Map(locs.map(loc => [String(loc.num),loc]));
       list.replaceChildren();
       draft.forEach((id,index) => {
-        const loc = byId.get(id), label = options.label(loc);
+        const loc = byId.get(id), label = options.label(loc,index);
         const row = doc.createElement('li');
         row.className = 'locality-order-row'; row.dataset.orderId = id;
         const handle = doc.createElement('button');

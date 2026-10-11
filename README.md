@@ -46,7 +46,7 @@ La cabecera y las acciones de escritorio usan controles compactos de 36 px. Desd
 
 `Renombrar` permite editar el nombre completo, sus paréntesis y la descripción final del selector de localidad. En el campo de descripción, `auto` restaura el conteo de subterritorios y dejarlo vacío oculta el sufijo. Esta descripción no cambia las divisiones ni los dibujos guardados.
 
-`Ordenar` permite acomodar las localidades arrastrando el asa, usando las flechas o escribiendo el puesto deseado. `Guardar orden` actualiza el selector y la navegación conservando la localidad abierta, su zoom, sus números y sus dibujos. El orden se guarda por congregación, se comparte y se incluye en los respaldos. `Cancelar` conserva el orden anterior. La disposición manual de la lámina del PDF se mantiene independiente.
+`Ordenar` permite acomodar las localidades arrastrando el asa, usando las flechas o escribiendo el puesto deseado. Sus números visibles se actualizan automáticamente del 1 al total según el nuevo puesto, también en la vista previa de esta lista. `Guardar orden` actualiza el selector, la ficha y la navegación conservando la localidad abierta, su zoom, los números de sus subterritorios y sus dibujos. El orden se guarda por congregación, se comparte y se incluye en los respaldos. `Cancelar` conserva el orden y la numeración anteriores. La disposición manual de la lámina del PDF se mantiene independiente.
 
 La selección de territorios del PDF usa texto de 11 px y filas compactas; las casillas pequeñas conservan su área táctil. Las pruebas se ejecutan con `node --test tests/*.test.cjs`.
 

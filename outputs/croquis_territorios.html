@@ -1189,7 +1189,7 @@ body.print-preview{overflow:hidden}
 </dialog>
 <dialog class="workspace-dialog" id="locality-order-dialog" aria-labelledby="locality-order-title" aria-describedby="locality-order-description">
   <div class="workspace-dialog-head"><div><span class="workspace-dialog-kicker">Congregación activa</span><h2 id="locality-order-title">Ordenar localidades</h2></div><button class="dialog-x" id="locality-order-close" type="button" aria-label="Cerrar orden de localidades">×</button></div>
-  <div class="workspace-dialog-body"><p id="locality-order-description">Arrastra el asa, usa las flechas o escribe el puesto. Los números de tus territorios se conservan.</p><ol id="locality-order-list" aria-label="Orden de las localidades"></ol><p id="locality-order-status" role="status" aria-live="polite"></p></div>
+  <div class="workspace-dialog-body"><p id="locality-order-description">Arrastra el asa, usa las flechas o escribe el puesto. Los números de las localidades se actualizan según su nueva posición al guardar.</p><ol id="locality-order-list" aria-label="Orden de las localidades"></ol><p id="locality-order-status" role="status" aria-live="polite"></p></div>
   <div class="workspace-dialog-foot"><button class="btn ghost" id="locality-order-cancel" type="button">Cancelar</button><button class="btn primary" id="locality-order-save" type="button">Guardar orden</button></div>
 </dialog>
 <dialog class="workspace-dialog" id="history-dialog" aria-labelledby="history-title">
@@ -1206,7 +1206,7 @@ body.print-preview{overflow:hidden}
 <script src="offline-map-details.js?v=details-2"></script>
 <script src="offline-data.js?v=details-2"></script>
 <script src="destination-placement.js?v=placement-1"></script>
-<script src="locality-order.js?v=order-1"></script>
+<script src="locality-order.js?v=order-numbers-2"></script>
 <script src="print-label-geometry.js?v=scaled-names-1"></script>
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
@@ -2421,6 +2421,7 @@ function applyLocalityOrder(order, expectedCongregation = congregacionActivaId){
   const normalized = ordering.orderedIds(LOCS, order);
   if(!saveLocalityOrder(normalized)) return false;
   LOCS.splice(0, LOCS.length, ...ordering.reorder(LOCS, normalized));
+  LOCS.forEach((loc, index) => { loc.displayNum = index + 1; });
   const index = LOCS.findIndex(loc => String(loc.num) === selectedNum);
   currentIndex = index >= 0 ? index : 0;
   populateSelect();
@@ -2457,6 +2458,7 @@ function applyCustomTerritories(){
   if(typeof window !== 'undefined' && window.CroquisLocalityOrder){
     LOCS.splice(0, LOCS.length, ...window.CroquisLocalityOrder.reorder(LOCS,loadLocalityOrder()));
   }
+  LOCS.forEach((loc, index) => { loc.displayNum = index + 1; });
   const selectedIndex = LOCS.findIndex(loc => String(loc.num) === selectedNum);
   if(selectedIndex >= 0) currentIndex = selectedIndex;
   else if(currentIndex >= LOCS.length) currentIndex = Math.max(0, LOCS.length - 1);
@@ -7295,6 +7297,7 @@ function aplicarListaRemota(d){
   // Si esta a medio dibujar no se le cambia el mapa bajo la mano: la lista ya
   // quedo guardada y el desplegable ya la enseña.
   if(nubeEditando()){
+    if(LOCS[currentIndex]) updateInfo(LOCS[currentIndex]);
     setStatus(quien + ' cambio la lista de territorios. Termina lo que estas marcando y se acomoda.', 'warn');
     return;
   }
@@ -11925,6 +11928,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=paint-resume-1"></script>
+<script src="offline-controller.js?v=order-numbers-2"></script>
 </body>
 </html>
