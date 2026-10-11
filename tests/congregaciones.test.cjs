@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const localityOrder = require('../outputs/locality-order.js');
 
 const html = fs.readFileSync(path.join(__dirname, '../outputs/croquis_territorios.html'), 'utf8');
 function seccion(inicio, fin){
@@ -20,6 +21,7 @@ const inicio = seccion('function hideWelcomeScreen(', 'function clearHeavyUndoSt
 const eventos = seccion("$('welcome-cong-nueva')?.addEventListener", "$('btn-nube')?.addEventListener");
 const normalizarNombres = seccion('function normalizeTerritorySelectorNote(', 'function populateManualIconSelect(');
 const posiciones = seccion('function normalizeFramePosition(', 'function loadColorAreaSettings(');
+const ordenLocalidades = seccion('function loadLocalityOrder(', 'function applyLocalityOrder(');
 const claves = [...storage.matchAll(/\['\w+', ([A-Z_]+)\]/g)].map(m => m[1]);
 const llaveRegistro = 'croquis-congregaciones-v1';
 const llaveActiva = 'croquis-congregacion-activa-v1';
@@ -57,6 +59,7 @@ function entorno(guardadas = {}){
   const noOp = () => {};
   const contexto = vm.createContext({
     localStorage, $, Date, Math, console:{ error:noOp },
+    window:{CroquisLocalityOrder:localityOrder},
     document:{ createElement:() => ({}), querySelectorAll:() => wrappers },
     MUNICIPIO:base.municipio, ESTADO:base.estado, BACKUP_FILE_VERSION:1,
     location:{ href:'http://localhost/outputs/croquis_territorios.html' },
@@ -80,7 +83,7 @@ function entorno(guardadas = {}){
   });
   claves.forEach(clave => { contexto[clave] = clave.toLowerCase(); });
   vm.runInContext('let nube=null, nubeAplicando=false, nubeYo="yo", nubeQuien="equipo", nubeCorte=null, nubeCorteLista=null, nubeCorteRegistro=null;', contexto);
-  vm.runInContext(posiciones + normalizarNombres + storage + crud + respaldos + importar + registroNube + escucha + inicio + eventos, contexto);
+  vm.runInContext(posiciones + normalizarNombres + storage + ordenLocalidades + crud + respaldos + importar + registroNube + escucha + inicio + eventos, contexto);
   const ejecutar = codigo => vm.runInContext(codigo, contexto);
   const plano = valor => JSON.parse(JSON.stringify(valor));
   return { contexto, ejecutar, plano, valores, escrituras, vistas, avisos, $, wrappers, escuchas,

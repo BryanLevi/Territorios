@@ -571,7 +571,7 @@ body.print-preview{overflow:hidden}
 <link rel="stylesheet" href="./toolbar-premium.css?v=offline-selector-1">
 <link rel="stylesheet" href="./welcome-premium.css?v=footer-outside-1">
 <link rel="stylesheet" href="./editor-premium.css?v=offline-selector-1">
-<link rel="stylesheet" href="./workspace-tools.css?v=remove-walk-mode-1">
+<link rel="stylesheet" href="./workspace-tools.css?v=locality-order-1">
 </head>
 <body>
 <section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
@@ -856,6 +856,9 @@ body.print-preview{overflow:hidden}
   <div class="territory-actions grupo-terr" role="group" aria-label="Administrar territorios">
   <button class="btn ghost" id="btn-territory-search" type="button" title="Buscar territorio o subterritorio" aria-label="Buscar territorio o subterritorio" aria-haspopup="dialog" aria-controls="territory-search-dialog">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m16 16 5 5"></path></svg><span class="btn-rotulo">Buscar</span>
+  </button>
+  <button class="btn ghost" id="btn-locality-order" type="button" disabled title="Cambiar el orden de las localidades" aria-label="Ordenar localidades" aria-haspopup="dialog" aria-controls="locality-order-dialog">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v16m-3-3 3 3 3-3M11 5h10M11 12h7M11 19h4"></path></svg><span class="btn-rotulo">Ordenar</span>
   </button>
   <button class="btn primary" id="btn-add-territory" type="button" disabled title="Agregar territorio" aria-label="Agregar territorio">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
@@ -1177,6 +1180,11 @@ body.print-preview{overflow:hidden}
   <div class="workspace-dialog-head"><div><span class="workspace-dialog-kicker">Congregación activa</span><h2 id="territory-search-title">Buscar territorio</h2></div><button class="dialog-x" id="territory-search-close" type="button" aria-label="Cerrar buscador">×</button></div>
   <div class="workspace-dialog-body"><label for="territory-search-input">Nombre o número del territorio o subterritorio</label><input id="territory-search-input" type="search" placeholder="Ejemplo: Tomatlán o 38" autocomplete="off"><p id="territory-search-status" role="status" aria-live="polite"></p><div id="territory-search-results"></div></div>
 </dialog>
+<dialog class="workspace-dialog" id="locality-order-dialog" aria-labelledby="locality-order-title" aria-describedby="locality-order-description">
+  <div class="workspace-dialog-head"><div><span class="workspace-dialog-kicker">Congregación activa</span><h2 id="locality-order-title">Ordenar localidades</h2></div><button class="dialog-x" id="locality-order-close" type="button" aria-label="Cerrar orden de localidades">×</button></div>
+  <div class="workspace-dialog-body"><p id="locality-order-description">Arrastra el asa, usa las flechas o escribe el puesto. Los números de tus territorios se conservan.</p><ol id="locality-order-list" aria-label="Orden de las localidades"></ol><p id="locality-order-status" role="status" aria-live="polite"></p></div>
+  <div class="workspace-dialog-foot"><button class="btn ghost" id="locality-order-cancel" type="button">Cancelar</button><button class="btn primary" id="locality-order-save" type="button">Guardar orden</button></div>
+</dialog>
 <dialog class="workspace-dialog" id="history-dialog" aria-labelledby="history-title">
   <div class="workspace-dialog-head"><div><span class="workspace-dialog-kicker">Tu trabajo guardado</span><h2 id="history-title">Historial de cambios</h2></div><button class="dialog-x" id="history-close" type="button" aria-label="Cerrar historial">×</button></div>
   <div class="workspace-dialog-body"><p id="history-status" role="status" aria-live="polite"></p><ol id="history-list"></ol></div>
@@ -1191,6 +1199,7 @@ body.print-preview{overflow:hidden}
 <script src="offline-map-details.js?v=details-2"></script>
 <script src="offline-data.js?v=details-2"></script>
 <script src="destination-placement.js?v=placement-1"></script>
+<script src="locality-order.js?v=order-1"></script>
 <script src="print-label-geometry.js?v=scaled-names-1"></script>
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
@@ -1549,6 +1558,7 @@ const LEYENDA_STORAGE_KEY = 'croquis-territory-leyenda-v1';
 // no tocar la lista de fabrica: asi un nombre se puede devolver a como venia
 // dejando la caja vacia.
 const NOMBRES_STORAGE_KEY = 'croquis-territory-nombres-v1';
+const LOCALITY_ORDER_STORAGE_KEY = 'croquis-locality-order-v1';
 // La transparencia con la que se pinta si no se toca el deslizador.
 const OPACIDAD_POR_DEFECTO = 50;
 // Marca de que ya se subieron a 50 las zonas que estaban por debajo. Va por
@@ -1581,6 +1591,7 @@ const CLAVES_POR_CONGREGACION = [
   ['redoHistory', REDO_HISTORY_STORAGE_KEY],
   ['leyenda', LEYENDA_STORAGE_KEY],
   ['nombres', NOMBRES_STORAGE_KEY],
+  ['localityOrder', LOCALITY_ORDER_STORAGE_KEY],
   ['fondoImpresion', FONDO_IMPRESION_STORAGE_KEY]
 ];
 
@@ -2376,7 +2387,42 @@ function renombrarTerritorio(){
   setStatus('Nombre y texto de Localidad guardados: ' + territorySelectorLabel(LOCS[currentIndex]) + '.', 'warn');
 }
 
+function loadLocalityOrder(){
+  try{
+    const raw = almacen.getItem(LOCALITY_ORDER_STORAGE_KEY);
+    return window.CroquisLocalityOrder?.normalizeOrder(raw ? JSON.parse(raw) : []) || [];
+  }catch(e){ return []; }
+}
+
+function saveLocalityOrder(order){
+  try{
+    const normalized = window.CroquisLocalityOrder.normalizeOrder(order);
+    almacen.setItem(LOCALITY_ORDER_STORAGE_KEY, JSON.stringify(normalized));
+    return true;
+  }catch(e){
+    console.error('No se pudo guardar el orden de las localidades.', e);
+    return false;
+  }
+}
+
+function applyLocalityOrder(order, expectedCongregation = congregacionActivaId){
+  const ordering = window.CroquisLocalityOrder;
+  if(!ordering || !congregacionActivaId || expectedCongregation !== congregacionActivaId) return false;
+  const selectedNum = String(LOCS[currentIndex]?.num ?? '');
+  const normalized = ordering.orderedIds(LOCS, order);
+  if(!saveLocalityOrder(normalized)) return false;
+  LOCS.splice(0, LOCS.length, ...ordering.reorder(LOCS, normalized));
+  const index = LOCS.findIndex(loc => String(loc.num) === selectedNum);
+  currentIndex = index >= 0 ? index : 0;
+  populateSelect();
+  if(LOCS[currentIndex]) updateInfo(LOCS[currentIndex]);
+  setStatus('Orden de localidades guardado.', 'warn');
+  publicarLista();
+  return true;
+}
+
 function applyCustomTerritories(){
+  const selectedNum = String(LOCS[currentIndex]?.num ?? '');
   const hidden = new Set(loadHiddenTerritorySettings());
   const items = loadCustomTerritorySettings();
   // Los 21 de siempre son de la congregacion de Ixhuatlan. Una congregacion
@@ -2399,7 +2445,12 @@ function applyCustomTerritories(){
     if(!cambio || !String(cambio.name || '').trim()) return;
     LOCS[i] = { ...loc, name:String(cambio.name).trim(), alias:String(cambio.alias || '').trim() };
   });
-  if(currentIndex >= LOCS.length) currentIndex = Math.max(0, LOCS.length - 1);
+  if(typeof window !== 'undefined' && window.CroquisLocalityOrder){
+    LOCS.splice(0, LOCS.length, ...window.CroquisLocalityOrder.reorder(LOCS,loadLocalityOrder()));
+  }
+  const selectedIndex = LOCS.findIndex(loc => String(loc.num) === selectedNum);
+  if(selectedIndex >= 0) currentIndex = selectedIndex;
+  else if(currentIndex >= LOCS.length) currentIndex = Math.max(0, LOCS.length - 1);
 }
 
 function recargarAjustesGuardados(){
@@ -2888,7 +2939,7 @@ function showWelcomeScreen(){
   if(typeof window !== 'undefined'){
     window.CroquisDrafts?.leave();
   }
-  ['history-dialog', 'territory-search-dialog', 'draft-recovery-dialog'].forEach(id => $(id)?.close());
+  ['history-dialog', 'territory-search-dialog', 'locality-order-dialog', 'draft-recovery-dialog'].forEach(id => $(id)?.close());
   if(colorDrawMode) setColorDrawMode(false);
   if(roadPencilMode) setRoadPencilMode(false, false);
   if(riverPencilMode) setRiverPencilMode(false, false);
@@ -6479,7 +6530,8 @@ function buildBackupPayload(){
       customTerritories:loadCustomTerritorySettings(),
       hiddenTerritories:loadHiddenTerritorySettings(),
       leyenda:safeObject(leyendaSettings),
-      nombres:safeObject(nombresSettings)
+      nombres:safeObject(nombresSettings),
+      localityOrder:loadLocalityOrder()
     },
     // El respaldo se lleva tambien las demas congregaciones. Lo de arriba es
     // el trabajo de la que esta abierta, que es lo que entienden los respaldos
@@ -6647,7 +6699,9 @@ function getBackupData(payload){
     customTerritories:safeArray(data.customTerritories || data[CUSTOM_TERRITORIES_STORAGE_KEY]).map(normalizeCustomTerritory).filter(Boolean),
     hiddenTerritories:safeArray(data.hiddenTerritories || data[HIDDEN_TERRITORIES_STORAGE_KEY]).map(String),
     leyenda:safeObject(data.leyenda || data[LEYENDA_STORAGE_KEY]),
-    nombres:normalizeNombresSettings(data.nombres || data[NOMBRES_STORAGE_KEY])
+    nombres:normalizeNombresSettings(data.nombres || data[NOMBRES_STORAGE_KEY]),
+    ...(Object.prototype.hasOwnProperty.call(data,'localityOrder') || Object.prototype.hasOwnProperty.call(data,LOCALITY_ORDER_STORAGE_KEY)
+      ? {localityOrder:window.CroquisLocalityOrder.normalizeOrder(data.localityOrder || data[LOCALITY_ORDER_STORAGE_KEY])} : {})
   };
 }
 
@@ -7059,6 +7113,7 @@ async function publicarLista(){
       custom:JSON.stringify(loadCustomTerritorySettings()),
       ocultos:JSON.stringify(loadHiddenTerritorySettings()),
       nombres:JSON.stringify(normalizeNombresSettings(nombresSettings)),
+      localityOrder:JSON.stringify(loadLocalityOrder()),
       fondo:colorFondoImpresion(),
       de:nubeYo,
       porQuien:nubeQuien,
@@ -7077,6 +7132,10 @@ function aplicarListaRemota(d){
     const custom = JSON.parse(d.custom || '[]');
     const ocultos = JSON.parse(d.ocultos || '[]');
     const nombres = JSON.parse(d.nombres || '{}');
+    if(Object.prototype.hasOwnProperty.call(d,'localityOrder')){
+      const order = typeof d.localityOrder === 'string' ? JSON.parse(d.localityOrder) : d.localityOrder;
+      if(Array.isArray(order)) saveLocalityOrder(order);
+    }
     if(Array.isArray(custom)) saveCustomTerritorySettings(custom);
     if(Array.isArray(ocultos)) saveHiddenTerritorySettings(ocultos);
     nombresSettings = normalizeNombresSettings(nombres);
@@ -7269,7 +7328,8 @@ function hasLocalSavedWork(){
     || hasSavedDataObject(frameScaleSettings)
     || hasSavedDataObject(framePositionSettings)
     || loadCustomTerritorySettings().length > 0
-    || loadHiddenTerritorySettings().length > 0;
+    || loadHiddenTerritorySettings().length > 0
+    || loadLocalityOrder().length > 0;
 }
 
 function setCloudButtonsBusy(isBusy){
@@ -8188,6 +8248,7 @@ function updateButtons(){
   if(botonAgrupar) botonAgrupar.disabled = !map || !LOCS.length || currentView === 'offline';
   $('btn-delete-territory').disabled = !map || LOCS.length <= (esCongregacionBase() ? 1 : 0);
   if($('btn-territory-search')) $('btn-territory-search').disabled = !map || !LOCS.length;
+  if($('btn-locality-order')) $('btn-locality-order').disabled = !map || LOCS.length < 2;
 }
 
 function drawTerritoryFrame(loc, fitMap = true, silent = false){
@@ -11581,7 +11642,7 @@ $('welcome-cong-sel')?.addEventListener('change', event => {
 refrescarCongregacionesEnInicio();
 document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
 document.addEventListener('keydown', event => {
-  if($('history-dialog')?.open || $('territory-search-dialog')?.open || $('draft-recovery-dialog')?.open) return;
+  if($('history-dialog')?.open || $('territory-search-dialog')?.open || $('locality-order-dialog')?.open || $('draft-recovery-dialog')?.open) return;
   if($('congregacion-dialog')?.open || $('password-dialog')?.open || privacyDialog?.open) return;
   if(event.key==='Escape' && (destinationAddMode || destinationSession || (!$('destination-panel')?.hidden))){
     event.preventDefault();cancelDestinationInteraction();renderTextLabels(LOCS[currentIndex]);updateColorControls();destinationButton?.focus();return;
@@ -11717,6 +11778,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=remove-walk-mode-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=pdf-readable-1"></script>
+<script src="offline-controller.js?v=locality-order-1"></script>
 </body>
 </html>

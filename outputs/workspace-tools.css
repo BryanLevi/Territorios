@@ -88,3 +88,20 @@
 @media(max-width:760px){.workspace-dialog-head{padding:18px}.workspace-dialog-body{padding:18px}.workspace-dialog-foot{padding:14px 18px;flex-wrap:wrap}.workspace-dialog h2{font-size:21px}}
 @media(prefers-reduced-motion:reduce){.workspace-dialog *{scroll-behavior:auto;animation:none!important}}
 @media print{.workspace-dialog{display:none!important}}
+#locality-order-list{list-style:none;display:grid;gap:8px;padding:0;margin:0 0 14px}
+.locality-order-row{display:flex;align-items:center;gap:6px;padding:6px;border:1px solid #d9e5ff;border-radius:14px;background:#f8fbff}
+.locality-order-name{flex:1;min-width:0;font-size:13px;font-weight:600;line-height:1.4;overflow-wrap:anywhere;color:#244778}
+.locality-order-row button{display:grid;place-items:center;padding:0;flex-shrink:0;height:44px;width:38px;border:1px solid #c8d9ff;border-radius:10px;color:#2b57aa;background:#fff;cursor:pointer}
+.locality-order-row button svg{width:18px;height:18px;pointer-events:none}
+.locality-order-row .locality-order-handle{width:24px;border-color:transparent;background:transparent;cursor:grab;touch-action:none}
+.locality-order-row .locality-order-position{box-sizing:border-box;width:46px;flex:0 0 46px;height:44px;padding:0 4px;border:1px solid #bcd0f8;border-radius:10px;background:#fff;color:#244778;text-align:center;font:inherit;font-weight:700;font-size:14px;appearance:textfield;-moz-appearance:textfield}
+.locality-order-position::-webkit-inner-spin-button,.locality-order-position::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.locality-order-row button:disabled{opacity:.3;cursor:default}
+.locality-order-row.is-dragging{opacity:.55}
+.locality-order-row.is-drop-target{outline:2px solid #2f62da;background:#e8f0ff}
+#locality-order-status:empty{display:none}
+@media(max-width:760px){
+  .locality-order-row{gap:4px}.locality-order-row .locality-order-step{width:44px}.locality-order-name{font-size:12px}.locality-order-row .locality-order-position{width:40px;flex-basis:40px}
+  .premium-toolbar .territory-selection-group .territory-actions.grupo-terr{flex-wrap:wrap}
+  .premium-toolbar .territory-selection-group .territory-actions .btn{flex:1 1 84px;min-width:84px;padding:0 5px}
+}

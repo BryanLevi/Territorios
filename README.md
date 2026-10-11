@@ -46,6 +46,8 @@ La cabecera y las acciones de escritorio usan controles compactos de 36 px. Desd
 
 `Renombrar` permite editar el nombre completo, sus paréntesis y la descripción final del selector de localidad. En el campo de descripción, `auto` restaura el conteo de subterritorios y dejarlo vacío oculta el sufijo. Esta descripción no cambia las divisiones ni los dibujos guardados.
 
+`Ordenar` permite acomodar las localidades arrastrando el asa, usando las flechas o escribiendo el puesto deseado. `Guardar orden` actualiza el selector y la navegación conservando la localidad abierta, su zoom, sus números y sus dibujos. El orden se guarda por congregación, se comparte y se incluye en los respaldos. `Cancelar` conserva el orden anterior. La disposición manual de la lámina del PDF se mantiene independiente.
+
 La selección de territorios del PDF usa texto de 11 px y filas compactas; las casillas pequeñas conservan su área táctil. Las pruebas se ejecutan con `node --test tests/*.test.cjs`.
 
 La lámina del PDF distribuye los cuadros según la forma y las divisiones de cada croquis. El mapa principal conserva su prioridad; en una lámina vertical grande, otro mapa con muchas divisiones puede recibir un segundo cuadro amplio. Los mapas horizontales aprovechan la franja inferior y los verticales la columna lateral. Arrastrar mapas en la vista previa conserva los cuadros elegidos para permitir una distribución manual; cambiar la selección u orientación vuelve a calcularlos.

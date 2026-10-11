@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const localityOrder = require('../outputs/locality-order.js');
 
 const html = fs.readFileSync(path.join(__dirname, '../outputs/croquis_territorios.html'), 'utf8');
 function seccion(inicio, fin){
@@ -40,7 +41,7 @@ function entorno({ guardados = {}, divisionCount = 8 } = {}){
         valores.set(k, valor); escrituras.push(k);
       }
     },
-    window:{ prompt(texto, predeterminado){ preguntas.push({ texto, predeterminado }); const valor = respuestas.shift(); return valor === undefined ? predeterminado : valor; } },
+    window:{ CroquisLocalityOrder:localityOrder, prompt(texto, predeterminado){ preguntas.push({ texto, predeterminado }); const valor = respuestas.shift(); return valor === undefined ? predeterminado : valor; } },
     getTextLabelsForLoc:loc => etiquetas.get(loc.num) || [],
     loadHiddenTerritorySettings:() => [], loadCustomTerritorySettings:() => contexto.congregacionActivaId === 'ixhuatlan' ? [] : [{ ...original }],
     saveHiddenTerritorySettings:() => true, saveCustomTerritorySettings:() => true,

@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const localityOrder = require('../outputs/locality-order.js');
 
 const html = fs.readFileSync(path.join(__dirname, '../outputs/croquis_territorios.html'), 'utf8');
 function funcion(nombre){
@@ -32,6 +33,7 @@ const funciones = [
   'cloneData', 'stateFingerprint', 'loadUndoHistory', 'loadRedoHistory', 'getCurrentSnapshot', 'pushUndoSnapshot',
   'saveUndoHistory', 'getInverseHistorySnapshot', 'restoreEditHistorySnapshot', 'restoreLastUndoSnapshot', 'restoreLastRedoSnapshot',
   'buildBackupPayload', 'getBackupData', 'publicarTerritorio', 'aplicarTerritorioRemoto',
+  'loadLocalityOrder', 'saveLocalityOrder',
   'directionAnnotationGeometry', 'directionInteractionAllowed', 'updateDestinationAnnotation', 'deleteDestinationAnnotation', 'ajustarDobleClic'
 ].map(funcion).join('\n');
 const plano = valor => JSON.parse(JSON.stringify(valor));
@@ -44,6 +46,7 @@ function entorno(guardados = {}){
   const c = vm.createContext({
     TEXT_LABELS_STORAGE_KEY:'textos', UNDO_HISTORY_STORAGE_KEY:'undo', REDO_HISTORY_STORAGE_KEY:'redo', UNDO_HISTORY_LIMIT:80,
     BACKUP_FILE_VERSION:1, location:{href:'http://localhost/croquis'},
+    window:{CroquisLocalityOrder:localityOrder},
     congregacionActivaId:'a', currentIndex:0, LOCS:[{num:1}],
     textLabelSettings:{}, colorAreaSettings:{}, manualIconSettings:{}, whiteRoadSettings:{}, manualRiverSettings:{},
     frameScaleSettings:{}, framePositionSettings:{}, leyendaSettings:{}, nombresSettings:{},
