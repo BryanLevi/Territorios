@@ -53,6 +53,26 @@ test('Adjacent words remain complete and close rows stay separate from a remote 
   assert(encloses(result.boxes[2], 210, 100, 250, 114));
 });
 
+test('Magnified provider lettering keeps every word in one complete row at native, double and quadruple grid sizes', () => {
+  const source=image(240,120);
+  word(source,20,30,4);
+  word(source,68,30,8);
+  word(source,20,60,6);
+  for(const factor of [1,2,4]){
+    const bitmap=image(source.width*factor,source.height*factor);
+    for(let y=0;y<source.height;y++)for(let x=0;x<source.width;x++){
+      const offset=(y*source.width+x)*4;
+      if(!source.data[offset+3])continue;
+      for(let dy=0;dy<factor;dy++)for(let dx=0;dx<factor;dx++)
+        dot(bitmap,x*factor+dx,y*factor+dy,source.data.subarray(offset,offset+4));
+    }
+    const result=detect(bitmap.data,bitmap.width,bitmap.height,{glyphScale:factor});
+    assert.equal(result.boxes.length,2,'Each label row remains whole without joining adjacent rows');
+    assert(encloses(result.boxes[0],20*factor,30*factor,152*factor,44*factor));
+    assert(encloses(result.boxes[1],20*factor,60*factor,82*factor,74*factor));
+  }
+});
+
 test('An inclined street name is measured in full, including its upper and lower strokes', () => {
   const bitmap = image(230, 180);
   word(bitmap, 50, 40, 9, 34);

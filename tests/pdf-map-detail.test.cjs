@@ -101,6 +101,70 @@ function glyphFactor(renderScale, fitZoom, tileSize){
   return tileSize / 256 * 2 ** (fitZoom - Math.round(fitZoom)) / renderScale;
 }
 
+function providerNameOptions(renderScale, layoutScale){
+  const context = vm.createContext({PRINT_NAME_TILE_SIZE:constant('PRINT_NAME_TILE_SIZE'),
+    PRINT_NAME_ZOOM_OFFSET:constant('PRINT_NAME_ZOOM_OFFSET')});
+  vm.runInContext(extractFunction('printProviderNameOptions'), context);
+  return context.printProviderNameOptions(renderScale, layoutScale);
+}
+
+test('Reduced frames magnify provider lettering without moving its geographic position', () => {
+  const point = {lat:19.048889, lng:-96.981944};
+  for(const [render, layout] of [[1.5,1],[3,.5],[9,.45],[4.5,.12],[9,.1]]){
+    const options = providerNameOptions(render, layout);
+    const levels = -options.zoomOffset;
+    const original = project(point, 19);
+    const adapted = project(point, 19 + options.zoomOffset);
+    const tileRatio = options.tileSize / 256;
+    assert(Math.abs(adapted.x * tileRatio - original.x) < 1e-6);
+    assert(Math.abs(adapted.y * tileRatio - original.y) < 1e-6);
+    assert(levels >= 0 && levels <= 2, 'Keep local labels within two provider zoom levels');
+    assert(options.tileSize >= 256 && options.tileSize <= 1024);
+    const before = 8 * layout / render, after = before * tileRatio;
+    assert(after >= before, 'Lettering never gets smaller in a reduced frame');
+    if(before < .7) assert(after >= .7 || levels === 2,
+      'Reach the paper-size target unless geographic detail caps the enlargement');
+  }
+  assert.equal(providerNameOptions(9,.2).tileSize,1024,
+    'Dense overview maps need larger street/place lettering than the old native grid');
+  assert.equal(providerNameOptions(1.5,1).tileSize,256,
+    'Maps that already have legible provider lettering retain their native grid');
+});
+
+test('Lamina lettering uses real high resolution labels independently of the white street geometry', () => {
+  const context = vm.createContext({});
+  vm.runInContext(extractFunction('printProviderNameUrl'), context);
+  const original = 'https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&scale=2';
+  const actual = context.printProviderNameUrl(original);
+  const parsed = new URL(actual.replace('{s}','0'));
+  assert.equal(parsed.searchParams.get('lyrs'),'m');
+  assert.equal(parsed.searchParams.get('scale'),'4', 'Request 1024 native pixels instead of upscaling a 512 image');
+  assert.equal(parsed.searchParams.getAll('scale').length,1);
+  for(const key of ['x','y','z']) assert.equal(parsed.searchParams.get(key),`{${key}}`);
+  assert(parsed.searchParams.get('apistyle').includes('s.e:g|p.v:off'),
+    'Provider geometry cannot cover the independently drawn white streets');
+  assert(parsed.searchParams.get('apistyle').includes('s.e:l.t.f|p.c:#202c23'),
+    'Names retain dark ink that can be measured and kept complete at the territory border');
+  const carto = 'https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png';
+  assert.equal(context.printProviderNameUrl(carto),carto);
+  assert.equal(original.endsWith('scale=2'),true, 'Does not mutate the selected live-map source');
+});
+
+test('Automatic PDF streets stay white at native geographic detail with no duplicate labels', () => {
+  const context = vm.createContext({});
+  vm.runInContext(extractFunction('printProviderRoadUrl'), context);
+  const original = 'https://mt0.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&scale=2';
+  const result = new URL(context.printProviderRoadUrl(original));
+  assert.equal(result.searchParams.get('scale'),'2', 'Street cartography keeps its original native grid/resolution');
+  for(const key of ['x','y','z']) assert.equal(result.searchParams.get(key),`{${key}}`);
+  const style = result.searchParams.get('apistyle');
+  assert(style.includes('s.e:l|p.v:off'), 'Never repeats street/place lettering under the enlarged name layer');
+  assert(style.includes('s.t:3|s.e:g|p.v:on'), 'The road geometry remains visible');
+  assert(style.includes('s.e:g.f|p.c:#ffffff') && style.includes('s.e:g.s|p.c:#ffffff'),
+    'Both the road centre and its casing print white');
+  assert.equal(context.printProviderRoadUrl('https://example.org/labels/{z}/{x}/{y}.png'),null);
+});
+
 test('Small portrait/landscape frames retain the same neighborhood street detail as a full PDF map', () => {
   const {context} = detailEnvironment();
   const source = Object.freeze({maxZ:20});

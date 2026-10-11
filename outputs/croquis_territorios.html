@@ -1191,7 +1191,7 @@ body.print-preview{overflow:hidden}
 <script src="offline-map-details.js?v=details-2"></script>
 <script src="offline-data.js?v=details-2"></script>
 <script src="destination-placement.js?v=placement-1"></script>
-<script src="print-label-geometry.js?v=complete-names-1"></script>
+<script src="print-label-geometry.js?v=scaled-names-1"></script>
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
 <script src="print-direction-layout.js?v=compact-directions-1"></script>
@@ -1278,10 +1278,40 @@ const PRINT_RENDER_SCALE_MIN = 1.5;
 // La que se esta usando en la hoja que se dibuja ahora mismo.
 let printRenderScale = PRINT_RENDER_SCALE_MAX;
 const PRINT_TILE_TIMEOUT_MS = 180000;
-// Rejilla nativa: compensada con el lienzo de mitad de tamaño mantiene el
-// mismo zoom del proveedor y el mismo tamaño de letras que la versión anterior.
+// El fondo y las manzanas mantienen su rejilla nativa. Los nombres usan una
+// rejilla independiente cuando el mapa se reduce dentro de la lámina.
 const PRINT_NAME_ZOOM_OFFSET = 0;
 const PRINT_NAME_TILE_SIZE = 256;
+function printProviderNameOptions(renderScale, layoutScale = 1){
+  const render = Math.max(1, Number(renderScale) || 1);
+  const layout = Math.max(.05, Number(layoutScale) || 1);
+  // Una letra del proveedor ocupa unos 8 px nativos. La escala del hueco es
+  // conservadora: el encuadre final amplía el mapa al quitar el espacio vacío.
+  // El umbral inicial de .7 px y el límite de dos niveles evitan miniaturas y
+  // rótulos enormes. El tamaño y el zoom cambian juntos para
+  // que cada tesela siga cubriendo exactamente las mismas coordenadas.
+  const levels = Math.max(0, Math.min(2, Math.ceil(Math.log2(.7 * render / (8 * layout)))));
+  return {tileSize:PRINT_NAME_TILE_SIZE * 2 ** levels, zoomOffset:PRINT_NAME_ZOOM_OFFSET - levels};
+}
+function printProviderNameUrl(url){
+  if(!String(url || '').includes('google.com/vt')) return url;
+  // Sólo los rótulos: ampliar la geometría de la capa híbrida engrosaría
+  // las calles y taparía sus trazos blancos. Google entrega esta capa de
+  // nombres con fondo transparente y 1024 px reales por tesela.
+  let result = String(url).replace('/vt/lyrs=', '/vt?lyrs=').replace(/([?&]lyrs=)h(?=&|$)/, '$1m');
+  result = /[?&]scale=/.test(result)
+    ? result.replace(/([?&]scale=)[^&]*/, (_,prefix) => prefix + '4') : result + '&scale=4';
+  const style = 's.t:0|s.e:g|p.v:off,s.t:0|s.e:l.t.f|p.c:#202c23,s.t:0|s.e:l.t.s|p.c:#ffffff';
+  return result + '&apistyle=' + encodeURIComponent(style);
+}
+function printProviderRoadUrl(url){
+  if(!String(url || '').includes('google.com/vt')) return null;
+  // Mantiene la cartografía fina en blanco. No usa la rejilla ampliada de
+  // los nombres, y no repite letras ni iconos debajo de ellos.
+  const result = String(url).replace('/vt/lyrs=', '/vt?lyrs=').replace(/([?&]lyrs=)h(?=&|$)/, '$1m');
+  const style = 's.t:0|s.e:g|p.v:off,s.t:0|s.e:l|p.v:off,s.t:3|s.e:g|p.v:on,s.t:3|s.e:g.f|p.c:#ffffff,s.t:3|s.e:g.s|p.c:#ffffff';
+  return result + '&apistyle=' + encodeURIComponent(style);
+}
 const PRINT_MAX_ZOOM = 20;
 // La cartografía raster se conserva hasta 1200 ppp de su tamaño final en papel. El
 // zoom del proveedor sigue intacto: solamente se reúnen sus teselas cargadas.
@@ -10852,14 +10882,21 @@ async function imprimir(opciones = {}){
     if(urlNombres && String(urlNombres).includes('google.com') && !String(urlNombres).includes('scale=')){
       urlNombres += '&scale=' + escalaTeselaImpresion();
     }
+    if(opciones.lamina){
+      const roadUrl = printProviderRoadUrl(urlNombres);
+      if(roadUrl) anadirTeselas(src, {url:roadUrl, attribution:'', pane:'territoryWhiteRoadPane', crossOrigin:true});
+      urlNombres = printProviderNameUrl(urlNombres);
+    }
     let capaNombres = null;
     // Tambien en los territorios sin pintar: antes la capa solo se anadia
     // cuando habia recorte de color, asi que Cruz Verde salia sin un solo
     // nombre de calle.
     if(urlNombres){
+      const nameOptions = opciones.lamina ? printProviderNameOptions(printRenderScale, directionLayoutScale) : {};
       capaNombres = anadirTeselas({...src, sub:src.roadSub || src.labelSub || src.sub || ''}, {
-        url:urlNombres, attribution:'', pane:'territoryRoadPane', crossOrigin:true
+        url:urlNombres, attribution:'', pane:'territoryRoadPane', crossOrigin:true, ...nameOptions
       });
+      printMap._printNameTileOptions = {tileSize:capaNombres.options.tileSize, zoomOffset:capaNombres.options.zoomOffset};
     }
     printMap._printNameBleed = capaNombres ? PRINT_MASK_GROW_NOMBRES * printRenderScale / 2 : 0;
     ajustarHaloDeNombresImpresos(printMap);
@@ -11680,6 +11717,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=remove-walk-mode-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=pdf-hd-1"></script>
+<script src="offline-controller.js?v=pdf-readable-1"></script>
 </body>
 </html>

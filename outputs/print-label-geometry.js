@@ -26,6 +26,7 @@
     }
     const settings = options || {};
     const scale = Math.max(.05, Math.min(1, Number(settings.nativeScale) || 1));
+    const glyphScale = Math.max(1, Math.min(4, Number(settings.glyphScale) || 1));
     const step = Math.max(1, Math.round(2 * scale),
       Math.ceil(Math.sqrt(width * height / MAX_GRID_PIXELS)));
     const columns = Math.ceil(width / step), rows = Math.ceil(height / step);
@@ -101,8 +102,11 @@
     // La unión horizontal salva espacios entre letras y palabras. Un margen
     // vertical menor conserva rótulos inclinados sin encadenar filas de
     // nombres cercanos en una sola caja que abarque toda la ciudad.
-    const radius = Math.max(1, Math.ceil(4 * scale / step));
-    const verticalRadius = Math.max(1, Math.ceil(2 * scale / step));
+    // La rejilla ampliada separa también las letras y las palabras. Medir
+    // con el margen nativo dejaba fragmentos de un mismo letrero en cajas
+    // distintas y cortaba sus primeras letras al recortar el territorio.
+    const radius = Math.max(1, Math.ceil(4 * glyphScale * scale / step));
+    const verticalRadius = Math.max(1, Math.ceil(2 * glyphScale * scale / step));
     for (let y = 0; y < rows; y++) {
       const start = y * columns;
       let sum = 0;
@@ -206,7 +210,8 @@
       }
       if (!drawn) return empty('no-visible-tiles');
       const rgba = context.getImageData(0, 0, canvas.width, canvas.height).data;
-      const result = detect(rgba, canvas.width, canvas.height, {nativeScale:scale});
+      const result = detect(rgba, canvas.width, canvas.height, {nativeScale:scale,
+        glyphScale:(Number(layer.options?.tileSize) || 256) / 256});
       return Object.assign({}, result, {
         boxes:result.boxes.map(box => ({x0:box.x0 / scale, y0:box.y0 / scale,
           x1:box.x1 / scale, y1:box.y1 / scale})),
