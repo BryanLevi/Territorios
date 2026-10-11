@@ -76,7 +76,7 @@ function entorno(guardadas = {}){
     applyCustomTerritories:noOp, populateSelect:noOp, limpiarMapaSinTerritorios:noOp, updateInfo:noOp, goTo:noOp, saveAllChanges:noOp, clearSelectedLine:noOp,
     safeObject:v => v && typeof v === 'object' && !Array.isArray(v) ? v : {}, safeArray:v => Array.isArray(v) ? v : [],
     normalizeCustomTerritory:v => v, loadCustomTerritorySettings:() => [], loadHiddenTerritorySettings:() => [],
-    setColorDrawMode:noOp, setRoadPencilMode:noOp, setRiverPencilMode:noOp, setTextAddMode:noOp,
+    setColorDrawMode:noOp, resetDraftArea(){ contexto.draftPoints = []; }, setRoadPencilMode:noOp, setRiverPencilMode:noOp, setTextAddMode:noOp,
     setIconAddMode:noOp, setContourEditMode:noOp, setTerritoryAddMode:noOp, setFrameMoveMode:noOp,
     setStatus:(texto, tipo) => avisos.push({ texto, tipo }), setTimeout:noOp,
     aplicarListaRemota:d => escuchas.push({ lista:d }), aplicarTerritorioRemoto:(id, d) => escuchas.push({ id, d }), pintarEstadoNube:noOp

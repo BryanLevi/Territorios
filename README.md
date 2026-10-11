@@ -68,7 +68,9 @@ Si el servidor esta saturado se reintenta hasta tres veces, alternando entre dos
 
 ## Continuar un dibujo pendiente
 
-Los borradores de zonas de color, calles, carreteras y ríos se guardan automáticamente en este dispositivo, separados por congregación y territorio. Al cerrar, recargar, volver a Inicio, cambiar de territorio o entrar al recorrido, el trabajo incompleto permanece disponible. Al abrir el editor se ofrece el borrador de su territorio actual o el más reciente de esa congregación. Elige `Continuar dibujo` para recuperar sus puntos, estilo y encuadre, o `Descartar`; cambia de territorio solo cuando aceptas continuar. Guardar o cancelar el dibujo elimina su borrador. Los borradores no se publican ni se incluyen en los respaldos; los destinos sin guardar no se recuperan.
+Los borradores de zonas de color, calles, carreteras y ríos se guardan automáticamente en este dispositivo, separados por congregación y territorio. Al cerrar, recargar, volver a Inicio o cambiar de territorio, el trabajo incompleto permanece disponible. Al abrir el editor se ofrece el borrador de su territorio actual o el más reciente de esa congregación. Elige `Continuar dibujo` para recuperar sus puntos, estilo y encuadre, o `Descartar`; cambia de territorio solo cuando aceptas continuar. Guardar o descartar el dibujo elimina su borrador. Los borradores no se publican ni se incluyen en los respaldos; los destinos sin guardar no se recuperan.
+
+Apagar `Pintar`, presionar Escape o cambiar a Editar pausa la pintura y conserva sus puntos, color y transparencia. Usa `Pintar` o `Continuar` para retomarla con el cursor de cruz; una cruz sobre el último punto señala desde dónde continúa. Si un doble clic ya cerró la zona, selecciónala y toca `Continuar`: Guardar reemplaza esa misma zona conservando sus demás propiedades. El original sigue guardado mientras continúas; `Borrar` descarta sólo el trazo pendiente. Si el original cambió en otra edición, se conserva el borrador y se avisa antes de reemplazarlo. Continuar mantiene el zoom y la posición actuales.
 
 ## Rios y arroyos
 

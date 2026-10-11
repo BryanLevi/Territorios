@@ -6,6 +6,7 @@
   const MAX_POINTS = 2500;
   const MAX_RECORDS = 128;
   const MAX_STORAGE_LENGTH = 1000000;
+  const MAX_AREA_FINGERPRINT_LENGTH = 200000;
   const kinds = new Set(['area', 'road', 'highway', 'river']);
   let active = null;
   let pending = null;
@@ -42,8 +43,22 @@
       ? { center:cameraCenter, zoom:cameraZoom } : null;
     const color = /^#[0-9a-f]{6}$/i.test(value.color) ? value.color : '#8b5cf6';
     const opacity = finiteNumber(value.opacity) ? Math.max(10, Math.min(85, value.opacity)) : 50;
+    let areaTarget;
+    if (value.kind === 'area' && Object.prototype.hasOwnProperty.call(value, 'areaTarget')) {
+      const target = value.areaTarget;
+      if (!target || !Number.isSafeInteger(target.index) || target.index < 0
+        || typeof target.fingerprint !== 'string' || !target.fingerprint.length
+        || target.fingerprint.length > MAX_AREA_FINGERPRINT_LENGTH) return null;
+      try {
+        const area = JSON.parse(target.fingerprint);
+        if (!area || Array.isArray(area) || !Array.isArray(area.points) || area.points.length < 3
+          || area.points.some(point => !coordinate(point))) return null;
+      } catch (_) { return null; }
+      areaTarget = { index:target.index, fingerprint:target.fingerprint };
+    }
     return { version:1, congregationId:id, locNum:value.locNum, kind:value.kind,
-      points, color, opacity, camera, savedAt:value.savedAt };
+      points, color, opacity, camera, savedAt:value.savedAt,
+      ...(areaTarget ? { areaTarget } : {}) };
   }
 
   // El destino de cada escritura queda fijado antes del debounce. Cambiar de
@@ -109,14 +124,23 @@
     return !!active && !!identity && active.id === identity.id && active.num === identity.num;
   }
 
+  function colorSession(identity = currentIdentity()) {
+    if (typeof getColorDraftSession !== 'function' || !identity || !draftPoints.length) return null;
+    const session = getColorDraftSession();
+    return session && session.congregationId === identity.id && String(session.locNum) === identity.num
+      ? session : null;
+  }
+
   function readLiveDraft() {
-    let kind, points;
+    let kind, points, session;
     if (roadPencilMode && roadDraftPoints.length) { kind = modoCarretera ? 'highway' : 'road'; points = roadDraftPoints; }
     else if (riverPencilMode && riverDraftPoints.length) { kind = 'river'; points = riverDraftPoints; }
-    else if (colorDrawMode && draftPoints.length) { kind = 'area'; points = draftPoints; }
+    else if (draftPoints.length && ((session = colorSession(active))
+      || (typeof getColorDraftSession !== 'function' && colorDrawMode))) { kind = 'area'; points = draftPoints; }
     else return null;
     return normalizeRecord({ version:1, congregationId:active.id, locNum:active.num, kind, points,
-      color:colorInput?.value, opacity:getFillOpacity() * 100,
+      color:session ? session.color : colorInput?.value, opacity:session ? session.opacity * 100 : getFillOpacity() * 100,
+      ...(session && Object.prototype.hasOwnProperty.call(session, 'areaTarget') ? { areaTarget:session.areaTarget } : {}),
       camera:{ center:coordinate(map.getCenter()), zoom:map.getZoom() }, savedAt:Date.now() }, active.id) || undefined;
   }
 
@@ -209,6 +233,7 @@
         colorInput.value = record.color;
         colorOpacityInput.value = String(record.opacity);
         draftPoints = record.points.map(point => L.latLng(point[0], point[1]));
+        if (typeof restoreColorDraftSession === 'function') restoreColorDraftSession(record);
       } else if (record.kind === 'river') {
         setRiverPencilMode(true, false);
         riverDraftPoints = record.points.map(point => L.latLng(point[0], point[1]));
@@ -296,7 +321,7 @@
   }
 
   function hasPending() {
-    return !!pending || !!pointState()?.points.length;
+    return !!pending || !!pointState()?.points.length || !!colorSession();
   }
 
   function init() {

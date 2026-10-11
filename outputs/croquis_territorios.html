@@ -128,6 +128,9 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .runtime-offline-name.is-poi span{color:#435568}
 .runtime-offline-detail-pane{pointer-events:none!important;mix-blend-mode:normal}
 .map-wrap.is-color-drawing .leaflet-container,.map-wrap.is-text-placing .leaflet-container,.map-wrap.is-icon-placing .leaflet-container,.map-wrap.is-road-pencil .leaflet-container,.map-wrap.is-river-pencil .leaflet-container{cursor:crosshair}
+.map-wrap.is-color-drawing .leaflet-interactive,.map-wrap.is-color-drawing .leaflet-marker-icon{cursor:crosshair!important}
+.color-draft-endpoint{background:none;border:0;pointer-events:none!important}
+.color-draft-endpoint svg{width:24px;height:24px;filter:drop-shadow(0 1px 2px #172b4b55)}
 .map-wrap.is-contour-editing .leaflet-container{cursor:default}
 .contour-handle{cursor:grab}
 .contour-handle:active{cursor:grabbing}
@@ -915,6 +918,10 @@ body.print-preview{overflow:hidden}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10.6 3.4 8 8-6.2 6.2a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8z"></path><path d="M8.2 5.8 6 3.6"></path><path d="M20.5 15.4c0 1.1-.9 2-2 2s-2-.9-2-2 2-3.6 2-3.6 2 2.5 2 3.6z"></path></svg>
         <span class="icon-btn-rotulo">Pintar</span>
       </button>
+      <button class="icon-btn con-rotulo" id="btn-color-continue" type="button" hidden disabled title="Continuar pintando desde el último punto" aria-label="Continuar pintando desde el último punto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5h8M12 5l-3-3M12 5 9 8M14 17h8M18 13v8"></path><path d="M4 19h7"></path></svg>
+        <span class="icon-btn-rotulo">Continuar</span>
+      </button>
       <input class="color-swatch" id="fill-color" type="color" value="#8b2cff" disabled title="Color de relleno" aria-label="Color de relleno">
       <input id="fill-opacity" type="range" min="10" max="85" step="5" value="50" disabled title="Transparencia" aria-label="Transparencia">
       <output class="opacity-value" id="fill-opacity-value" for="fill-opacity">35%</output>
@@ -1512,6 +1519,7 @@ if(textSizeInput){
 const colorEditButton = $('btn-color-edit');
 const contourEditButton = $('btn-contour-edit');
 const colorDrawButton = $('btn-color-draw');
+const colorContinueButton = $('btn-color-continue');
 const roadPencilButton = $('btn-road-pencil');
 const carreteraButton = $('btn-carretera');
 const destinationButton = $('btn-destino');
@@ -1883,6 +1891,7 @@ let modoCarretera = false;
 let riverPencilMode = false;
 let riverDraftPoints = [];
 let draftPoints = [];
+let colorDraftSession = null;
 let territoryAddMode = false;
 let territoryAddStart = null;
 let territoryAddPreviewLayer = null;
@@ -2505,6 +2514,8 @@ function activarCongregacion(id, silencioso){
   if(map && !conservarBorrador) saveAllChanges();
   try{ localStorage.setItem(CONGREGACION_ACTIVA_STORAGE_KEY, destino.id); }
   catch(e){ mostrarEstadoCongregaciones('No se pudo guardar la selección. Inténtalo de nuevo.', true); return false; }
+  setColorDrawMode(false);
+  resetDraftArea();
   congregacionActivaId = destino.id;
   actualizarVistaCongregacion(true);
   if(!silencioso){
@@ -2941,6 +2952,7 @@ function showWelcomeScreen(){
   }
   ['history-dialog', 'territory-search-dialog', 'locality-order-dialog', 'draft-recovery-dialog'].forEach(id => $(id)?.close());
   if(colorDrawMode) setColorDrawMode(false);
+  resetDraftArea();
   if(roadPencilMode) setRoadPencilMode(false, false);
   if(riverPencilMode) setRiverPencilMode(false, false);
   if(typeof window !== 'undefined') window.CroquisAccess?.lock();
@@ -3660,6 +3672,14 @@ function updateColorControls(loc = LOCS[currentIndex]){
   if(colorDrawButton){
     colorDrawButton.disabled = !enabled || !loc;
     colorDrawButton.classList.toggle('active', colorDrawMode);
+    colorDrawButton.setAttribute('aria-pressed', String(colorDrawMode));
+    colorDrawButton.title = colorDrawMode ? 'Pausar pintura sin perder los puntos' : getColorDraftSession() ? 'Retomar pintura pendiente' : 'Dibujar una zona de color';
+  }
+  if(colorContinueButton){
+    const canContinue = !colorDrawMode && (!!getColorDraftSession() || !!getColorAreasForLoc(loc)[selectedAreaIndex]);
+    colorContinueButton.hidden = !canContinue;
+    colorContinueButton.disabled = !enabled || !loc || !canContinue;
+    colorContinueButton.title = getColorDraftSession() ? 'Retomar pintura pendiente desde el último punto' : 'Continuar la zona seleccionada desde su último punto';
   }
   const botonRef = $('btn-referencias');
   if(botonRef) botonRef.disabled = !enabled || !loc;
@@ -3682,7 +3702,7 @@ function updateColorControls(loc = LOCS[currentIndex]){
     iconAddButton.classList.toggle('active', iconAddMode);
   }
   if(saveChangesButton) saveChangesButton.disabled = !enabled || !loc;
-  const canUndoSavedChange = undoHistory.length > 0;
+  const canUndoSavedChange = undoHistory.length > 0 && !getColorDraftSession();
   colorUndoButton.disabled = !enabled || ((!colorDrawMode || draftPoints.length < 1) && (!roadPencilMode || roadDraftPoints.length < 1) && (!riverPencilMode || riverDraftPoints.length < 1) && !(contourEditMode && selectedAreaIndex != null && getColorAreasForLoc(loc)[selectedAreaIndex]?.points?.length > 3) && !canUndoSavedChange);
   colorClearButton.disabled = !enabled || !loc || (!draftPoints.length && !roadDraftPoints.length && !riverDraftPoints.length && getColorAreasForLoc(loc).length === 0 && getTextLabelsForLoc(loc).length === 0 && getManualIconsForLoc(loc).length === 0 && getWhiteRoadsForLoc(loc).length === 0 && getManualRiversForLoc(loc).length === 0);
   colorOpacityValue.textContent = Math.round(getFillOpacity() * 100) + '%';
@@ -3696,6 +3716,10 @@ function renderColorAreas(loc){
   if(!colorLayer || !window.L) return;
   colorLayer.clearLayers();
   getColorAreasForLoc(loc).forEach((area, index) => {
+    // La zona guardada se conserva hasta confirmar la continuación. Sólo su
+    // vista se sustituye por el borrador para no duplicar el relleno.
+    const target = colorDrawMode && getColorDraftSession()?.areaTarget;
+    if(target && target.index === index && target.fingerprint === stateFingerprint(area)) return;
     const latLngs = pointsToLatLngs(area.points);
     if(latLngs.length < 3) return;
     const polygon = L.polygon(latLngs, {
@@ -5517,12 +5541,35 @@ function renderManualIcons(loc){
   actualizarPanelReferencias();
 }
 
+function getColorDraftSession(){
+  const loc = LOCS[currentIndex];
+  if(!loc || !draftPoints.length || !colorDraftSession
+    || colorDraftSession.congregationId !== congregacionActivaId
+    || colorDraftSession.locNum !== String(loc.num)) return null;
+  if(colorDrawMode){
+    colorDraftSession.color = sanitizeColor(colorInput?.value);
+    colorDraftSession.opacity = getFillOpacity();
+  }
+  return colorDraftSession;
+}
+
+function restoreColorDraftSession(record){
+  colorDraftSession = {
+    congregationId:record.congregationId, locNum:String(record.locNum),
+    color:sanitizeColor(record.color), opacity:Number(record.opacity) / 100,
+    ...(record.areaTarget ? {areaTarget:{...record.areaTarget}} : {})
+  };
+  renderColorAreas(LOCS[currentIndex]);
+}
+
 function renderDraftArea(){
+  const session = getColorDraftSession();
   window.CroquisDrafts?.capture();
   if(!draftLayer || !window.L) return;
   draftLayer.clearLayers();
-  const color = sanitizeColor(colorInput?.value);
-  const style = colorAreaStyle({ color, opacity:getFillOpacity() }, 2.5, false, 'territoryDraftPane');
+  if(!session) return;
+  const color = session.color;
+  const style = colorAreaStyle({ color, opacity:session.opacity }, 2.5, false, 'territoryDraftPane');
   if(draftPoints.length === 1){
     L.circleMarker(draftPoints[0], {
       radius:5,
@@ -5530,19 +5577,24 @@ function renderDraftArea(){
       fillColor:color,
       fillOpacity:.95,
       weight:2,
+      interactive:false,
       pane:'territoryDraftPane'
     }).addTo(draftLayer);
-    return;
+  }else if(draftPoints.length === 2){
+    L.polyline(draftPoints, { color, weight:3, opacity:.95, dashArray:'7,5', pane:'territoryDraftPane', interactive:false }).addTo(draftLayer);
+  }else{
+    L.polygon(draftPoints, { ...style, dashArray:'7,5', interactive:false }).addTo(draftLayer);
   }
-  if(draftPoints.length === 2){
-    L.polyline(draftPoints, { color, weight:3, opacity:.95, dashArray:'7,5', pane:'territoryDraftPane' }).addTo(draftLayer);
-    return;
-  }
-  L.polygon(draftPoints, { ...style, dashArray:'7,5' }).addTo(draftLayer);
+  L.marker(draftPoints[draftPoints.length - 1], {
+    pane:'territoryDraftPane', interactive:false, keyboard:false,
+    icon:L.divIcon({className:'color-draft-endpoint', iconSize:[24,24], iconAnchor:[12,12],
+      html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16" stroke="white" stroke-width="6" stroke-linecap="round"/><path d="M12 4v16M4 12h16" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round"/></svg>'})
+  }).addTo(draftLayer);
 }
 
 function resetDraftArea(){
   draftPoints = [];
+  colorDraftSession = null;
   if(draftLayer) draftLayer.clearLayers();
   window.CroquisDrafts?.capture();
 }
@@ -5633,6 +5685,11 @@ function ajustarDobleClic(){
 }
 
 function setRoadPencilMode(active, showMessage = true, carretera = false){
+  if(active && getColorDraftSession()){
+    setColorDrawMode(false);
+    setStatus('Guarda o borra la pintura pendiente antes de comenzar otro trazo. Puedes retomarla con Continuar.', 'warn');
+    return;
+  }
   if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
@@ -5716,6 +5773,11 @@ function finishRiverDraft(){
 }
 
 function setRiverPencilMode(active, showMessage = true){
+  if(active && getColorDraftSession()){
+    setColorDrawMode(false);
+    setStatus('Guarda o borra la pintura pendiente antes de comenzar otro trazo. Puedes retomarla con Continuar.', 'warn');
+    return;
+  }
   if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
@@ -5748,25 +5810,78 @@ function setRiverPencilMode(active, showMessage = true){
 }
 
 function setColorDrawMode(active){
+  const loc = LOCS[currentIndex];
+  if(active && (!map || !loc)) return;
+  const session = getColorDraftSession();
   if(active) cancelDestinationInteraction();
   if(active && frameMoveMode) setFrameMoveMode(false, false);
   if(active) clearSelectedLine();
+  // Los cambios de herramienta refrescan controles y capturan el borrador.
+  // Restituir el estilo antes evita que esos refrescos lo sustituyan.
+  if(active && session){
+    colorInput.value = session.color;
+    colorOpacityInput.value = String(Math.round(session.opacity * 100));
+  }
   colorDrawMode = !!active;
-  if(colorDrawMode) setTerritoryAddMode(false, false);
-  if(colorDrawMode) setRoadPencilMode(false, false);
-  if(colorDrawMode) setRiverPencilMode(false, false);
-  if(colorDrawMode) setTextAddMode(false, false);
-  if(colorDrawMode) setIconAddMode(false, false);
-  if(colorDrawMode) setContourEditMode(false, false);
-  resetDraftArea();
-  document.querySelector('.map-wrap')?.classList.toggle('is-color-drawing', colorDrawMode);
   if(colorDrawMode){
-    setStatus('Dibujando area de color. Marca puntos y cierra con la palomita.', 'warn');
+    colorEditMode = false;
+    selectedAreaIndex = null;
+    selectedTextIndex = null;
+    selectedIconIndex = null;
+    selectedReference = null;
+    setContourEditMode(false, false);
+    setTerritoryAddMode(false, false);
+    setRoadPencilMode(false, false);
+    setRiverPencilMode(false, false);
+    setTextAddMode(false, false);
+    setIconAddMode(false, false);
+    if(!session){
+      draftPoints = [];
+      colorDraftSession = {congregationId:congregacionActivaId, locNum:String(loc.num),
+        color:sanitizeColor(colorInput?.value), opacity:getFillOpacity()};
+    }
+    renderTextLabels(loc);
+    renderManualIcons(loc);
+    renderDraftArea();
+  }
+  document.querySelector('.map-wrap')?.classList.toggle('is-color-drawing', colorDrawMode);
+  renderColorAreas(loc);
+  window.CroquisDrafts?.capture();
+  if(colorDrawMode){
+    setStatus(session ? 'Pintura retomada. Continúa desde la cruz y usa Guardar al terminar.' : 'Dibujando área de color. Marca puntos y usa Guardar al terminar.', 'warn');
+  }else if(session){
+    setStatus('Pintura en pausa. Usa Pintar o Continuar para retomar el trazo.', 'warn');
   }else if(statusBox.classList.contains('warn') && statusBox.textContent.includes('Dibujando area')){
     setStatus('', '');
   }
   ajustarDobleClic();
   updateColorControls();
+}
+
+function continueColorArea(){
+  if(getColorDraftSession()){
+    setColorDrawMode(true);
+    return true;
+  }
+  const loc = LOCS[currentIndex], index = selectedAreaIndex;
+  const area = getColorAreasForLoc(loc)[index];
+  if(!loc || !area || !Array.isArray(area.points) || area.points.length < 3) return false;
+  const points = pointsToLatLngs(area.points).filter((point, i, all) =>
+    !i || point.lat !== all[i - 1].lat || point.lng !== all[i - 1].lng);
+  if(points.length > 3 && points[0].lat === points[points.length - 1].lat && points[0].lng === points[points.length - 1].lng) points.pop();
+  if(points.length < 3) return false;
+  const target = {index, fingerprint:stateFingerprint(area)};
+  setColorDrawMode(true);
+  colorInput.value = sanitizeColor(area.color);
+  colorOpacityInput.value = String(Math.round((Number(area.opacity) || getFillOpacity()) * 100));
+  draftPoints = points;
+  colorDraftSession = {congregationId:congregacionActivaId, locNum:String(loc.num),
+    color:sanitizeColor(area.color), opacity:getFillOpacity(), areaTarget:target};
+  renderColorAreas(loc);
+  renderDraftArea();
+  updateColorControls(loc);
+  setStatus('Continúa pintando desde la cruz. Guardar actualizará esta misma zona.', 'warn');
+  return true;
 }
 
 function setColorEditMode(active){
@@ -5897,7 +6012,7 @@ function selectColorArea(index){
   renderTextLabels(loc);
   renderManualIcons(loc);
   renderContourEditHandles(loc);
-  setStatus(contourEditMode ? 'Editando contorno: arrastra puntos blancos. Clic en la zona agrega un punto al borde cercano; flecha quita el ultimo.' : 'Pintada seleccionada. Cambia color/transparencia, edita contorno o usa la basura para borrarla.', 'warn');
+  setStatus(contourEditMode ? 'Editando contorno: arrastra puntos blancos. Clic en la zona agrega un punto al borde cercano; flecha quita el ultimo.' : 'Pintada seleccionada. Usa Continuar para seguir pintando, cambia su estilo o edita el contorno.', 'warn');
   updateColorControls(loc);
 }
 
@@ -6059,24 +6174,42 @@ function applySelectedStyleChange(){
   updateColorControls(loc);
 }
 
-function addColorAreaForCurrent(points){
+function addColorAreaForCurrent(points, target = null){
   const loc = LOCS[currentIndex];
-  if(!loc || !Array.isArray(points) || points.length < 3) return;
+  if(!loc || !Array.isArray(points) || points.length < 3) return false;
+  const areas = getColorAreasForLoc(loc).slice();
+  if(target && (!Number.isInteger(target.index) || target.index < 0
+    || target.fingerprint !== stateFingerprint(areas[target.index]))){
+    setStatus('La zona original cambió. Tu trazo sigue pendiente; revisa los cambios antes de guardarlo.', 'error');
+    return false;
+  }
   const area = {
+    ...(target ? areas[target.index] : {}),
     color:sanitizeColor(colorInput?.value),
     opacity:getFillOpacity(),
     points:points.map(point => [Number(point.lat.toFixed(6)), Number(point.lng.toFixed(6))])
   };
-  const areas = getColorAreasForLoc(loc).slice();
-  areas.push(area);
+  const savedIndex = target ? target.index : areas.length;
+  if(target) areas[target.index] = area; else areas.push(area);
+  const before = cloneData(colorAreaSettings), undoBefore = cloneData(undoHistory), redoBefore = cloneData(redoHistory);
   const saved = setColorAreasForLoc(loc, areas);
-  selectedAreaIndex = areas.length - 1;
+  if(!saved){
+    colorAreaSettings = before;
+    undoHistory = undoBefore;
+    redoHistory = redoBefore;
+    saveUndoHistory();
+    renderColorAreas(loc);
+    updateColorControls(loc);
+    return false;
+  }
+  selectedAreaIndex = savedIndex;
   selectedTextIndex = null;
   selectedIconIndex = null;
   renderColorAreas(loc);
   renderManualIcons(loc);
   if(saved) setStatus('Area guardada.', 'warn');
   updateColorControls(loc);
+  return true;
 }
 
 // Sube a 50 las zonas que estaban por debajo. Las que ya estaban en 50 o mas
@@ -6430,9 +6563,12 @@ async function fetchReferencesForBounds(bounds, options = {}){
 }
 
 function finishDraftColorArea(){
-  if(draftPoints.length < 3) return;
-  addColorAreaForCurrent(draftPoints);
+  const session = getColorDraftSession();
+  if(!session || draftPoints.length < 3) return false;
+  if(!addColorAreaForCurrent(draftPoints, session.areaTarget)) return false;
+  resetDraftArea();
   setColorDrawMode(false);
+  return true;
 }
 
 function saveAllChanges(){
@@ -6457,7 +6593,7 @@ function saveAllChanges(){
   }
   let closedArea = false;
   if(colorDrawMode && draftPoints.length >= 3){
-    finishDraftColorArea();
+    if(!finishDraftColorArea()) return;
     closedArea = true;
   }
   let closedRoad = false;
@@ -6739,6 +6875,7 @@ function importBackupPayload(payload){
   selectedTextIndex = null;
   selectedIconIndex = null;
   draftPoints = [];
+  colorDraftSession = null;
   setColorDrawMode(false);
   setRoadPencilMode(false, false);
   setRiverPencilMode(false, false);
@@ -7477,6 +7614,10 @@ function undoDraftColorPoint(){
     updateColorControls();
     return;
   }
+  if(window.CroquisDrafts?.hasPending()){
+    setStatus('Retoma la pintura para deshacer sus puntos, o guarda o borra el borrador antes de deshacer cambios guardados.', 'warn');
+    return;
+  }
   restoreLastUndoSnapshot();
 }
 
@@ -7510,6 +7651,7 @@ function clearColorAreasForCurrent(){
     setStatus('Rios dibujados borrados.', 'warn');
   }else if(draftPoints.length){
     resetDraftArea();
+    setColorDrawMode(false);
   }else if(selectedLine){
     deleteSelectedLine();
   }else if(selectedAreaIndex != null){
@@ -7611,6 +7753,8 @@ async function handleColorMapClick(event){
     }
     return;
   }
+  const lastPoint = draftPoints[draftPoints.length - 1];
+  if(lastPoint && lastPoint.lat === event.latlng.lat && lastPoint.lng === event.latlng.lng) return;
   draftPoints.push(event.latlng);
   renderDraftArea();
   updateColorControls();
@@ -8274,6 +8418,8 @@ function goTo(index, silent, fitMap = true){
   const idx = Number(index);
   if(!Number.isFinite(idx) || !LOCS[idx]) return;
   window.CroquisDrafts?.leave();
+  if(colorDrawMode) setColorDrawMode(false);
+  resetDraftArea();
   cerrarPanelReferencias();
   cancelDestinationInteraction();
   if(frameMoveMode) setFrameMoveMode(false, false);
@@ -11521,6 +11667,7 @@ contourEditButton.addEventListener('click', () => {
   setContourEditMode(!contourEditMode);
 });
 colorDrawButton?.addEventListener('click', () => setColorDrawMode(!colorDrawMode));
+colorContinueButton?.addEventListener('click', continueColorArea);
 $('btn-rename-territory')?.addEventListener('click', renombrarTerritorio);
 (() => {
   const sel = $('fondo-impresion');
@@ -11775,9 +11922,9 @@ if(document.readyState === 'loading'){
 }
 </script>
 <script src="congregation-access.js"></script>
-<script src="draft-recovery.js?v=remove-walk-mode-1"></script>
+<script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=locality-order-1"></script>
+<script src="offline-controller.js?v=paint-resume-1"></script>
 </body>
 </html>

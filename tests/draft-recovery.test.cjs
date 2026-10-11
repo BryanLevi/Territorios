@@ -14,7 +14,7 @@ function record(overrides = {}) {
     camera:{center:[19.024681, -96.975319], zoom:19}, ...overrides };
 }
 
-function harness() {
+function harness({ sessionHooks = false } = {}) {
   const elements = new Map(), data = new Map(), timers = new Map(), handlers = {}, movements = [], writes = [], renders = [], statuses = [], navigations = [];
   let serial = 0;
   const element = id => {
@@ -62,9 +62,27 @@ function harness() {
   const resetModes = () => {
     c.colorDrawMode = c.roadPencilMode = c.riverPencilMode = false;
     c.draftPoints = []; c.roadDraftPoints = []; c.riverDraftPoints = [];
+    if (sessionHooks) c.colorDraftSession = null;
     c.window.CroquisDrafts?.capture();
   };
-  c.setColorDrawMode = active => { resetModes(); c.colorDrawMode = active; };
+  const restoredSessions = [];
+  if (sessionHooks) {
+    c.colorDraftSession = null;
+    c.getColorDraftSession = () => c.colorDraftSession;
+    c.restoreColorDraftSession = value => {
+      restoredSessions.push({record:copy(value), pointCount:c.draftPoints.length});
+      c.colorDraftSession = { congregationId:value.congregationId, locNum:value.locNum,
+        color:value.color, opacity:value.opacity / 100,
+        ...(value.areaTarget ? {areaTarget:copy(value.areaTarget)} : {}) };
+    };
+  }
+  c.setColorDrawMode = active => {
+    resetModes(); c.colorDrawMode = active;
+    if (active && sessionHooks) c.colorDraftSession = {
+      congregationId:c.congregacionActivaId, locNum:String(c.LOCS[c.currentIndex].num),
+      color:c.colorInput.value, opacity:c.getFillOpacity()
+    };
+  };
   c.setRoadPencilMode = (active, silent, highway) => { resetModes(); c.roadPencilMode = active; c.modoCarretera = !!highway; };
   c.setRiverPencilMode = active => { resetModes(); c.riverPencilMode = active; };
   c.renderDraftArea = () => { renders.push('area'); c.window.CroquisDrafts?.capture(); };
@@ -87,7 +105,7 @@ function harness() {
     else if(kind === 'river') { c.setRiverPencilMode(true); c.riverDraftPoints = next.map(([lat,lng]) => ({lat,lng})); c.renderRiverDraft(); }
     else { c.setRoadPencilMode(true, false, kind === 'highway'); c.roadDraftPoints = next.map(([lat,lng]) => ({lat,lng})); c.renderRoadDraft(); }
   };
-  return { c, api, elements, element, data, timers, handlers, movements, writes, renders, statuses, navigations, stored, seed, draw, camera,
+  return { c, api, elements, element, data, timers, handlers, movements, writes, renders, statuses, navigations, stored, seed, draw, camera, restoredSessions,
     runTimers() { for (const [id, fn] of Array.from(timers)) { timers.delete(id); fn(); } }, resetModes };
 }
 
@@ -268,4 +286,93 @@ test('ofrecer reciente no lee otra congregación ni salta una protección pendie
   h.api.leave();h.seed([record({locNum:'18'})]);h.c.accessAllowed=false;
   assert.equal(h.api.offer(h.c.LOCS[0],{latest:true}),false);
   assert.equal(h.stored().length,1);assert.equal(h.element('draft-recovery-dialog').open,false);
+});
+
+test('pausar una zona conserva puntos y estilo de sesión aunque cambien los controles', () => {
+  const h=harness({sessionHooks:true}); h.api.offer(); h.draw(); h.api.flush();
+  h.api.rememberPointUndo('area',h.c.draftPoints); h.c.draftPoints.pop();
+  h.c.colorDrawMode=false;
+  h.c.colorInput.value='#ff0000'; h.c.colorOpacityInput.value='80';
+  h.api.capture(); h.handlers.pagehide();
+  assert.equal(h.api.hasPending(),true); assert.equal(h.api.canRedoPoint(),false);
+  assert.deepEqual(h.stored()[0].points,points.slice(0,-1));
+  assert.equal(h.stored()[0].color,'#00aabb'); assert.equal(h.stored()[0].opacity,45);
+  assert.equal(h.movements.length,0);
+  const reopened=harness({sessionHooks:true}); reopened.seed(h.stored()); reopened.api.offer();
+  assert.equal(reopened.api.recover(),true); assert.equal(reopened.c.colorDrawMode,true);
+  assert.equal(reopened.restoredSessions[0].pointCount,2);
+  assert.deepEqual(copy(reopened.c.colorDraftSession),{
+    congregationId:'ixhuatlan',locNum:'1',color:'#00aabb',opacity:.45
+  });
+  reopened.c.draftPoints.push({lat:19.03,lng:-96.97}); reopened.api.flush();
+  assert.deepEqual(reopened.stored()[0].points,points);
+});
+
+test('continuar zona guardada conserva su destino exacto al pausar, salir y recargar', () => {
+  const fingerprint=JSON.stringify({points:points.slice(),color:'#00aabb',opacity:.45,number:17});
+  const areaTarget={index:2,fingerprint};
+  const h=harness({sessionHooks:true}); h.api.offer(); h.draw();
+  h.c.colorDraftSession.areaTarget=areaTarget; h.c.colorDrawMode=false; h.api.leave();
+  assert.deepEqual(h.stored()[0].areaTarget,areaTarget);
+  const reopened=harness({sessionHooks:true}); reopened.seed(h.stored());
+  assert.equal(reopened.api.offer(),true); assert.equal(reopened.api.recover(),true);
+  assert.deepEqual(copy(reopened.c.colorDraftSession.areaTarget),areaTarget);
+  assert.equal(reopened.restoredSessions[0].pointCount,3);
+  reopened.c.draftPoints.push({lat:19.04,lng:-96.96}); reopened.api.flush();
+  assert.deepEqual(reopened.stored()[0].areaTarget,areaTarget);
+  assert.equal(reopened.stored()[0].points.length,4);
+  reopened.resetModes(); reopened.api.flush();
+  assert.equal(reopened.stored().length,0); assert.equal(reopened.api.hasPending(),false);
+});
+
+test('un destino inválido no se recupera accidentalmente como zona nueva', () => {
+  const fingerprint=JSON.stringify({points,color:'#00aabb',opacity:.45});
+  const invalidTargets=[null,{}, {index:-1,fingerprint}, {index:.5,fingerprint},
+    {index:Number.MAX_SAFE_INTEGER+1,fingerprint}, {index:0,fingerprint:null},
+    {index:0,fingerprint:''}, {index:0,fingerprint:'{incorrecto'},
+    {index:0,fingerprint:'[]'}, {index:0,fingerprint:JSON.stringify({points:[[91,-97],[19,-97],[20,-97]]})},
+    {index:0,fingerprint:JSON.stringify({points:points.slice(0,2)})},
+    {index:0,fingerprint:' '.repeat(200001)}];
+  for(const areaTarget of invalidTargets) {
+    const h=harness({sessionHooks:true}); h.seed([record({areaTarget})]);
+    assert.equal(h.api.offer(),false); assert.equal(h.api.recover(),false);
+    assert.equal(h.c.draftPoints.length,0); assert.equal(h.restoredSessions.length,0);
+  }
+});
+
+test('una continuación viva inválida conserva el último borrador válido', () => {
+  const h=harness({sessionHooks:true}); h.api.offer(); h.draw(); h.api.flush();
+  h.c.colorDraftSession.areaTarget={index:0,fingerprint:'inválido'};
+  h.c.draftPoints.push({lat:19.04,lng:-96.96}); h.c.colorDrawMode=false;
+  h.api.capture(); h.api.flush();
+  assert.deepEqual(h.stored()[0].points,points);
+  assert.equal(Object.hasOwn(h.stored()[0],'areaTarget'),false);
+});
+
+test('calles y ríos activos tienen prioridad sobre la zona de color pausada', () => {
+  for(const kind of ['road','highway','river']) {
+    const h=harness({sessionHooks:true}); h.api.offer(); h.draw(); h.c.colorDrawMode=false;
+    if(kind==='river') { h.c.riverPencilMode=true; h.c.riverDraftPoints=points.map(([lat,lng])=>({lat,lng})); }
+    else { h.c.roadPencilMode=true; h.c.modoCarretera=kind==='highway'; h.c.roadDraftPoints=points.map(([lat,lng])=>({lat,lng})); }
+    h.api.flush(); assert.equal(h.stored()[0].kind,kind);
+    assert.equal(Object.hasOwn(h.stored()[0],'areaTarget'),false);
+  }
+});
+
+test('sesiones de color de otra localidad o congregación no se guardan en la activa', () => {
+  for(const identity of [{locNum:'2'}, {congregationId:'otra'}]) {
+    const h=harness({sessionHooks:true}); h.api.offer(); h.draw();
+    Object.assign(h.c.colorDraftSession,identity); h.c.colorDrawMode=false;
+    assert.equal(h.api.hasPending(),false); h.api.flush();
+    assert.equal(h.stored().length,0); assert.equal(h.movements.length,0);
+  }
+});
+
+test('destinos de color ajenos al tipo de borrador no se trasladan a calles ni ríos', () => {
+  for(const kind of ['road','highway','river']) {
+    const h=harness({sessionHooks:true}); h.seed([record({kind,areaTarget:{index:0,fingerprint:'inválido'}})]);
+    assert.equal(h.api.offer(),true); assert.equal(h.api.recover(),true); h.api.flush();
+    assert.equal(Object.hasOwn(h.stored()[0],'areaTarget'),false);
+    assert.equal(h.restoredSessions.length,0);
+  }
 });
