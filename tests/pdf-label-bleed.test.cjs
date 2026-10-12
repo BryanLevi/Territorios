@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const html = fs.readFileSync(path.join(__dirname, '../outputs/croquis_territorios.html'), 'utf8');
 const nameMaskGrow = Number(html.match(/const PRINT_MASK_GROW_NOMBRES\s*=\s*([\d.]+)\s*;/)[1]);
 const visibleNameMaskGrow = Number(html.match(/const PRINT_MASK_GROW_NOMBRES_VISIBLE\s*=\s*([\d.]+)\s*;/)[1]);
+const backgroundMaskGrow = Number(html.match(/const PRINT_MASK_GROW_FONDO\s*=\s*([\d.]+)\s*;/)[1]);
 
 function extractFunction(name){
   const start = html.indexOf(`function ${name}(`);
@@ -56,6 +57,8 @@ function labelMeasureEnvironment(areas){
   const width = 1123 * 3, height = 714 * 3;
   const map = {
     _printNameBleed:nameMaskGrow * 3 / 2,
+    _printVisibleNameBleed:backgroundMaskGrow * 3 / 2,
+    _printNameDetection:{reason:null},
     getSize:() => ({x:width,y:height}),
     latLngToContainerPoint:([lat,lng]) => ({x:lng * width,y:(1 - lat) * height})
   };
@@ -86,7 +89,7 @@ test('Invalid or incomplete export bounds remain untouched instead of producing 
   }
 });
 
-test('Label bleed preserves each side of the painted territory in the grouped crop', () => {
+test('Measured name bleed reserves only the narrow visible contour in the grouped crop', () => {
   const areas = [{points:[[.3,.25],[.3,.75],[.7,.75],[.7,.25]]}];
   const {context,map,width,height} = labelMeasureEnvironment(areas);
   const zone = clone(context.medidaDeLasZonas(map,{num:1}));
@@ -94,10 +97,12 @@ test('Label bleed preserves each side of the painted territory in the grouped cr
   assert(padded, 'Painted territory produces a label crop');
   assert(padded.x0 < zone.x0 && padded.x1 > zone.x1);
   assert(padded.y0 < zone.y0 && padded.y1 > zone.y1);
-  close(zone.x0 - padded.x0, map._printNameBleed, 'Left source margin matches mask');
-  close(padded.x1 - zone.x1, map._printNameBleed, 'Right source margin matches mask');
-  close(zone.y0 - padded.y0, map._printNameBleed, 'Top source margin matches mask');
-  close(padded.y1 - zone.y1, map._printNameBleed, 'Bottom source margin matches mask');
+  close(zone.x0 - padded.x0, map._printVisibleNameBleed, 'Left source margin matches mask');
+  close(padded.x1 - zone.x1, map._printVisibleNameBleed, 'Right source margin matches mask');
+  close(zone.y0 - padded.y0, map._printVisibleNameBleed, 'Top source margin matches mask');
+  close(padded.y1 - zone.y1, map._printVisibleNameBleed, 'Bottom source margin matches mask');
+  assert(map._printVisibleNameBleed < map._printNameBleed,
+    'The broad tile-search margin is excluded from the final printed dimensions');
   assert(padded.x0 >= 0 && padded.x1 <= width);
   assert(padded.y0 >= 0 && padded.y1 <= height);
   close((padded.x0 + padded.x1) / 2, (zone.x0 + zone.x1) / 2, 'Horizontal center');
@@ -108,11 +113,12 @@ test('Name bleed does not create a crop without painted areas or a measured map'
   const {context,map} = labelMeasureEnvironment([]);
   assert.equal(context.medidaDeNombresImpresos(map,{num:1}), null);
   map._printNameBleed = 0;
+  map._printVisibleNameBleed = 0;
   assert.equal(context.medidaDeNombresImpresos(map,{num:1}), null);
 });
 
 test('Name bleed near every map edge is clamped in the final grouped crop', () => {
-  const areas = [{points:[[.01,.01],[.01,.99],[.99,.99],[.99,.01]]}];
+  const areas = [{points:[[.0001,.0001],[.0001,.9999],[.9999,.9999],[.9999,.0001]]}];
   const {context,map,width,height} = labelMeasureEnvironment(areas);
   const padded = clone(context.medidaDeNombresImpresos(map,{num:1}));
   assert(padded);
@@ -133,24 +139,52 @@ test('The PDF background mask keeps its narrow border independently of name blee
   assert.match(html, /pane:'territoryMaskPane',\s*grow:printMap\._printVisibleNameGrow/);
 });
 
-test('Measured names need only a short visible halo while unknown raster keeps the broad margin', () => {
+test('Measured names keep a narrow contour; unknown ink and selection remain limited to the short halo', () => {
   const context = vm.createContext({PRINT_MASK_GROW_NOMBRES:nameMaskGrow,
+    PRINT_MASK_GROW_FONDO:backgroundMaskGrow,
     PRINT_MASK_GROW_NOMBRES_VISIBLE:visibleNameMaskGrow,printRenderScale:3});
   vm.runInContext(extractFunction('ajustarHaloDeNombresImpresos'),context);
   const map = {_printNameBleed:nameMaskGrow*3/2,_printNameDetection:{reason:null}};
   context.ajustarHaloDeNombresImpresos(map);
-  assert.equal(map._printVisibleNameGrow,24);
-  assert.equal(map._printVisibleNameBleed,36);
-  assert.equal(map._printNameBleed,192,'Broad name selection is unchanged');
+  assert.equal(map._printVisibleNameGrow,backgroundMaskGrow);
+  assert.equal(map._printVisibleNameBleed,backgroundMaskGrow*3/2);
+  assert.equal(map._printNameSelectionBleed,visibleNameMaskGrow*3/2);
+  assert.equal(map._printNameBleed,192,'Broad tile-search bounds remain available');
   for(const reason of ['no-ink','canvas-unreadable','unavailable',undefined]){
     map._printNameDetection={reason};
     context.ajustarHaloDeNombresImpresos(map);
-    assert.equal(map._printVisibleNameGrow,128);
-    assert.equal(map._printVisibleNameBleed,192);
+    assert.equal(map._printVisibleNameGrow,visibleNameMaskGrow);
+    assert.equal(map._printVisibleNameBleed,visibleNameMaskGrow*3/2);
+    assert.equal(map._printNameSelectionBleed,visibleNameMaskGrow*3/2);
   }
   map._printNameBleed=0;
   context.ajustarHaloDeNombresImpresos(map);
   assert.equal(map._printVisibleNameBleed,0,'Maps without a names layer do not gain a crop margin');
+  assert.equal(map._printNameSelectionBleed,0,'Maps without names do not select nearby raster ink');
+});
+
+test('Failed name measurement never reserves the blank exterior canvas or abandons painted geometry', () => {
+  const areas=[{points:[[.3,.25],[.3,.75],[.7,.75],[.7,.25]]}];
+  const {context,map,width,height}=labelMeasureEnvironment(areas);
+  context.getWhiteRoadsForLoc=()=>[];
+  context.getManualRiversForLoc=()=>[];
+  vm.runInContext(extractFunction('ocupacionesDelCroquis'),context);
+  map.getContainer=()=>({getBoundingClientRect:()=>({width:width,height:height}),querySelectorAll:()=>[]});
+  const zone=clone(context.medidaDeLasZonas(map,{num:1}));
+  for(const reason of ['canvas-unreadable','unavailable','no-ink','no-loaded-tiles']){
+    map._printNameDetection={reason};
+    map._printVisibleNameBleed=visibleNameMaskGrow*3/2;
+    const crop=context.medidaDeNombresImpresos(map,{num:1});
+    assert.deepEqual(clone(crop),{x0:zone.x0-36,y0:zone.y0-36,x1:zone.x1+36,y1:zone.y1+36});
+    assert(crop.x1-crop.x0 < width && crop.y1-crop.y0 < height,
+      'Unknown remote labels cannot shrink the painted territory by reserving the complete canvas');
+    const shapes=context.ocupacionesDelCroquis(map,{num:1});
+    assert.equal(shapes.length,1,'The painted shape remains measurable for legend and compass clearance');
+    assert.equal(shapes[0].points.length,4);
+  }
+  const printSource=extractFunction('imprimir');
+  assert.doesNotMatch(printSource,/if\s*\(\s*!printMap\._printNameDetection\?\.reason\s*\|\|/,
+    'A failed detector must not leave the exterior names layer completely unclipped');
 });
 
 test('A short geographic mask still opens each complete name outside the territory', () => {
@@ -170,11 +204,12 @@ test('A short geographic mask still opens each complete name outside the territo
   const names=Object.freeze([Object.freeze({x0:80,y0:240,x1:320,y1:280}),
     Object.freeze({x0:600,y0:650,x1:920,y1:700})]);
   const snapshot=JSON.stringify(names);
-  context.renderPrintColorMask(map,{num:1},{grow:visibleNameMaskGrow,fondo:'#fff',
+  context.renderPrintColorMask(map,{num:1},{grow:backgroundMaskGrow,fondo:'#fff',
     areas:[{points:[[200,300],[200,700],[700,700],[700,300]]}],labelBoxes:names});
   const mask=pane.children[0].children[0].children[0];
   const polygon=mask.children.find(node=>node.tag==='polygon');
-  assert.equal(Number(polygon.attributes['stroke-width']),72);
+  assert.equal(Number(polygon.attributes['stroke-width']),backgroundMaskGrow*3,
+    'Only the narrow geographic contour remains open outside measured name boxes');
   const holes=mask.children.filter(node=>node.tag==='rect'&&node.attributes.fill==='#000');
   assert.deepEqual(holes.map(node=>({x0:Number(node.attributes.x),y0:Number(node.attributes.y),
     x1:Number(node.attributes.x)+Number(node.attributes.width),

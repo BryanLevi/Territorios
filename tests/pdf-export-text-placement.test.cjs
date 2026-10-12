@@ -33,6 +33,7 @@ const copy = value => JSON.parse(JSON.stringify(value));
 function environment(labels = [], areas = []){
   const context = vm.createContext({
     printRenderScale:3,
+    PRINT_MASK_GROW_NOMBRES_VISIBLE:Number(html.match(/const PRINT_MASK_GROW_NOMBRES_VISIBLE\s*=\s*([\d.]+)\s*;/)[1]),
     PRINT_ZONE_NUMBER_SIZE_PT:Number(html.match(/const PRINT_ZONE_NUMBER_SIZE_PT\s*=\s*([\d.]+)\s*;/)[1]),
     getTextLabelsForLoc:() => labels,
     getExportColorAreasForLoc:() => areas,
@@ -103,7 +104,7 @@ test('The PDF crop includes the complete measured names beyond its original mask
   assert.deepEqual(copy(context.medidaDeNombresImpresos(withoutNames,{num:1})),{x0:88,y0:188,x1:712,y1:812});
 });
 
-test('The final crop uses the visible halo and keeps full measured names from the broad search', () => {
+test('The final crop uses the visible halo and keeps each selected name complete', () => {
   const context=environment(), names=Object.freeze([
     Object.freeze({x0:40,y0:240,x1:140,y1:270}),
     Object.freeze({x0:650,y0:730,x1:920,y1:890})
@@ -125,20 +126,72 @@ test('Incomplete remote names at source edges are suppressed while names touchin
   context.window=placement.window;
   const remote={x0:0,y0:35,x1:20,y1:50}, nearby={x0:15,y0:35,x1:35,y1:50};
   const touchesTerritory={x0:35,y0:0,x1:50,y1:40};
-  const map={_printNameBleed:20,getSize:()=>({x:100,y:100}),
+  const map={_printNameBleed:20,_printNameSelectionBleed:4,getSize:()=>({x:100,y:100}),
     latLngToContainerPoint:([lat,lng])=>({x:lng,y:lat})};
   assert.deepEqual(copy(context.printNameBoxesForLoc(map,{num:1},[remote,nearby,touchesTerritory])),[nearby,touchesTerritory]);
   assert.deepEqual(copy(map._printSuppressedNameBoxes),[remote]);
   assert.match(html,/suppressedLabelBoxes:printMap\._printSuppressedNameBoxes/);
 });
 
-test('Unreadable raster ink preserves the full layer instead of cutting names at a guessed margin', () => {
+test('Unreadable raster ink reserves only the short geographic halo instead of the entire source canvas', () => {
   const context=environment();
   for(const reason of ['canvas-unreadable','unavailable','missing-tiles']){
     const map={_printNameBleed:192,_printVisibleNameBleed:12,_printNameBoxes:[],
       _printNameDetection:{reason},getSize:()=>({x:1000,y:950})};
-    assert.deepEqual(copy(context.medidaDeNombresImpresos(map,{num:1})),{x0:0,y0:0,x1:1000,y1:950});
+    assert.deepEqual(copy(context.medidaDeNombresImpresos(map,{num:1})),{x0:88,y0:188,x1:712,y1:812});
   }
+});
+
+function nameSelectionEnvironment(areas, bleed = 12){
+  const context=environment([],areas), placement={window:{}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../outputs/destination-placement.js'),'utf8'),placement);
+  context.window=placement.window;
+  const map={_printNameBleed:192,_printNameSelectionBleed:bleed,_printVisibleNameBleed:bleed,
+    getSize:()=>({x:1000,y:1000}),
+    latLngToContainerPoint:([lat,lng])=>({x:lng,y:lat})};
+  return {context,map};
+}
+
+test('Only names near painted polygons survive; a distant name inside the broad search does not enlarge the crop', () => {
+  const areas=Object.freeze([Object.freeze({points:Object.freeze([
+    Object.freeze([200,300]),Object.freeze([200,700]),Object.freeze([700,700]),Object.freeze([700,300])
+  ])})]);
+  const boxes=Object.freeze([
+    Object.freeze({x0:305,y0:300,x1:450,y1:330}),
+    Object.freeze({x0:715,y0:300,x1:810,y1:330}),
+    Object.freeze({x0:200,y0:400,x1:292,y1:430})
+  ]);
+  const snapshot=JSON.stringify({areas,boxes});
+  const {context,map}=nameSelectionEnvironment(areas);
+  context.medidaDeLasZonas=()=>({x0:300,y0:200,x1:700,y1:700});
+  const selected=context.printNameBoxesForLoc(map,{num:1},boxes);
+  assert.deepEqual(copy(selected),[boxes[0],boxes[2]],
+    'The close name is kept at its full width; the remote name is not opened by the broad search');
+  map._printNameBoxes=selected;
+  assert.deepEqual(copy(context.medidaDeNombresImpresos(map,{num:1})),
+    {x0:200,y0:188,x1:712,y1:712},'A complete nearby label remains visible; a rejected remote label reserves no blank paper');
+  assert.equal(JSON.stringify({areas,boxes}),snapshot,'Filtering never trims the names or moves the painted points');
+});
+
+test('A name inside the enclosing rectangle but far from a concave painted contour is hidden', () => {
+  const areas=[{points:[[100,100],[100,700],[250,700],[250,250],[700,250],[700,100]]}];
+  const insideRectangle={x0:480,y0:420,x1:620,y1:460};
+  const closeConcaveEdge={x0:255,y0:400,x1:380,y1:430};
+  const {context,map}=nameSelectionEnvironment(areas);
+  const snapshot=JSON.stringify({areas,insideRectangle,closeConcaveEdge});
+  assert.deepEqual(copy(context.printNameBoxesForLoc(map,{num:1},[insideRectangle,closeConcaveEdge])),
+    [closeConcaveEdge],'Proximity follows the L-shaped paint, not its empty bounding rectangle');
+  assert.equal(JSON.stringify({areas,insideRectangle,closeConcaveEdge}),snapshot);
+});
+
+test('Empty space between separate painted territories does not reveal a distant map name', () => {
+  const areas=[{points:[[100,100],[100,250],[700,250],[700,100]]},
+    {points:[[100,700],[100,850],[700,850],[700,700]]}];
+  const inGap={x0:400,y0:350,x1:570,y1:390};
+  const nearRightTerritory={x0:675,y0:350,x1:695,y1:390};
+  const {context,map}=nameSelectionEnvironment(areas);
+  assert.deepEqual(copy(context.printNameBoxesForLoc(map,{num:1},[inGap,nearRightTerritory])),
+    [nearRightTerritory]);
 });
 
 test('Long multiline text outside the territory reserves full text dimensions at both page scales', () => {

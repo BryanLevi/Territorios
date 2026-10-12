@@ -105,7 +105,10 @@
     // La rejilla ampliada separa también las letras y las palabras. Medir
     // con el margen nativo dejaba fragmentos de un mismo letrero en cajas
     // distintas y cortaba sus primeras letras al recortar el territorio.
-    const radius = Math.max(1, Math.ceil(4 * glyphScale * scale / step));
+    // At the bounded composite size a thin initial stroke can be separated
+    // from the next letter. Join the complete row before deciding whether
+    // its name belongs near the territory, including spaces between words.
+    const radius = Math.max(1, Math.ceil(8 * glyphScale * scale / step));
     const verticalRadius = Math.max(1, Math.ceil(2 * glyphScale * scale / step));
     for (let y = 0; y < rows; y++) {
       const start = y * columns;

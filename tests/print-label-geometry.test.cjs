@@ -73,6 +73,33 @@ test('Magnified provider lettering keeps every word in one complete row at nativ
   }
 });
 
+test('A narrow first F and later words remain one complete label in the downsampled quadruple provider grid', () => {
+  const bitmap=image(320,110);
+  // A thin initial glyph survives the composite as a narrow stem and short
+  // crossbars. Thirteen clear pixels separate it from the rest of the word;
+  // the same space separates the following word. They must be joined before
+  // geographic proximity is tested, so the far end of Finca remains visible.
+  rect(bitmap,20,35,1,14);
+  rect(bitmap,20,35,3,1);
+  rect(bitmap,20,41,3,1);
+  word(bitmap,36,35,4);
+  word(bitmap,89,35,3);
+  word(bitmap,230,35,5);
+  word(bitmap,20,10,4);
+  const before=Buffer.from(bitmap.data);
+  for(const scale of [.2481695551432139,.25]){
+    const result=detect(bitmap.data,bitmap.width,bitmap.height,{nativeScale:scale,glyphScale:4});
+    assert.equal(result.boxes.length,3,'The complete nearby name, the remote name and the row above remain distinct');
+    assert(encloses(result.boxes[0],20,10,60,24),'The adjacent row remains separate');
+    assert(encloses(result.boxes[1],20,35,118,49),
+      'The first narrow glyph and all following words share a complete rectangle');
+    assert(encloses(result.boxes[2],230,35,281,49));
+    assert(result.boxes[1].x1 < result.boxes[2].x0,
+      'Completing a word never opens the distant label across the blank gap');
+  }
+  assert.deepEqual(Buffer.from(bitmap.data),before,'Detection never changes loaded cartography pixels');
+});
+
 test('An inclined street name is measured in full, including its upper and lower strokes', () => {
   const bitmap = image(230, 180);
   word(bitmap, 50, 40, 9, 34);
