@@ -165,6 +165,45 @@ test('Automatic PDF streets stay white at native geographic detail with no dupli
   assert.equal(context.printProviderRoadUrl('https://example.org/labels/{z}/{x}/{y}.png'),null);
 });
 
+test('Grouped provider names hide locality captions while retaining street and POI labels', () => {
+  const context = vm.createContext({});
+  vm.runInContext(extractFunction('printProviderNameUrl'), context);
+  const result = new URL(context.printProviderNameUrl('https://mt0.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&scale=2'));
+  const rules = result.searchParams.get('apistyle').split(',');
+  assert.deepEqual(rules.filter(rule => rule.includes('p.v:off')), [
+    's.t:0|s.e:g|p.v:off', 's.t:19|s.e:l|p.v:off'
+  ], 'Hide the locality feature specifically; a broad label rule also hides useful provider POIs');
+  assert(rules.includes('s.t:0|s.e:l.t.f|p.c:#202c23'));
+  assert(rules.includes('s.t:0|s.e:l.t.s|p.c:#ffffff'));
+  assert(!rules.some(rule => /^s.t:(?:1|2|3)\|s.e:l(?:\.|\|)/.test(rule) && rule.includes('p.v:off')),
+    'Broad provider, POI and street label selectors must not be suppressed');
+});
+
+test('Only grouped export adapts the provider locality labels; individual and saved sources stay intact', () => {
+  const start = html.indexOf('let urlNombres = src.roadUrl || src.labelUrl;');
+  const end = html.indexOf('let capaNombres = null;', start);
+  assert(start >= 0 && end > start, 'Use the actual PDF provider selection path');
+  const selectNames = html.slice(start,end) + '\nurlNombres;';
+  const original = 'https://mt0.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&scale=2';
+  const src = Object.freeze({roadUrl:original, labelUrl:'https://example.org/labels/{z}/{x}/{y}.png'});
+  const selected = lamina => {
+    const roads = [];
+    const context = vm.createContext({src, opciones:{lamina}, escalaTeselaImpresion:() => 2,
+      anadirTeselas:(source, options) => roads.push(options)});
+    vm.runInContext(extractFunction('printProviderNameUrl') + '\n' + extractFunction('printProviderRoadUrl'), context);
+    return {url:vm.runInContext(selectNames, context), roads};
+  };
+  const grouped = selected(true);
+  assert(new URL(grouped.url).searchParams.get('apistyle').includes('s.t:19|s.e:l|p.v:off'));
+  assert.equal(grouped.roads.length,1);
+  const individual = selected(false);
+  assert.equal(individual.url,original);
+  assert.equal(individual.roads.length,0);
+  assert.equal(src.roadUrl,original, 'The live/editor tile URL remains the saved selected source');
+  assert.equal(extractFunction('drawPrintTextLabels').includes('printProviderNameUrl'),false,
+    'The provider-only policy does not suppress or transform saved manual text labels');
+});
+
 test('Small portrait/landscape frames retain the same neighborhood street detail as a full PDF map', () => {
   const {context} = detailEnvironment();
   const source = Object.freeze({maxZ:20});

@@ -6,10 +6,11 @@
   const point=p=>p && Number.isFinite(p.x) && Number.isFinite(p.y);
   const rect=r=>r && ['x','y','w','h'].every(k=>Number.isFinite(r[k])) && r.w>0 && r.h>0;
 
-  function textPoints(sizePt,maxWidthMm){
+  function textPoints(sizePt,maxWidthMm,grouped=false){
     const saved=Number(sizePt),width=Number(maxWidthMm);
     const maximum=Math.max(5.5,Math.min(7,(Number.isFinite(width) ? width : 64)*.12));
-    return Math.max(5,Math.min(maximum,(Number.isFinite(saved) ? saved : 10)*.6));
+    const compact=Math.max(5,Math.min(maximum,(Number.isFinite(saved) ? saved : 10)*.6));
+    return compact*(grouped ? .8 : 1);
   }
 
   // All geometry, including gap, is in native map pixels. unitScale is pixels/mm.
@@ -88,17 +89,17 @@
     return best ? {x:best.x,y:best.y,moved:true} : unchanged;
   }
 
-  // A geographic shaft can become shorter than its fixed-size head in a small
-  // frame. Extend only the printed copy, retaining its origin and bearing.
+  // A direction is a small cue in a shared frame. Its printed copy retains
+  // the road-side origin and bearing while reserving a bounded physical span.
   function groupedArrow(input={}){
     const start=input.start, savedTip=input.tip;
     if(!point(start) || !point(savedTip)) return null;
     const dx=savedTip.x-start.x,dy=savedTip.y-start.y,length=Math.hypot(dx,dy);
     if(length<1e-8) return null;
     const units=Math.max(1e-8,Number(input.unitScale)||1),ux=dx/length,uy=dy/length;
-    const printedLength=Math.max(length,3.5*units);
+    const printedLength=Math.max(2.6*units,Math.min(length*.8,4*units));
     const tip={x:start.x+ux*printedLength,y:start.y+uy*printedLength};
-    const head=Math.min(Math.max(0,Number(input.head)||1.95*units),printedLength*.42);
+    const head=Math.min(Math.max(0,Number(input.head)||1.4*units),printedLength*.42);
     return {start:{x:start.x,y:start.y},tip,wings:[
       {x:tip.x-ux*head-uy*head*.55,y:tip.y-uy*head+ux*head*.55},
       {x:tip.x-ux*head+uy*head*.55,y:tip.y-uy*head-ux*head*.55}]};

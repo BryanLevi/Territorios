@@ -68,7 +68,8 @@ test('Grouped arrows remain readable in tiny frames and their heads do not fold 
     const before=JSON.stringify(input),result=layout.groupedArrow(input);
     assert.deepEqual(result.start,input.start,'The road-side anchor is retained');
     const dx=result.tip.x-result.start.x,dy=result.tip.y-result.start.y,length=Math.hypot(dx,dy);
-    assert(length/unitScale>=3.5-1e-8,'A tiny saved shaft becomes a readable printed arrow');
+    assert(length/unitScale>=2.6-1e-8 && length/unitScale<=4+1e-8,
+      'The printed arrow remains readable without taking more than four millimetres');
     assert(Math.abs(dx*bearing.y-dy*bearing.x)<1e-8,'The printed arrow keeps the saved bearing');
     assert(dx*bearing.x+dy*bearing.y>0,'The bearing is never reversed');
     const base={x:(result.wings[0].x+result.wings[1].x)/2,y:(result.wings[0].y+result.wings[1].y)/2};
@@ -78,11 +79,15 @@ test('Grouped arrows remain readable in tiny frames and their heads do not fold 
   }
 });
 
-test('A long grouped arrow retains both geographical endpoints',()=>{
+test('A long grouped arrow retains its road-side anchor and bearing but occupies four printed millimetres',()=>{
   const input=freezeDeep({start:{x:20,y:70},tip:{x:80,y:10},head:1.95,unitScale:1});
   const result=layout.groupedArrow(input);
   assert.deepEqual(result.start,input.start);
-  assert.deepEqual(result.tip,input.tip,'Only shafts too short to read may be extended');
+  assert(Math.abs(distance(result.start,result.tip)-4)<1e-8);
+  const saved={x:input.tip.x-input.start.x,y:input.tip.y-input.start.y};
+  const printed={x:result.tip.x-result.start.x,y:result.tip.y-result.start.y};
+  assert(Math.abs(saved.x*printed.y-saved.y*printed.x)<1e-8,'The destination bearing stays exact');
+  assert(saved.x*printed.x+saved.y*printed.y>0,'A compact arrow never reverses direction');
 });
 
 test('El Crucero keeps three large compact destination names next to their NW, N and E arrows',()=>{
@@ -302,7 +307,7 @@ function renderHarness(labels,options,geometry={}){
   const html=fs.readFileSync(path.join(__dirname,'../outputs/croquis_territorios.html'),'utf8');
   const names=['normalizeDestinationPoint','normalizeDestinationLabel','directionAnnotationGeometry',
     'printDirectionTextPoints','obstaculosDeDestinosImpresos','renderDirectionAnnotations'];
-  const context=vm.createContext({window:{L,CroquisPrintDirectionLayout:layout},L,
+  const context=vm.createContext({window:{L,CroquisPrintDirectionLayout:geometry.layout||layout},L,
     getTextLabelsForLoc:()=>labels,getExportColorAreasForLoc:()=>polygons.map(points=>
       ({points:points.map(p=>[p.y/projectionScale,p.x/projectionScale])})),
     directionInteractionAllowed:()=>true,congregacionActivaId:'a',selectedTextIndex:null,
@@ -338,7 +343,8 @@ test('Actual grouped rendering measures DOM labels and preserves the editor and 
   });
   assert(grouped.output.bounds.y1<140,'Remote original anchors no longer enlarge the grouped crop');
   items.forEach((item,index)=>{
-    assert(distance(item.start,item.tip)/(96/25.4)>=3.5-1e-7,'The grouped renderer uses readable shafts');
+    const length=distance(item.start,item.tip)/(96/25.4);
+    assert(length>=2.6-1e-7 && length<=4+1e-7,'The grouped renderer uses bounded compact shafts');
     assertForward(results[index],item,'Measured DOM text stays with the forward part of the rendered arrow');
     assert(distance(results[index],item.tip)/(96/25.4)<20,'A saved distant DOM label is visibly moved near its tip');
   });
@@ -351,8 +357,60 @@ test('Actual grouped rendering measures DOM labels and preserves the editor and 
     const ordinaryShafts=ordinary.paths.filter(record=>record.style.className==='destination-arrow-path');
     ordinaryShafts.forEach((shaft,index)=>assert.deepEqual(shaft.points,labels[index].points,
       'Editor and individual PDF keep the original geographical endpoints'));
+    ordinary.markers.forEach(marker=>assert(Math.abs(marker.font*72/96-(options.printMode?6:10))<1e-8,
+      'Only grouped names shrink; editor and individual PDF fonts keep their prior sizes'));
+    ordinaryShafts.forEach(shaft=>assert(Math.abs(shaft.style.weight-1.2*96/72*(options.printMode?.65:1))<1e-8,
+      'Only grouped strokes change; editor and individual PDF weights remain intact'));
   }
   assert.equal(JSON.stringify(labels),before,'All rendering modes leave persisted destination annotations untouched');
+});
+
+test('El Crucero keeps four smaller complete destinations clear of its silhouette and gains space against previous printed dimensions',()=>{
+  const unitScale=96/25.4,polygon=rectangle({x:85,y:68,w:42,h:78});
+  const labels=freezeDeep([
+    {text:'Hacia Moctezuma',start:{x:91,y:68},tip:{x:80,y:57}},
+    {text:'Hacia providencia los cedros',start:{x:105,y:68},tip:{x:105,y:49}},
+    {text:'Hacia Ocotitlán',start:{x:127,y:81},tip:{x:157,y:81}},
+    {text:'Hacia los lirios',start:{x:120,y:146},tip:{x:146,y:160}}
+  ].map(item=>({type:'destino',text:item.text,points:[[item.start.y/10,item.start.x/10],
+    [item.tip.y/10,item.tip.x/10]],lat:1,lng:1,sizePt:10,headMm:3,strokePt:1.2})));
+  const before=JSON.stringify(labels),geometry={canvas:{w:57*unitScale,h:64*unitScale},polygons:[polygon]};
+  const options={printMode:true,grouped:true,scale:1,layoutScale:1,maxTextWidthMm:44,interactive:false};
+  const printed=renderHarness(labels,options,geometry);
+  const shafts=printed.paths.filter(record=>record.style.className==='destination-arrow-path');
+  const heads=printed.paths.filter(record=>record.style.className==='destination-arrow-head');
+  const items=shafts.map((shaft,index)=>({key:labels[index].text,start:printed.project(shaft.points[0]),
+    tip:printed.project(shaft.points[1]),wings:[printed.project(heads[index].points[0]),
+      printed.project(heads[index].points[2])],width:printed.markers[index].width,height:printed.markers[index].height}));
+  const centres=printed.markers.map(marker=>printed.project(marker.position));
+  assertClear(centres,{items,polygons:[polygon],occupied:[],canvas:geometry.canvas,gap:.4*unitScale,unitScale});
+  printed.markers.forEach((marker,index)=>{
+    assert.equal(marker.lines.join(' '),labels[index].text,'Every authored destination remains complete');
+    assert.equal(marker.element.dataset.printDirectionClear,'true','All four names have measured free space');
+    assertForward(centres[index],items[index],'Every name stays ahead of its own compact arrow');
+    assert(Math.abs(marker.font*72/96-4.4)<1e-8,'The shared frame uses a smaller measured font');
+    const shaftMm=distance(items[index].start,items[index].tip)/unitScale;
+    assert(shaftMm>=2.6-1e-8 && shaftMm<=4+1e-8,'A long saved direction remains a small printed cue');
+  });
+  const legacy={...layout,textPoints:(size,width)=>layout.textPoints(size,width),groupedArrow:input=>{
+    const {start}=input,dx=input.tip.x-start.x,dy=input.tip.y-start.y,length=Math.hypot(dx,dy);
+    const ux=dx/length,uy=dy/length,printedLength=Math.max(length,3.5*input.unitScale);
+    const tip={x:start.x+ux*printedLength,y:start.y+uy*printedLength};
+    const head=Math.min(1.95*input.unitScale,printedLength*.42);
+    return {start:{...start},tip,wings:[{x:tip.x-ux*head-uy*head*.55,y:tip.y-uy*head+ux*head*.55},
+      {x:tip.x-ux*head+uy*head*.55,y:tip.y-uy*head-ux*head*.55}]};
+  }};
+  const old=renderHarness(labels,options,{...geometry,layout:legacy});
+  const crop=render=>({x:Math.min(85,render.output.bounds.x0),y:Math.min(68,render.output.bounds.y0),
+    w:Math.max(127,render.output.bounds.x1)-Math.min(85,render.output.bounds.x0),
+    h:Math.max(146,render.output.bounds.y1)-Math.min(68,render.output.bounds.y0)});
+  const newCrop=crop(printed),oldCrop=crop(old);
+  const {fit}=require('../outputs/print-frame-fit.js');
+  const plan={mapRect:{x:0,y:0,w:57,h:64}};
+  const newFit=fit(newCrop,plan),oldFit=fit(oldCrop,plan);
+  assert(newCrop.w*newCrop.h<oldCrop.w*oldCrop.h,'The complete compact annotations need less surrounding paper');
+  assert(newFit.scale>oldFit.scale*1.1,'The same territory can occupy at least ten percent more of this frame');
+  assert.equal(JSON.stringify(labels),before,'The printed refinement never rewrites stored destinations');
 });
 
 test('Wrapped whole destination words remain complete in the real 32.8 by 20.9 mm source canvas',()=>{
@@ -380,14 +438,14 @@ test('Wrapped whole destination words remain complete in the real 32.8 by 20.9 m
     wings:[grouped.project(heads[index].points[0]),grouped.project(heads[index].points[2])],
     width:grouped.markers[index].width,height:grouped.markers[index].height}));
   const centres=grouped.markers.map(marker=>grouped.project(marker.position));
-  assertClear(centres,{items,polygons,occupied:geometry.occupied,canvas:geometry.canvas,gap:.6*unitScale,unitScale});
+  assertClear(centres,{items,polygons,occupied:geometry.occupied,canvas:geometry.canvas,gap:.4*unitScale,unitScale});
   grouped.markers.forEach((marker,index)=>{
     assert.equal(marker.element.dataset.printDirectionClear,'true','Every fully measured wrapped name finds free space');
     assert.equal(marker.lines.length,2,'Each complete destination is legible on two lines');
     const town=labels[index].text.split(' ').slice(1).join(' ');
     assert(marker.lines.includes(town),'The town name remains intact rather than splitting its final letter');
     assert.equal(marker.lines.join(' '),labels[index].text,'Wrapping retains every authored word');
-    assert(Math.abs(marker.font*72/96-5.5)<1e-8,'Wrapping keeps the original compact printed font size');
+    assert(Math.abs(marker.font*72/96-4.4)<1e-8,'The grouped name uses the smaller physical font size');
     assert(marker.width/unitScale<=13,'The complete wrapped name leaves space for the neighboring destinations');
     assertForward(centres[index],items[index],'The complete wrapped name remains ahead of its own arrow');
     const box=labelBox(centres[index],items[index]);

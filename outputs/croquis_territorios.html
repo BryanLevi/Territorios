@@ -1211,7 +1211,7 @@ body.print-preview{overflow:hidden}
 <script src="print-label-geometry.js?v=complete-nearby-names-1"></script>
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
-<script src="print-direction-layout.js?v=grouped-directions-1"></script>
+<script src="print-direction-layout.js?v=compact-grouped-directions-2"></script>
 <script src="print-cartography-vector.js?v=vector-hd-1"></script>
 <script src="../vendor/clipper-lib/clipper.js?v=6.4.2"></script>
 <script src="print-clip-geometry.js?v=pdf-hd-1"></script>
@@ -1319,7 +1319,9 @@ function printProviderNameUrl(url){
   let result = String(url).replace('/vt/lyrs=', '/vt?lyrs=').replace(/([?&]lyrs=)h(?=&|$)/, '$1m');
   result = /[?&]scale=/.test(result)
     ? result.replace(/([?&]scale=)[^&]*/, (_,prefix) => prefix + '4') : result + '&scale=4';
-  const style = 's.t:0|s.e:g|p.v:off,s.t:0|s.e:l.t.f|p.c:#202c23,s.t:0|s.e:l.t.s|p.c:#ffffff';
+  // La cabecera ya nombra la localidad. Al usar el mapa normal para la
+  // lámina, ocultar sólo ese rótulo conserva las calles y los lugares.
+  const style = 's.t:0|s.e:g|p.v:off,s.t:0|s.e:l.t.f|p.c:#202c23,s.t:0|s.e:l.t.s|p.c:#ffffff,s.t:19|s.e:l|p.v:off';
   return result + '&apistyle=' + encodeURIComponent(style);
 }
 function printProviderRoadUrl(url){
@@ -5124,11 +5126,12 @@ function directionInteractionAllowed(){
     && !territoryAddMode && !colorDrawMode && !roadPencilMode && !riverPencilMode && !textAddMode && !iconAddMode && !contourEditMode;
 }
 
-function printDirectionTextPoints(label, maxTextWidthMm = 64){
+function printDirectionTextPoints(label, maxTextWidthMm = 64, grouped = false){
   const layout = typeof window === 'object' && window.CroquisPrintDirectionLayout;
-  if(layout) return layout.textPoints(label.sizePt,maxTextWidthMm);
+  if(layout) return layout.textPoints(label.sizePt,maxTextWidthMm,grouped);
   const limite = Math.max(5.5,Math.min(7,(Number(maxTextWidthMm)||64)*.12));
-  return Math.max(5,Math.min(limite,(Number(label.sizePt)||10)*.6));
+  const sizePt = Math.max(5,Math.min(limite,(Number(label.sizePt)||10)*.6));
+  return grouped ? sizePt * .8 : sizePt;
 }
 
 function obstaculosDeDestinosImpresos(targetMap,loc){
@@ -5180,7 +5183,7 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
     const live = () => !printMode && targetMap === map && targetMap._directionLayer === layer && namespace === congregacionActivaId && locNum === String(LOCS[currentIndex]?.num) && directionInteractionAllowed() && stateFingerprint(getTextLabelsForLoc(loc)[index]) === fingerprint;
     const select = event => {if(event?.originalEvent) L.DomEvent.stop(event.originalEvent);if(live()) selectDestinationAnnotation(index);};
     // La punta y el trazo impresos ocupan menos espacio en la lámina.
-    const arrowScale = printMode ? .65 : 1;
+    const arrowScale = grouped ? .5 : printMode ? .65 : 1;
     const savedGeometry = directionAnnotationGeometry(targetMap, label, factor * arrowScale);
     const geometry = grouped ? (placement.groupedArrow({...savedGeometry,
       head:(Number(label.headMm)||3)*96/25.4*factor*arrowScale,
@@ -5196,7 +5199,7 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
       L.polyline(label.points,{...style,weight:20,opacity:0,className:'destination-arrow-hit'}).addTo(layer).on('click',select);
     }
     const selected = !printMode && selectedTextIndex === index;
-    const sizePt = printMode ? printDirectionTextPoints(label,options.maxTextWidthMm) : label.sizePt;
+    const sizePt = printMode ? printDirectionTextPoints(label,options.maxTextWidthMm,grouped) : label.sizePt;
     const font = sizePt * 96 / 72 * factor;
     const availableWidthMm = Number(options.maxTextWidthMm) || 64;
     // Several destinations share a small frame. Let their names wrap instead
@@ -5264,7 +5267,7 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
   });
   if(grouped){
     const positions=placement.placeGroupedLabels({...obstacles,items:pendingLabels,
-      gap:.6*96/25.4*factor,unitScale:96/25.4*factor});
+      gap:.4*96/25.4*factor,unitScale:96/25.4*factor});
     targetMap._directionPrintLayout=pendingLabels.map((item,index)=>{
       const next=positions[index];
       item.marker.setLatLng(targetMap.containerPointToLatLng(next));
@@ -11969,6 +11972,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=nearby-print-names-1"></script>
+<script src="offline-controller.js?v=compact-grouped-annotations-1"></script>
 </body>
 </html>

@@ -126,6 +126,16 @@ test('Printed destination fonts are compact, finite and bounded in narrow and wi
     }
 });
 
+test('Only grouped destination fonts shrink while all saved sizes remain available to individual PDFs',()=>{
+  assert(Math.abs(textPoints(10,64,true)-4.8)<1e-8);
+  assert(Math.abs(textPoints(18,32,true)-4.4)<1e-8);
+  for(const size of [-100,0,1,7,10,18,999,NaN,Infinity,undefined])
+    for(const width of [12,32,48,64,999,0,-1,NaN,Infinity,undefined]){
+      assert.equal(textPoints(size,width,true),textPoints(size,width)*.8);
+      assert.equal(textPoints(size,width,false),textPoints(size,width));
+    }
+});
+
 test('The browser UMD export uses frame-fit geometry and bounds the candidate search',()=>{
   let collisions=0;
   const window={CroquisPrintFrameFit:{polygonIntersectsRect:()=>{collisions++;return true;}}};
