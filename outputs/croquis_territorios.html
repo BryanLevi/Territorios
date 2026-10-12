@@ -1210,7 +1210,7 @@ body.print-preview{overflow:hidden}
 <script src="print-label-geometry.js?v=scaled-names-1"></script>
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
-<script src="print-direction-layout.js?v=compact-directions-2"></script>
+<script src="print-direction-layout.js?v=grouped-directions-1"></script>
 <script src="print-cartography-vector.js?v=vector-hd-1"></script>
 <script src="../vendor/clipper-lib/clipper.js?v=6.4.2"></script>
 <script src="print-clip-geometry.js?v=pdf-hd-1"></script>
@@ -5154,7 +5154,10 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
   const layoutScale = Math.max(.05, Number(options.layoutScale) || 1);
   const factor = scale / layoutScale;
   const placement = printMode && window.CroquisPrintDirectionLayout;
+  const grouped = printMode && !!options.grouped && !!placement?.placeGroupedLabels;
+  const multipleDirections = grouped && getTextLabelsForLoc(loc).filter(label=>label.type==='destino').length>1;
   const obstacles = placement ? obstaculosDeDestinosImpresos(targetMap,loc) : null;
+  const pendingLabels = [];
   const canEdit = !printMode && options.interactive !== false && directionInteractionAllowed();
   const namespace = congregacionActivaId, locNum = String(loc?.num);
   const paneName = 'territoryDirectionPane';
@@ -5175,10 +5178,14 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
     const select = event => {if(event?.originalEvent) L.DomEvent.stop(event.originalEvent);if(live()) selectDestinationAnnotation(index);};
     // La punta y el trazo impresos ocupan menos espacio en la lámina.
     const arrowScale = printMode ? .65 : 1;
-    const geometry = directionAnnotationGeometry(targetMap, label, factor * arrowScale);
+    const savedGeometry = directionAnnotationGeometry(targetMap, label, factor * arrowScale);
+    const geometry = grouped ? (placement.groupedArrow({...savedGeometry,
+      head:(Number(label.headMm)||3)*96/25.4*factor*arrowScale,
+      unitScale:96/25.4*factor}) || savedGeometry) : savedGeometry;
     const weight = label.strokePt * 96 / 72 * factor * arrowScale;
     const style = {pane:paneName,color:'#17202c',weight,opacity:1,lineCap:'round',lineJoin:'round',interactive:canEdit,bubblingMouseEvents:false};
-    const line = L.polyline(label.points,{...style,className:'destination-arrow-path'}).addTo(layer);
+    const shaftPoints = grouped ? [geometry.start,geometry.tip].map(p=>targetMap.containerPointToLatLng(p)) : label.points;
+    const line = L.polyline(shaftPoints,{...style,className:'destination-arrow-path'}).addTo(layer);
     const head = L.polyline([geometry.wings[0],geometry.tip,geometry.wings[1]].map(p=>targetMap.containerPointToLatLng(p)),{...style,className:'destination-arrow-head'}).addTo(layer);
     [geometry.start,geometry.tip,...geometry.wings].forEach(p=>include(p.x,p.y,weight/2));
     if(canEdit){
@@ -5188,13 +5195,24 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
     const selected = !printMode && selectedTextIndex === index;
     const sizePt = printMode ? printDirectionTextPoints(label,options.maxTextWidthMm) : label.sizePt;
     const font = sizePt * 96 / 72 * factor;
-    const maxWidth = (Number(options.maxTextWidthMm) || 64) * 96 / 25.4 * factor;
+    const availableWidthMm = Number(options.maxTextWidthMm) || 64;
+    // Several destinations share a small frame. Let their names wrap instead
+    // of reserving almost the entire width for each single line of text.
+    const textWidthMm = multipleDirections ? Math.max(10,availableWidthMm*.4) : availableWidthMm;
+    const maxWidth = textWidthMm * 96 / 25.4 * factor;
     const padY = printMode ? 1 : 2, padX = printMode ? 1.5 : 3;
     const marker = L.marker([label.lat,label.lng],{pane:paneName,draggable:canEdit,interactive:canEdit,bubblingMouseEvents:false,keyboard:canEdit,zIndexOffset:selected && canEdit ? 2400 : 0,
-      icon:L.divIcon({className:'destination-label-marker',iconAnchor:[0,0],html:'<div class="destination-text-label'+(selected?' is-selected':'')+'" data-size-pt="'+sizePt+'" data-layout-scale="'+layoutScale+'" data-print-scale="'+scale+'" style="font-size:'+font+'px;max-width:'+maxWidth+'px;padding:'+(padY*factor)+'px '+(padX*factor)+'px">'+escapeHtml(label.text)+'</div>'})}).addTo(layer);
+      icon:L.divIcon({className:'destination-label-marker',iconAnchor:[0,0],html:'<div class="destination-text-label'+(selected?' is-selected':'')+'" data-size-pt="'+sizePt+'" data-layout-scale="'+layoutScale+'" data-print-scale="'+scale+'" style="font-size:'+font+'px;max-width:'+maxWidth+'px;'+(multipleDirections?'min-width:min-content;overflow-wrap:normal;':'')+'padding:'+(padY*factor)+'px '+(padX*factor)+'px">'+escapeHtml(label.text)+'</div>'})}).addTo(layer);
     const element = marker.getElement()?.querySelector('.destination-text-label');
     marker.getElement()?.setAttribute('aria-label','Destino: '+label.text+'. Arrastra para mover el texto.');
-    if(element && obstacles){
+    if(grouped){
+      const r=element?.getBoundingClientRect(),m=targetMap.getContainer().getBoundingClientRect(),size=targetMap.getSize();
+      const measured=r?.width>0 && r?.height>0 && m.width>0 && m.height>0;
+      pendingLabels.push({marker,element,key:label.text,...geometry,
+        anchor:targetMap.latLngToContainerPoint([label.lat,label.lng]),
+        width:measured?r.width*size.x/m.width:Math.min(maxWidth,label.text.length*font*.65+6*factor),
+        height:measured?r.height*size.y/m.height:Math.ceil((label.text.length*font*.65)/maxWidth)*font*1.2+4*factor});
+    }else if(element && obstacles){
       const r=element.getBoundingClientRect(),m=targetMap.getContainer().getBoundingClientRect(),size=targetMap.getSize();
       if(m.width>0&&m.height>0&&r.width>0&&r.height>0){
         const width=r.width*size.x/m.width,height=r.height*size.y/m.height;
@@ -5207,7 +5225,7 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
         obstacles.occupied.push({x:next.x-width/2,y:next.y-height/2,w:width,h:height});
       }
     }
-    if(element){
+    if(element && !grouped){
       const r = element.getBoundingClientRect(), m = targetMap.getContainer().getBoundingClientRect(), size = targetMap.getSize();
       if(m.width > 0 && m.height > 0 && r.width > 0){
         include((r.left-m.left)*size.x/m.width,(r.top-m.top)*size.y/m.height);
@@ -5241,6 +5259,22 @@ function renderDirectionAnnotations(targetMap, loc, options = {}){
       });
     }
   });
+  if(grouped){
+    const positions=placement.placeGroupedLabels({...obstacles,items:pendingLabels,
+      gap:.6*96/25.4*factor,unitScale:96/25.4*factor});
+    targetMap._directionPrintLayout=pendingLabels.map((item,index)=>{
+      const next=positions[index];
+      item.marker.setLatLng(targetMap.containerPointToLatLng(next));
+      if(item.element){
+        item.element.dataset.printDirectionMoved=String(next.moved);
+        item.element.dataset.printDirectionClear=String(next.clear);
+      }
+      include(next.x-item.width/2,next.y-item.height/2);
+      include(next.x+item.width/2,next.y+item.height/2);
+      return {text:item.key,start:item.start,tip:item.tip,wings:item.wings,
+        label:{x:next.x-item.width/2,y:next.y-item.height/2,w:item.width,h:item.height},clear:next.clear};
+    });
+  }
   targetMap._directionBounds = bounds;
   return {bounds};
 }
@@ -10593,7 +10627,7 @@ async function generarAgrupado(modo){
           for(let paso = 0; paso < 48; paso++){
             updatePrintTextLabels(printMap, k);
             const dibujadas = hayDestinos ? renderDirectionAnnotations(printMap, loc, {
-              printMode:true, scale:printRenderScale, layoutScale:k,
+              printMode:true, grouped:true, scale:printRenderScale, layoutScale:k,
               maxTextWidthMm:directionTextWidthMm, interactive:false
             }) : null;
             rec = recorteDelCroquis(printMap, loc, dibujadas?.bounds || null, k);
@@ -10603,7 +10637,7 @@ async function generarAgrupado(modo){
             k = siguiente;
           }
           const finales = hayDestinos ? renderDirectionAnnotations(printMap, loc, {
-            printMode:true, scale:printRenderScale, layoutScale:k,
+            printMode:true, grouped:true, scale:printRenderScale, layoutScale:k,
             maxTextWidthMm:directionTextWidthMm, interactive:false
           }) : null;
           updatePrintTextLabels(printMap, k);
@@ -10617,7 +10651,7 @@ async function generarAgrupado(modo){
             if(Math.abs(encuadre.scale-k)<.000001)break;
             k=encuadre.scale;
             updatePrintTextLabels(printMap,k);
-            const tinta=hayDestinos?renderDirectionAnnotations(printMap,loc,{printMode:true,scale:printRenderScale,
+            const tinta=hayDestinos?renderDirectionAnnotations(printMap,loc,{printMode:true,grouped:true,scale:printRenderScale,
               layoutScale:k,maxTextWidthMm:directionTextWidthMm,interactive:false}):null;
             rec=recorteDelCroquis(printMap,loc,tinta?.bounds||null,k);
           }
@@ -11214,7 +11248,7 @@ async function imprimir(opciones = {}){
       renderPrintColorMask(printMap, loc, { pane:'territoryBaseMaskPane', grow:PRINT_MASK_GROW_FONDO, areas:marco, fondo:'#ffffff' });
     }
     renderDirectionAnnotations(printMap, loc, {
-      printMode:true, scale:printRenderScale, layoutScale:directionLayoutScale,
+      printMode:true, grouped:!!opciones.lamina, scale:printRenderScale, layoutScale:directionLayoutScale,
       maxTextWidthMm:directionTextWidthMm, interactive:false
     });
     // Al final: antes de encuadrar el mapa no tiene tamano todavia, y la
@@ -11937,6 +11971,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=vector-hd-1"></script>
+<script src="offline-controller.js?v=grouped-directions-1"></script>
 </body>
 </html>

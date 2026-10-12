@@ -88,7 +88,103 @@
     return best ? {x:best.x,y:best.y,moved:true} : unchanged;
   }
 
-  const api=Object.freeze({textPoints,placeLabel});
+  // A geographic shaft can become shorter than its fixed-size head in a small
+  // frame. Extend only the printed copy, retaining its origin and bearing.
+  function groupedArrow(input={}){
+    const start=input.start, savedTip=input.tip;
+    if(!point(start) || !point(savedTip)) return null;
+    const dx=savedTip.x-start.x,dy=savedTip.y-start.y,length=Math.hypot(dx,dy);
+    if(length<1e-8) return null;
+    const units=Math.max(1e-8,Number(input.unitScale)||1),ux=dx/length,uy=dy/length;
+    const printedLength=Math.max(length,3.5*units);
+    const tip={x:start.x+ux*printedLength,y:start.y+uy*printedLength};
+    const head=Math.min(Math.max(0,Number(input.head)||1.95*units),printedLength*.42);
+    return {start:{x:start.x,y:start.y},tip,wings:[
+      {x:tip.x-ux*head-uy*head*.55,y:tip.y-uy*head+ux*head*.55},
+      {x:tip.x-ux*head+uy*head*.55,y:tip.y-uy*head-ux*head*.55}]};
+  }
+
+  // Plan the names together, after measuring them. A name belongs just beyond
+  // its own arrow tip; saved editor anchors are not suitable after reduction.
+  function placeGroupedLabels(input={}){
+    const items=Array.isArray(input.items)?input.items:[],canvas=input.canvas;
+    const units=Math.max(1e-8,Number(input.unitScale)||1),gap=Math.max(0,Number(input.gap)||0);
+    const polygons=(input.polygons||[]).map(s=>Array.isArray(s)?s:s?.points)
+      .filter(p=>Array.isArray(p) && p.length>=3 && p.every(point));
+    const occupied=(input.occupied||[]).filter(rect).map(r=>({...r}));
+    const arrows=items.flatMap(item=>point(item.start) && point(item.tip) ?
+      [[item.start,item.tip],...(item.wings||[]).filter(point).map(p=>[item.tip,p])] : []);
+    const shapes=[...polygons,...arrows].map(points=>{
+      const shape={points,x0:Infinity,y0:Infinity,x1:-Infinity,y1:-Infinity};
+      for(const p of points){shape.x0=Math.min(shape.x0,p.x);shape.y0=Math.min(shape.y0,p.y);
+        shape.x1=Math.max(shape.x1,p.x);shape.y1=Math.max(shape.y1,p.y);}
+      return shape;
+    });
+    const overlaps=(a,b)=>a.x<=b.x+b.w && a.x+a.w>=b.x && a.y<=b.y+b.h && a.y+a.h>=b.y;
+    const box=(p,item)=>({x:p.x-item.width/2-gap,y:p.y-item.height/2-gap,
+      w:item.width+gap*2,h:item.height+gap*2});
+    const valid=items.map((item,index)=>{
+      const length=point(item.start) && point(item.tip)?Math.hypot(item.tip.x-item.start.x,item.tip.y-item.start.y):0;
+      if(!length || !(item.width>0 && item.height>0)) return null;
+      const ux=(item.tip.x-item.start.x)/length,uy=(item.tip.y-item.start.y)/length;
+      // A diagonal name sits next to the tip's corner, rather than a long
+      // label width pushing it unnecessarily far north or south.
+      const sx=Math.abs(ux)>=.382683?Math.sign(ux):0,sy=Math.abs(uy)>=.382683?Math.sign(uy):0;
+      return {item,index,ux,uy,preferred:{x:item.tip.x+sx*(item.width/2+gap+.1*units),
+        y:item.tip.y+sy*(item.height/2+gap+.1*units)}};
+    }).filter(Boolean);
+    // Geometry order, independent of the order saved in the editor.
+    valid.sort((a,b)=>a.item.tip.x-b.item.tip.x || a.item.tip.y-b.item.tip.y ||
+      a.ux-b.ux || a.uy-b.uy || String(a.item.key||'').localeCompare(String(b.item.key||'')));
+    const results=items.map(item=>({x:item.anchor?.x||0,y:item.anchor?.y||0,moved:false,clear:false}));
+    for(let order=0;order<valid.length;order++){
+      const entry=valid[order],{item,preferred,ux,uy}=entry;
+      const clear=p=>{
+        const b=box(p,item);
+        if(!canvas || b.x<0 || b.y<0 || b.x+b.w>canvas.w || b.y+b.h>canvas.h) return false;
+        if(occupied.some(other=>overlaps(b,other))) return false;
+        return !shapes.some(s=>b.x<=s.x1 && b.x+b.w>=s.x0 && b.y<=s.y1 && b.y+b.h>=s.y0 &&
+          frameFit?.polygonIntersectsRect(s.points,b));
+      };
+      let best=null,bestCost=Infinity;
+      const consider=p=>{
+        // Clamping gives an exact edge candidate. A coarse search grid alone
+        // can miss a clear position between a corner and the arrow tip.
+        if((p.x-item.tip.x)*ux+(p.y-item.tip.y)*uy<=0 || !clear(p)) return;
+        const b=box(p,item);
+        const future=valid.slice(order+1).reduce((cost,next)=>{
+          const other=box(next.preferred,next.item);
+          const intersection=Math.max(0,Math.min(b.x+b.w,other.x+other.w)-Math.max(b.x,other.x))*
+            Math.max(0,Math.min(b.y+b.h,other.y+other.h)-Math.max(b.y,other.y));
+          return cost+intersection/units/units;
+        },0);
+        const dx=p.x-preferred.x,dy=p.y-preferred.y;
+        const cost=(Math.hypot(dx,dy)+Math.abs(-uy*dx+ux*dy)*.2)/units+future*.15;
+        if(cost<bestCost){best=p;bestCost=cost;}
+      };
+      // Small transverse shifts separate adjacent north/northwest arrows;
+      // forward shifts leave every name on the side its arrow points towards.
+      for(const forward of [0,1.5,3,5,8,12,18,24,32,48]){
+        for(const sideways of [0,-1.5,1.5,-3,3,-5,5,-8,8,-12,12,-18,18,-24,24]){
+          const p={x:preferred.x+(ux*forward-uy*sideways)*units,
+            y:preferred.y+(uy*forward+ux*sideways)*units};
+          consider(p);
+          const edge=gap+.000001*units;
+          if(canvas && item.width+edge*2<=canvas.w && item.height+edge*2<=canvas.h){
+            consider({x:Math.max(item.width/2+edge,Math.min(canvas.w-item.width/2-edge,p.x)),
+              y:Math.max(item.height/2+edge,Math.min(canvas.h-item.height/2-edge,p.y))});
+          }
+        }
+      }
+      const next=best||preferred;
+      results[entry.index]={...next,moved:!point(item.anchor) ||
+        Math.hypot(next.x-item.anchor.x,next.y-item.anchor.y)>.001,clear:!!best};
+      occupied.push({x:next.x-item.width/2,y:next.y-item.height/2,w:item.width,h:item.height});
+    }
+    return results;
+  }
+
+  const api=Object.freeze({textPoints,placeLabel,groupedArrow,placeGroupedLabels});
   root.CroquisPrintDirectionLayout=api;
   if(typeof module==='object' && module.exports) module.exports=api;
 })(typeof window==='object'?window:globalThis);
