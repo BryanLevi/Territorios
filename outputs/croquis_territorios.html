@@ -1208,7 +1208,7 @@ body.print-preview{overflow:hidden}
 <script src="offline-data.js?v=details-2"></script>
 <script src="destination-placement.js?v=placement-1"></script>
 <script src="locality-order.js?v=order-numbers-2"></script>
-<script src="print-label-geometry.js?v=complete-nearby-names-1"></script>
+<script src="print-label-geometry.js?v=complete-nearby-names-2"></script>
 <script src="pdf-sheet-layout.js?v=balanced-maps-1"></script>
 <script src="print-frame-fit.js?v=fit-corners-1"></script>
 <script src="print-direction-layout.js?v=compact-grouped-directions-2"></script>
@@ -11150,7 +11150,9 @@ async function imprimir(opciones = {}){
     if(urlNombres){
       const nameOptions = opciones.lamina ? printProviderNameOptions(printRenderScale, directionLayoutScale) : {};
       capaNombres = anadirTeselas({...src, sub:src.roadSub || src.labelSub || src.sub || ''}, {
-        url:urlNombres, attribution:'', pane:'territoryRoadPane', crossOrigin:true, ...nameOptions
+        url:urlNombres, attribution:'', pane:'territoryRoadPane', crossOrigin:true,
+        printLabelsOnly:!!opciones.lamina && String(urlNombres).includes('google.com/vt')
+          && decodeURIComponent(String(urlNombres)).includes('s.t:0|s.e:g|p.v:off'), ...nameOptions
       });
       printMap._printNameTileOptions = {tileSize:capaNombres.options.tileSize, zoomOffset:capaNombres.options.zoomOffset};
     }

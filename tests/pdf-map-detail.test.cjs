@@ -292,3 +292,19 @@ test('PDF street/place names render above saved white roads so repainting a stre
   assert(Number(panes.territoryMaskPane.style.zIndex) > Number(panes.territoryRoadPane.style.zIndex),
     'Geographic masking still clips external map labels after white streets are drawn');
 });
+
+test('Only grouped Google names without geometry use the translucent ink measurement', () => {
+  const start=html.indexOf('const nameOptions = opciones.lamina ? printProviderNameOptions');
+  const stop=html.indexOf('printMap._printNameTileOptions =',start);
+  assert(start >= 0 && stop > start);
+  for(const grouped of [false,true])for(const provider of ['google','other']){
+    const context=vm.createContext({opciones:{lamina:grouped},printRenderScale:8,directionLayoutScale:.15,
+      src:{sub:''},printProviderNameOptions:()=>({tileSize:1024,zoomOffset:-2}),
+      urlNombres:provider==='google'?'https://mt0.google.com/vt?lyrs=h':'https://example.test/labels',
+      anadirTeselas:(source,options)=>{context.measuredOptions=options;return {options};}});
+    vm.runInContext(extractFunction('printProviderNameUrl'),context);
+    if(grouped)context.urlNombres=context.printProviderNameUrl(context.urlNombres);
+    vm.runInContext('let capaNombres;'+html.slice(start,stop),context);
+    assert.equal(context.measuredOptions.printLabelsOnly,grouped && provider==='google');
+  }
+});

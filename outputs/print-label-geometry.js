@@ -27,6 +27,10 @@
     const settings = options || {};
     const scale = Math.max(.05, Math.min(1, Number(settings.nativeScale) || 1));
     const glyphScale = Math.max(1, Math.min(4, Number(settings.glyphScale) || 1));
+    // Downsampling a labels-only layer softens thin letter strokes below
+    // full opacity. Keep that ink so a nearby name is measured as a whole.
+    // Other layers retain the stricter threshold that rejects road edges.
+    const minimumInkAlpha = settings.labelsOnly === true ? 180 : 250;
     const step = Math.max(1, Math.round(2 * scale),
       Math.ceil(Math.sqrt(width * height / MAX_GRID_PIXELS)));
     const columns = Math.ceil(width / step), rows = Math.ceil(height / step);
@@ -40,9 +44,10 @@
       for (let x = 0; x < width; x++, pixel += 4) {
         const r = rgba[pixel], g = rgba[pixel + 1], b = rgba[pixel + 2];
         // Google dibuja el borde antialias de las carreteras con el mismo
-        // RGB oscuro que el halo de las letras, pero con menos alfa. Pedir
-        // tinta opaca evita que esos bordes unan todos los nombres del mapa.
-        if (rgba[pixel + 3] < 250 || Math.max(r, g, b) > 135
+        // RGB oscuro que el halo de las letras, pero con menos alfa. Cuando
+        // la capa incluye geometría, pedir tinta opaca evita que esos bordes
+        // unan todos los nombres del mapa.
+        if (rgba[pixel + 3] < minimumInkAlpha || Math.max(r, g, b) > 135
           || r * .2126 + g * .7152 + b * .0722 > 90) continue;
         ink[row + Math.floor(x / step)] = 1;
         darkPixels++;
@@ -214,7 +219,8 @@
       if (!drawn) return empty('no-visible-tiles');
       const rgba = context.getImageData(0, 0, canvas.width, canvas.height).data;
       const result = detect(rgba, canvas.width, canvas.height, {nativeScale:scale,
-        glyphScale:(Number(layer.options?.tileSize) || 256) / 256});
+        glyphScale:(Number(layer.options?.tileSize) || 256) / 256,
+        labelsOnly:layer.options?.printLabelsOnly === true});
       return Object.assign({}, result, {
         boxes:result.boxes.map(box => ({x0:box.x0 / scale, y0:box.y0 / scale,
           x1:box.x1 / scale, y1:box.y1 / scale})),

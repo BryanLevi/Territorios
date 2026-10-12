@@ -155,6 +155,33 @@ test('Translucent road edges cannot connect two otherwise distant opaque names',
   assert(encloses(result.boxes[1], 170, 115, 254, 129));
 });
 
+test('Labels-only detection retains softened initial and middle letters before geographic clipping', () => {
+  const bitmap = image(320, 150);
+  word(bitmap, 20, 35, 10);
+  word(bitmap, 230, 105, 5);
+  for (let y = 35; y < 49; y++) for (let x = 20; x < 126; x++) {
+    const index = (y * bitmap.width + x) * 4;
+    if (!bitmap.data[index + 3]) continue;
+    if (x < 50) bitmap.data[index + 3] = 239;
+    if (x >= 70 && x < 95) bitmap.data[index + 3] = 190;
+  }
+  for (let x = 0; x < 310; x++) dot(bitmap, x, 75, [25, 26, 28, 55]);
+  const before = Buffer.from(bitmap.data);
+  const options = {nativeScale:.285128277212092, glyphScale:4};
+  const defaultResult = detect(bitmap.data, bitmap.width, bitmap.height, options);
+  assert(!defaultResult.boxes.some(box => encloses(box,20,35,126,49)),
+    'The opaque-only detector cannot recover a downsampled prefix or missing middle glyphs');
+  for (const labelsOnly of [false, 'true']) {
+    assert.deepEqual(detect(bitmap.data, bitmap.width, bitmap.height,{...options,labelsOnly}),defaultResult,
+      'Only the explicit labels-only layer enables softened ink');
+  }
+  const result = detect(bitmap.data, bitmap.width, bitmap.height,{...options,labelsOnly:true});
+  assert.equal(result.boxes.length,2);
+  assert(encloses(result.boxes[0],20,35,126,49),'Keep the complete nearby name, including its thin prefix');
+  assert(encloses(result.boxes[1],230,105,281,119),'The distant label remains separate');
+  assert.deepEqual(Buffer.from(bitmap.data),before,'Measurement preserves provider pixels');
+});
+
 function compositeEnvironment(bitmap, tiles, displayScale = .5, unreadable = false) {
   const origin = {left:30, top:50, width:bitmap.width * displayScale, height:bitmap.height * displayScale};
   const calls = [];
@@ -218,6 +245,26 @@ test('The tile mosaic preserves a word across a seam and returns map pixels desp
   assert.equal(env.calls[1].x, 128);
   assert.equal(env.calls[1].w, 128);
   assert.equal(env.canvas().width, 1, 'The large canvas backing buffer is released');
+});
+
+test('Tile measurement opts into softened lettering only for the labels-only print layer', () => {
+  const bitmap = image(180, 90);
+  word(bitmap,25,30,8);
+  for(let index=3;index<bitmap.data.length;index+=4)if(bitmap.data[index])bitmap.data[index]=239;
+  const tiles = [{x:0,y:0,w:180,h:90}];
+  for(const printLabelsOnly of [undefined,false,'true']){
+    const env = compositeEnvironment(bitmap,tiles,.25);
+    env.layer.options = {tileSize:1024,printLabelsOnly};
+    assert.equal(measure(env.map,env.layer).reason,'no-ink',
+      'Individual maps and layers without the explicit flag keep the opaque road-safe threshold');
+  }
+  const env = compositeEnvironment(bitmap,tiles,.25);
+  env.layer.options = {tileSize:1024,printLabelsOnly:true};
+  const result = measure(env.map,env.layer);
+  assert.equal(result.reason,null);
+  assert.equal(result.boxes.length,1);
+  assert(encloses(result.boxes[0],25,30,109,44));
+  assert.equal(env.canvas().width,1);
 });
 
 test('Unreadable or unavailable canvas yields a safe explicit fallback', () => {
