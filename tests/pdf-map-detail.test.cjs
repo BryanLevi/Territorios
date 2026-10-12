@@ -297,14 +297,19 @@ test('Only grouped Google names without geometry use the translucent ink measure
   const start=html.indexOf('const nameOptions = opciones.lamina ? printProviderNameOptions');
   const stop=html.indexOf('printMap._printNameTileOptions =',start);
   assert(start >= 0 && stop > start);
+  const tileStart=html.indexOf('const anadirTeselas = (fuente, opciones = {}) => {');
+  const tileStop=html.indexOf('\n    // Con recorte de zonas',tileStart);
+  assert(tileStart >= 0 && tileStop > tileStart);
   for(const grouped of [false,true])for(const provider of ['google','other']){
     const context=vm.createContext({opciones:{lamina:grouped},printRenderScale:8,directionLayoutScale:.15,
       src:{sub:''},printProviderNameOptions:()=>({tileSize:1024,zoomOffset:-2}),
       urlNombres:provider==='google'?'https://mt0.google.com/vt?lyrs=h':'https://example.test/labels',
-      anadirTeselas:(source,options)=>{context.measuredOptions=options;return {options};}});
+      PRINT_MAX_ZOOM:20,PRINT_NAME_TILE_SIZE:256,PRINT_NAME_ZOOM_OFFSET:0,
+      printMap:{},capasImpresas:[],enablePrintTileCorsFallback:layer=>layer,
+      L:{tileLayer:(url,options)=>({options,addTo:()=>{context.measuredOptions=options;return {options};}})}});
     vm.runInContext(extractFunction('printProviderNameUrl'),context);
     if(grouped)context.urlNombres=context.printProviderNameUrl(context.urlNombres);
-    vm.runInContext('let capaNombres;'+html.slice(start,stop),context);
+    vm.runInContext(html.slice(tileStart,tileStop)+'\nlet capaNombres;'+html.slice(start,stop),context);
     assert.equal(context.measuredOptions.printLabelsOnly,grouped && provider==='google');
   }
 });

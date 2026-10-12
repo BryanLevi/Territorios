@@ -11079,6 +11079,7 @@ async function imprimir(opciones = {}){
         // detalle de la versión anterior con un lienzo cuatro veces menor.
         tileSize:opciones.tileSize ?? PRINT_NAME_TILE_SIZE,
         zoomOffset:opciones.zoomOffset ?? PRINT_NAME_ZOOM_OFFSET,
+        printLabelsOnly:opciones.printLabelsOnly === true,
         keepBuffer:2,
         updateWhenIdle:false
       };
