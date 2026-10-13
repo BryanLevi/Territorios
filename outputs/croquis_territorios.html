@@ -4621,7 +4621,7 @@ function referenceIconSvg(ref){
     return svg('<path d="M12 3v4"></path><path d="M9 5h6"></path><path d="M5 21h14V10l-7-4-7 4z"></path><path d="M10 21v-5a2 2 0 0 1 4 0v5"></path>');
   }
   if(kind === 'Salon del Reino'){
-    return svg('<text x="12" y="6.5" fill="currentColor" stroke="none" font-size="5.8" font-weight="900" text-anchor="middle" font-family="Arial, sans-serif">JW</text><path d="M5 21h14v-9l-7-4-7 4z"></path><path d="M10 21v-5a2 2 0 0 1 4 0v5"></path>');
+    return svg('<text x="12" y="6.5" fill="currentColor" stroke="#0a8f22" stroke-width=".7" paint-order="stroke fill" font-size="5.8" font-weight="900" text-anchor="middle" font-family="Arial, sans-serif">JW</text><path d="M5 21h14v-9l-7-4-7 4z"></path><path d="M10 21v-5a2 2 0 0 1 4 0v5"></path>');
   }
   if(kind === 'Escuela'){
     return svg('<path d="M3 9l9-5 9 5-9 5z"></path><path d="M7 11v5c3 2 7 2 10 0v-5"></path><path d="M21 9v5"></path>');
@@ -8589,12 +8589,13 @@ function nombrePorDefectoDeIcono(kind){
   return encontrado ? encontrado[1] : kind;
 }
 
-// Junta lo que hay en el mapa con lo que se haya cambiado a mano. Un icono
-// que nunca se ha tocado sale con su nombre de siempre y marcado.
-function referenciasDeLoc(loc, automaticas = referenciasAutomaticasDeLoc(loc)){
+// El cuadro de referencias describe sólo los iconos colocados a mano.
+// Los rótulos y POI del mapa base siguen visibles, pero no crean opciones
+// en este menú ni filas en la leyenda del PDF.
+function referenciasDeLoc(loc){
   if(!loc) return [];
   const guardado = leyendaSettings[String(loc.num)] || {};
-  return tiposDeIconoEn(loc, automaticas).map(kind => {
+  return tiposDeIconoEn(loc, []).map(kind => {
     const suyo = guardado[kind] || {};
     return {
       kind,
@@ -8626,7 +8627,7 @@ function actualizarPanelReferencias(){
     const vacio = document.createElement('p');
     vacio.className = 'ref-panel-vacio';
     vacio.setAttribute('role', 'status');
-    vacio.textContent = 'Todavía no se han detectado referencias. Si el mapa está cargando, esta lista se actualizará automáticamente. También puedes colocar un icono con la herramienta Icono.';
+    vacio.textContent = 'Todavía no has colocado iconos en este territorio. Puedes agregarlos con la herramienta Icono.';
     lista.appendChild(vacio);
   }else{
     lista.querySelector('.ref-panel-vacio')?.remove();
@@ -8701,10 +8702,9 @@ function guardarPanelReferencias(){
   cerrarPanelReferencias();
 }
 
-// La lista de lo que significa cada icono del territorio. Solo salen los
-// que el territorio tiene puestos, una vez cada uno.
-function construirLeyendaIconos(loc, automaticas = referenciasAutomaticasDeLoc(loc)){
-  const vistos = referenciasDeLoc(loc, automaticas).filter(r => r.ver);
+// Una fila por cada tipo de icono manual del territorio seleccionado.
+function construirLeyendaIconos(loc){
+  const vistos = referenciasDeLoc(loc).filter(r => r.ver);
   if(!vistos.length) return '';
   const filas = vistos.map(v =>
     '<span class="print-leyenda-fila"><span class="print-leyenda-icono">'
@@ -9671,7 +9671,7 @@ function perfilDeCroquisParaLamina(loc){
   // Una zona puede estar pintada con muchos trazos; esos fragmentos no son
   // nuevas divisiones. La numeración guardada es la medida principal.
   const colors = new Set(areas.map(area=>String(area.color || '').toLowerCase()).filter(Boolean));
-  return {aspect, divisions:Math.max(1,numbers.size || colors.size), references:tiposDeIconoEn(loc).length};
+  return {aspect, divisions:Math.max(1,numbers.size || colors.size), references:referenciasDeLoc(loc).filter(fila => fila.ver).length};
 }
 
 function fijarDistribucionManualDeLamina(){
@@ -11975,6 +11975,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=compact-grouped-annotations-1"></script>
+<script src="offline-controller.js?v=manual-reference-icons-1"></script>
 </body>
 </html>

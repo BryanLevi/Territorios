@@ -58,14 +58,13 @@ function entorno(opciones = {}){
   return {contexto, lecturas};
 }
 
-test('Reconoce iconos automaticos aunque no se haya colocado ninguno a mano', () => {
+test('Las referencias automaticas del mapa no crean opciones ni una leyenda sin iconos manuales', () => {
   const refs = [referencia('Escuela'), referencia('Iglesia')];
   const e = entorno({runtime:{key:'ref:1', congregationId:'principal', references:refs}});
-  const filas = copiar(e.contexto.referenciasDeLoc({num:1}));
-  assert.deepEqual(filas, [
-    {kind:'Escuela', nombre:'Escuela', ver:true},
-    {kind:'Iglesia', nombre:'Iglesia / templo', ver:true}
-  ]);
+  assert.equal(e.contexto.referenciasAutomaticasDeLoc({num:1}),refs,
+    'The map keeps its loaded automatic references');
+  assert.deepEqual(copiar(e.contexto.referenciasDeLoc({num:1})),[]);
+  assert.equal(e.contexto.construirLeyendaIconos({num:1}), '');
   assert.equal(e.lecturas.length, 0);
 });
 
@@ -113,16 +112,19 @@ test('No usa referencias de otra congregacion aunque coincida el numero de terri
   assert.deepEqual(e.lecturas, [{num:1,campo:'refs'}]);
 });
 
-test('Las referencias cargadas del mapa offline tambien forman la leyenda', () => {
+test('Las referencias offline siguen disponibles para el mapa y quedan fuera del cuadro de referencias', () => {
   const refs = [referencia('Comercio')];
   const e = entorno({runtime:{key:'ref:4', congregationId:'principal', references:refs, offline:true}});
   assert.equal(e.contexto.referenciasAutomaticasDeLoc({num:4}), refs);
-  assert.match(e.contexto.construirLeyendaIconos({num:4}), /Tienda \/ comercio/);
+  assert.equal(e.contexto.construirLeyendaIconos({num:4}), '');
+  assert.deepEqual(copiar(e.contexto.referenciasDeLoc({num:4})),[]);
 });
 
-test('Respeta nombres y seleccion guardados tambien para iconos automaticos en el PDF', () => {
-  const e = entorno({automaticas:{1:[referencia('Escuela'), referencia('Iglesia')]}, leyendas:{1:{
-    Escuela:{nombre:'Escuela del pueblo <Norte>',ver:true}, Iglesia:{nombre:'Templo',ver:false}
+test('Respeta nombres y seleccion guardados para iconos manuales y no revive tipos automaticos antiguos', () => {
+  const e = entorno({manuales:{1:[referencia('Escuela'),referencia('Escuela'),referencia('Iglesia')]},
+    automaticas:{1:[referencia('Escuela'), referencia('Comercio')]}, leyendas:{1:{
+    Escuela:{nombre:'Escuela del pueblo <Norte>',ver:true}, Iglesia:{nombre:'Templo',ver:false},
+    Comercio:{nombre:'Comercio automatico guardado',ver:true}
   }}});
   const filas = copiar(e.contexto.referenciasDeLoc({num:1}));
   assert.deepEqual(filas, [
@@ -131,20 +133,70 @@ test('Respeta nombres y seleccion guardados tambien para iconos automaticos en e
   ]);
   const leyenda = e.contexto.construirLeyendaIconos({num:1});
   assert.match(leyenda, /Escuela del pueblo &lt;Norte&gt;/);
-  assert.doesNotMatch(leyenda, /Templo|data-kind="Iglesia"/);
+  assert.doesNotMatch(leyenda, /Templo|data-kind="Iglesia"|Comercio|data-kind="Comercio"/);
+  assert.equal((leyenda.match(/data-kind="Escuela"/g) || []).length,1);
+  assert.deepEqual(e.lecturas,[],'Building the manual legend never reads provider reference caches');
 });
 
-test('La leyenda del PDF se limita a las referencias automaticas realmente impresas', () => {
-  const e = entorno({runtime:{key:'ref:1', congregationId:'principal', references:[referencia('Iglesia'), referencia('Escuela')]}});
-  const leyenda = e.contexto.construirLeyendaIconos({num:1}, [referencia('Escuela')]);
+test('Las referencias automaticas entregadas al finalizar el PDF no agregan ni quitan tipos manuales', () => {
+  const e = entorno({manuales:{1:[referencia('Escuela')]},
+    runtime:{key:'ref:1', congregationId:'principal', references:[referencia('Iglesia')]}});
+  const leyenda = e.contexto.construirLeyendaIconos({num:1}, [referencia('Iglesia')]);
   assert.match(leyenda, /data-kind="Escuela"/);
   assert.doesNotMatch(leyenda, /data-kind="Iglesia"/);
+  assert.deepEqual(copiar(e.contexto.referenciasDeLoc({num:1},[referencia('Iglesia')])),[
+    {kind:'Escuela',nombre:'Escuela',ver:true}
+  ]);
+});
+
+test('La leyenda de cada recuadro usa sus propios iconos manuales y no los del editor activo', () => {
+  const e = entorno({manuales:{1:[referencia('Iglesia')],2:[referencia('Escuela')]},
+    runtime:{key:'ref:1',congregationId:'principal',references:[referencia('Comercio')]},
+    automaticas:{2:[referencia('Iglesia')]},leyendas:{2:{Escuela:{nombre:'Escuela de localidad 2',ver:true}}}});
+  const leyenda = e.contexto.construirLeyendaIconos({num:2});
+  assert.match(leyenda,/Escuela de localidad 2/);
+  assert.doesNotMatch(leyenda,/Iglesia|Comercio/);
+  assert.deepEqual(e.lecturas,[]);
+});
+
+test('Cambiar de congregacion no mezcla iconos ni nombres de referencias de otro espacio', () => {
+  const iconos = {principal:{1:[referencia('Escuela')]},otra:{1:[referencia('Iglesia')]}};
+  const ajustes = {principal:{1:{Escuela:{nombre:'Escuela propia',ver:true}}},
+    otra:{1:{Iglesia:{nombre:'Templo propio',ver:true}}}};
+  const before = JSON.stringify({iconos,ajustes});
+  const e = entorno({runtime:{key:'ref:1',congregationId:'principal',references:[referencia('Comercio')]}});
+  e.contexto.getManualIconsForLoc = loc => iconos[e.contexto.congregacionActivaId][loc.num] || [];
+  e.contexto.leyendaSettings = ajustes.principal;
+  assert.match(e.contexto.construirLeyendaIconos({num:1}),/Escuela propia/);
+  // The congregation loader replaces its scoped state before the legend is built.
+  e.contexto.congregacionActivaId = 'otra';
+  e.contexto.leyendaSettings = ajustes.otra;
+  const leyenda = e.contexto.construirLeyendaIconos({num:1});
+  assert.match(leyenda,/Templo propio/);
+  assert.doesNotMatch(leyenda,/Escuela propia|Comercio/);
+  assert.deepEqual(e.lecturas,[],'Legend construction never reads another provider namespace');
+  assert.equal(JSON.stringify({iconos,ajustes}),before,'Printing does not modify either congregation state');
+});
+
+test('El perfil de la lamina reserva espacio solo para los tipos manuales visibles en la leyenda', () => {
+  const e = entorno({manuales:{1:[referencia('Escuela'),referencia('Escuela'),referencia('Iglesia')]},
+    automaticas:{1:[referencia('Comercio')],2:[referencia('Comercio'),referencia('Escuela')]},
+    leyendas:{1:{Iglesia:{ver:false}}}});
+  Object.assign(e.contexto,{DETAIL_ZOOM:17,getExportColorAreasForLoc:() => [],
+    getExportBoundsPlain:() => ({south:19.1,north:19.2,west:-97.3,east:-97.2}),
+    getTextLabelsForLoc:() => [],isPrintZoneNumber:() => false});
+  vm.runInContext(funcion('perfilDeCroquisParaLamina'),e.contexto);
+  assert.equal(e.contexto.perfilDeCroquisParaLamina({num:1}).references,1,
+    'Repeated manual kinds count once; hidden manual kinds and automatic references add no space');
+  assert.equal(e.contexto.perfilDeCroquisParaLamina({num:2}).references,0,
+    'A map without manual references reserves no legend space even when provider POIs are loaded');
+  assert.deepEqual(e.lecturas,[]);
 });
 
 test('Un territorio sin referencias o con todas desmarcadas no imprime una caja vacia', () => {
   const sinReferencias = entorno();
   assert.equal(sinReferencias.contexto.construirLeyendaIconos({num:1}), '');
-  const desmarcadas = entorno({automaticas:{1:[referencia('Escuela')]},leyendas:{1:{Escuela:{ver:false}}}});
+  const desmarcadas = entorno({manuales:{1:[referencia('Escuela')]},leyendas:{1:{Escuela:{ver:false}}}});
   assert.equal(desmarcadas.contexto.construirLeyendaIconos({num:1}), '');
 });
 

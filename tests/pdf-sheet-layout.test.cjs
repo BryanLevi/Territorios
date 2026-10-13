@@ -137,11 +137,12 @@ test('Many brush fragments do not turn eight numbered subdivisions into ninety-e
   const areas=Array.from({length:98},(_,i)=>({color:['#00ffcc','#9933ff'][i%2],
     points:[[19.04,-96.99],[19.05,-96.98],[19.04,-96.97]]}));
   let labels=Array.from({length:8},(_,i)=>({text:String(i+1)}));
+  let references=[{kind:'Escuela',ver:true}];
   labels.push({text:'Hacia Tomatlán'});
   const context=vm.createContext({getExportColorAreasForLoc:()=>areas,
     getExportBoundsPlain:()=>({south:19.04,north:19.05,west:-96.99,east:-96.97}),
     DETAIL_ZOOM:15,getTextLabelsForLoc:()=>labels,isPrintZoneNumber:label=>/^\d+$/.test(label.text),
-    tiposDeIconoEn:()=>['Escuela']});
+    referenciasDeLoc:()=>references});
   vm.runInContext(html.slice(start,end),context);
   const numbered=context.perfilDeCroquisParaLamina({num:1});
   assert.equal(numbered.divisions,8);
@@ -150,4 +151,10 @@ test('Many brush fragments do not turn eight numbered subdivisions into ninety-e
   labels=[];
   assert.equal(context.perfilDeCroquisParaLamina({num:1}).divisions,2,
     'Without numbers, distinct zone colors are a conservative fallback');
+  references=[{kind:'Escuela',ver:false}];
+  assert.equal(context.perfilDeCroquisParaLamina({num:1}).references,0,
+    'A deselected manual reference reserves no legend space');
+  references=[];
+  assert.equal(context.perfilDeCroquisParaLamina({num:1}).references,0,
+    'A map with no manual reference rows reserves no legend space');
 });
