@@ -1,5 +1,5 @@
 /* Blue glass chrome for the editor. Scope excludes map layers and PDF sheets.
- * Preview pages, reference glyphs, color values and geolocation stay unchanged.
+ * PDF sheets, reference glyphs, color values and geolocation stay unchanged.
  */
 @media screen {
   .premium-toolbar #btn-offline { position: relative; flex: 0 0 var(--control-height); width: var(--control-height); min-width: var(--control-height); height: var(--control-height); padding: 0; border-color: var(--color-rule-strong); background: var(--color-accent-soft); color: var(--color-accent-deep); }
@@ -387,4 +387,129 @@
 @media screen and (max-height: 600px) {
   body { overflow-y: auto; }
   .map-wrap { min-height: 360px; }
+}
+
+/* A roomy download workspace. These dimensions affect only the dialog,
+ * never the millimetres or the map scale of the exported PDF. */
+@media screen {
+  .map-wrap > #agrupar-panel {
+    position: fixed;
+    inset: 0;
+    transform: none;
+    margin: auto;
+    width: min(1240px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
+    height: min(920px, calc(100dvh - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 0;
+    overflow: hidden;
+    background: var(--color-paper);
+    border-color: var(--color-rule-strong);
+    border-radius: 24px;
+  }
+  .map-wrap > #agrupar-panel[open] { display: flex; flex-direction: column; }
+  #agrupar-panel::backdrop { background: rgba(17, 35, 67, .42); backdrop-filter: blur(3px); }
+  .map-wrap > #agrupar-panel .agrupar-head {
+    flex: 0 0 auto;
+    align-items: flex-start;
+    margin: 0;
+    padding: 20px 24px;
+    background: var(--gradient-surface);
+  }
+  .agrupar-head h2 { margin: 0; font-size: 22px; line-height: 1.25; letter-spacing: -.025em; }
+  .agrupar-head p { margin: 6px 0 0; color: var(--color-muted); font-size: 13px; line-height: 1.45; }
+  .map-wrap > #agrupar-panel .agrupar-cuerpo {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 24px;
+    padding: 20px 24px;
+    overflow: hidden;
+  }
+  .agrupar-izq, .agrupar-der { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .agrupar-seccion-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .agrupar-seccion-head h3 { margin: 0; font-size: 15px; line-height: 1.3; }
+  .agrupar-seccion-head span { color: var(--color-muted); font-size: 12px; text-align: right; }
+  #agrupar-seleccion { padding: 5px 9px; border-radius: var(--radius-pill); background: var(--color-accent-soft); color: var(--color-accent-deep); white-space: nowrap; }
+  .map-wrap > #agrupar-panel .agrupar-todos { align-items: center; gap: 8px; margin-bottom: 12px; }
+  .agrupar-todos > span { margin-left: auto; max-width: 165px; color: var(--color-muted); font-size: 12px; line-height: 1.35; }
+  .map-wrap > #agrupar-panel .agrupar-lista {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    gap: 4px;
+    padding: 6px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+  .map-wrap > #agrupar-panel .agrupar-lista > .agrupar-fila { flex: 0 0 auto; min-height: 48px; padding: 2px 4px; }
+  .map-wrap > #agrupar-panel .agrupar-fila > .agrupar-nombre { white-space: normal; overflow-wrap: anywhere; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .map-wrap > #agrupar-panel .agrupar-opciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; flex: 0 0 auto; margin-top: 16px; }
+  .map-wrap > #agrupar-panel .agrupar-opciones label { gap: 6px; font-size: 11px; }
+  .agrupar-opciones > .agrupar-formato { grid-column: 1 / -1; }
+  .map-wrap > #agrupar-panel .agrupar-opciones select { max-width: none; font-size: 13px; }
+  .map-wrap > #agrupar-panel .agrupar-previa {
+    flex: 1 1 auto;
+    min-height: 140px;
+    max-height: none;
+    justify-content: center;
+    align-items: center;
+    align-content: flex-start;
+    gap: 12px;
+    padding: 18px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-color: var(--color-rule);
+    border-radius: 14px;
+    background: var(--color-paper-3);
+  }
+  .agrupar-hoja { box-shadow: 0 6px 18px rgba(17, 35, 67, .12); }
+  .agrupar-vacio { align-self: center; margin: auto; padding: 24px; text-align: center; line-height: 1.5; }
+  .map-wrap > #agrupar-panel :is(.agrupar-pista, .agrupar-resumen, .agrupar-aviso) { flex: 0 0 auto; font-size: 12px; line-height: 1.45; }
+  .map-wrap > #agrupar-panel .agrupar-pista:empty, .map-wrap > #agrupar-panel .agrupar-aviso:empty { display: none; }
+  .map-wrap > #agrupar-panel .agrupar-resumen { margin-top: 12px; }
+  .map-wrap > #agrupar-panel .agrupar-formas {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0;
+    padding: 16px 24px;
+    background: var(--color-paper-2);
+    border-top: 1px solid var(--color-rule);
+  }
+  .map-wrap > #agrupar-panel .agrupar-formas > b { margin: 0; font-size: 12px; text-transform: none; letter-spacing: 0; }
+  .map-wrap > #agrupar-panel .agrupar-pie { flex: 1; justify-content: flex-end; flex-direction: row; gap: 12px; }
+  .map-wrap > #agrupar-panel .agrupar-pie > button { flex: 0 1 285px; width: auto; min-height: 48px; padding: 10px 16px; font-size: 13px; }
+}
+
+@media screen and (max-width: 899px) {
+  .map-wrap > #agrupar-panel { width: calc(100vw - 20px); max-width: calc(100vw - 20px); height: calc(100dvh - 20px); max-height: calc(100dvh - 20px); border-radius: 18px; }
+  .map-wrap > #agrupar-panel .agrupar-head { padding: 16px; }
+  .agrupar-head h2 { font-size: 20px; }
+  .map-wrap > #agrupar-panel .agrupar-cuerpo { display: flex; flex-direction: column; padding: 16px; gap: 24px; overflow-y: auto; overscroll-behavior: contain; }
+  .agrupar-izq, .agrupar-der { flex: 0 0 auto; }
+  .map-wrap > #agrupar-panel .agrupar-lista { flex: none; height: clamp(220px, 42dvh, 420px); }
+  .map-wrap > #agrupar-panel .agrupar-previa { flex: none; height: clamp(240px, 46dvh, 420px); }
+  .map-wrap > #agrupar-panel .agrupar-formas { padding: 12px 16px; }
+  .map-wrap > #agrupar-panel .agrupar-formas > b { display: none; }
+  .map-wrap > #agrupar-panel .agrupar-pie > button { flex: 1; min-width: 0; }
+}
+
+@media screen and (max-width: 480px) {
+  .agrupar-head p { font-size: 12px; }
+  .agrupar-todos > span { max-width: 145px; font-size: 11px; }
+  .agrupar-seccion-head { gap: 6px; }
+  .agrupar-seccion-head h3 { font-size: 14px; }
+  .agrupar-seccion-head span { font-size: 11px; }
+  .map-wrap > #agrupar-panel .agrupar-lista > .agrupar-fila { grid-template-columns: var(--control-height) minmax(0, 1fr) auto; }
+  .map-wrap > #agrupar-panel .agrupar-fila > input[type=checkbox] { grid-row: 1 / span 2; }
+  .map-wrap > #agrupar-panel .agrupar-fila > .agrupar-nombre { grid-column: 2 / -1; grid-row: 1; padding: 4px 0; }
+  .map-wrap > #agrupar-panel .agrupar-fila > .agrupar-jefe { grid-column: 2; grid-row: 2; }
+  .map-wrap > #agrupar-panel .agrupar-fila > .agrupar-mover { grid-column: 3; grid-row: 2; }
+  .map-wrap > #agrupar-panel .agrupar-pie { flex-direction: column; gap: 8px; }
+  .map-wrap > #agrupar-panel .agrupar-pie > button { flex: none; width: 100%; min-height: 44px; }
 }

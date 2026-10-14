@@ -553,7 +553,8 @@ body.print-preview{overflow:hidden}
   @page{size:A4 landscape;margin:0}
   html,body{width:297mm;height:210mm;overflow:hidden;background:#fff}
   body{display:block}
-  .bar,.map-wrap,.map-status,.legend,.welcome-screen,.congregacion-dialog,.password-dialog,.privacy-dialog,.offline-dialog{display:none!important}
+  .bar,.map-wrap,.map-status,.legend,.welcome-screen,.congregacion-dialog,.password-dialog,.privacy-dialog,.offline-dialog,.agrupar-panel{display:none!important}
+  .agrupar-panel::backdrop{display:none!important}
   .print-sheet,.print-sheet.is-open{display:block!important;position:static!important;inset:auto!important;width:297mm;height:210mm;padding:0;background:#fff;overflow:hidden}
   .print-paper{width:297mm;height:210mm;min-width:0;box-shadow:none}
   /* Chrome aplasta a 300 ppp cualquier capa con filter al imprimir, y la
@@ -574,7 +575,7 @@ body.print-preview{overflow:hidden}
 <link rel="stylesheet" href="../tokens.css?v=blue-bubbles-1">
 <link rel="stylesheet" href="./toolbar-premium.css?v=offline-selector-1">
 <link rel="stylesheet" href="./welcome-premium.css?v=footer-outside-1">
-<link rel="stylesheet" href="./editor-premium.css?v=offline-selector-1">
+<link rel="stylesheet" href="./editor-premium.css?v=spacious-pdf-dialog-1">
 <link rel="stylesheet" href="./workspace-tools.css?v=locality-order-1">
 </head>
 <body>
@@ -1123,22 +1124,24 @@ body.print-preview{overflow:hidden}
       <button class="btn primary" id="ref-panel-save" type="button">Guardar</button>
     </div>
   </div>
-  <div class="agrupar-panel" id="agrupar-panel" hidden>
+  <dialog class="agrupar-panel" id="agrupar-panel" aria-labelledby="agrupar-titulo" aria-describedby="agrupar-descripcion" hidden>
     <div class="agrupar-head">
-      <b>Descargar en PDF</b>
-      <button class="icon-btn" id="agrupar-cerrar" type="button" title="Cerrar" aria-label="Cerrar">
+      <div><h2 id="agrupar-titulo">Descargar en PDF</h2><p id="agrupar-descripcion">Selecciona tus localidades y acomoda la distribución de la hoja.</p></div>
+      <button class="icon-btn" id="agrupar-cerrar" type="button" title="Cerrar" aria-label="Cerrar descarga de PDF" autofocus>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
       </button>
     </div>
     <div class="agrupar-cuerpo">
       <div class="agrupar-izq">
+        <div class="agrupar-seccion-head"><h3>Territorios</h3><span id="agrupar-seleccion" aria-live="polite"></span></div>
         <div class="agrupar-todos">
           <button class="btn ghost" id="agrupar-marcar" type="button">Todos</button>
           <button class="btn ghost" id="agrupar-desmarcar" type="button">Ninguno</button>
+          <span>La estrella elige el mapa principal.</span>
         </div>
-        <div class="agrupar-lista" id="agrupar-lista"></div>
+        <div class="agrupar-lista" id="agrupar-lista" role="group" aria-label="Localidades para incluir en el PDF"></div>
         <div class="agrupar-opciones">
-          <label>Orientacion
+          <label>Orientación
             <select id="agrupar-orientacion">
               <option value="portrait">Vertical</option>
               <option value="landscape">Horizontal</option>
@@ -1150,19 +1153,22 @@ body.print-preview{overflow:hidden}
           <label class="agrupar-tinte" id="agrupar-tinte" hidden>Tono
             <input class="color-swatch" id="fondo-impresion-color" type="color" value="#ffffff" title="Color personalizado del fondo">
           </label>
-          <label>Formato
+          <label class="agrupar-formato">Formato de la vista previa
             <select id="agrupar-porpagina">
-              <option value="lamina">Lamina: todo en 1 pagina, distribucion equilibrada</option>
-              <option value="sueltas">Una pagina por territorio</option>
+              <option value="lamina">Lámina: todos en una página</option>
+              <option value="sueltas">Una página por territorio</option>
             </select>
           </label>
         </div>
       </div>
       <div class="agrupar-der">
+        <div class="agrupar-seccion-head"><h3>Distribución en la hoja</h3><span>Vista previa</span></div>
         <div class="agrupar-previa" id="agrupar-previa"></div>
         <p class="agrupar-pista" id="agrupar-pista"></p>
         <p class="agrupar-resumen" id="agrupar-resumen"></p>
         <p class="agrupar-aviso" id="agrupar-aviso"></p>
+      </div>
+    </div>
         <div class="agrupar-formas">
           <b>Formas de descarga</b>
           <div class="agrupar-pie">
@@ -1176,9 +1182,7 @@ body.print-preview{overflow:hidden}
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
+  </dialog>
   <div class="map-status" id="map-status" role="status" aria-live="polite" aria-atomic="true">Cargando mapa y nombres de calles...</div>
 </div>
 
@@ -9955,6 +9959,8 @@ function cuentasAgrupadas(){
 function pintarPanelAgrupar(){
   const lista = $('agrupar-lista');
   if(!lista) return;
+  const desplazamiento = lista.scrollTop;
+  const focoAnterior = lista.contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : '';
   lista.innerHTML = '';
   LOCS.forEach(loc => {
     const clave = String(loc.num);
@@ -9964,8 +9970,10 @@ function pintarPanelAgrupar(){
 
     const marca = document.createElement('input');
     marca.type = 'checkbox';
+    marca.id = 'agrupar-incluir-' + clave;
     marca.checked = puesto >= 0;
     marca.title = 'Incluir en el PDF';
+    marca.setAttribute('aria-label', 'Incluir ' + displayTerritoryName(loc) + ' en el PDF');
     marca.addEventListener('change', () => {
       agruparHuecosManuales = null;
       if(marca.checked){
@@ -9983,6 +9991,8 @@ function pintarPanelAgrupar(){
     jefe.className = 'agrupar-jefe' + (agruparPrincipal === clave ? ' es' : '');
     jefe.textContent = '★';
     jefe.title = 'Que este salga en grande';
+    jefe.setAttribute('aria-label', 'Elegir ' + displayTerritoryName(loc) + ' como mapa principal');
+    jefe.setAttribute('aria-pressed', String(agruparPrincipal === clave));
     jefe.disabled = puesto < 0;
     jefe.addEventListener('click', () => {
       agruparHuecosManuales = null;
@@ -9990,8 +10000,9 @@ function pintarPanelAgrupar(){
       pintarPanelAgrupar();
     });
 
-    const nombre = document.createElement('span');
+    const nombre = document.createElement('label');
     nombre.className = 'agrupar-nombre';
+    nombre.htmlFor = marca.id;
     nombre.textContent = '#' + displayTerritoryNumber(loc) + '  ' + displayTerritoryName(loc);
     nombre.title = nombre.textContent;
 
@@ -10002,6 +10013,7 @@ function pintarPanelAgrupar(){
       b.type = 'button';
       b.textContent = signo;
       b.title = paso < 0 ? 'Subir' : 'Bajar';
+      b.setAttribute('aria-label', (paso < 0 ? 'Subir ' : 'Bajar ') + displayTerritoryName(loc));
       b.disabled = puesto < 0
         || (paso < 0 && puesto === 0)
         || (paso > 0 && puesto === agruparOrden.length - 1);
@@ -10017,6 +10029,12 @@ function pintarPanelAgrupar(){
     fila.append(marca, jefe, nombre, mover);
     lista.appendChild(fila);
   });
+  lista.scrollTop = desplazamiento;
+  if(focoAnterior){
+    [...lista.querySelectorAll('[aria-label]')].find(nodo => nodo.getAttribute('aria-label') === focoAnterior)?.focus({preventScroll:true});
+  }
+  const seleccion = $('agrupar-seleccion');
+  if(seleccion) seleccion.textContent = agruparOrden.length + ' de ' + LOCS.length + ' seleccionados';
   pintarPreviaAgrupar();
 }
 
@@ -10067,11 +10085,18 @@ function pintarPreviaAgrupar(){
   if(!c.elegidos.length){
     previa.innerHTML = '<p class="agrupar-vacio">Marca los territorios que quieres juntar.</p>';
   }
-  const anchoPrevia = c.lamina ? 330 : 190;
-  const cuantasHojas = c.lamina ? 1 : c.paginas;
+  // Ajusta sólo esta maqueta de pantalla; los milímetros del PDF no cambian.
+  const estiloPrevia = getComputedStyle(previa);
+  const anchoDisponible = Math.max(1, previa.clientWidth - parseFloat(estiloPrevia.paddingLeft) - parseFloat(estiloPrevia.paddingRight) - 2);
+  const altoDisponible = Math.max(1, previa.clientHeight - parseFloat(estiloPrevia.paddingTop) - parseFloat(estiloPrevia.paddingBottom) - 2);
+  const columnas = !c.lamina && c.paginas > 1 && anchoDisponible >= 460 ? 2 : 1;
+  const anchoHoja = c.lamina ? anchoDisponible : Math.min(240, (anchoDisponible - (columnas - 1) * 12) / columnas);
+  const anchoPrevia = Math.min(anchoHoja, altoDisponible * c.pagina.ancho / c.pagina.alto);
+  const cuantasHojas = c.elegidos.length ? (c.lamina ? 1 : c.paginas) : 0;
   for(let p = 0; p < cuantasHojas; p++){
     const hoja = document.createElement('div');
     hoja.className = 'agrupar-hoja';
+    hoja.style.boxSizing = 'content-box';
     const k = anchoPrevia / c.pagina.ancho;
     hoja.style.width = (c.pagina.ancho * k) + 'px';
     hoja.style.height = (c.pagina.alto * k) + 'px';
@@ -10138,6 +10163,8 @@ function pintarPreviaAgrupar(){
   }
   const boton = $('agrupar-generar');
   if(boton) boton.disabled = !c.elegidos.length || agruparGenerando;
+  const individuales = $('agrupar-uno');
+  if(individuales) individuales.disabled = !c.elegidos.length || agruparGenerando;
 }
 
 function abrirPanelAgrupar(){
@@ -10147,12 +10174,14 @@ function abrirPanelAgrupar(){
     agruparOrden = [String(LOCS[currentIndex].num)];
     agruparPrincipal = agruparOrden[0];
   }
-  pintarPanelAgrupar();
   panel.hidden = false;
+  if(!panel.open) panel.showModal();
+  pintarPanelAgrupar();
 }
 
 function cerrarPanelAgrupar(){
   const panel = $('agrupar-panel');
+  if(panel?.open) panel.close();
   if(panel) panel.hidden = true;
 }
 
@@ -11745,6 +11774,17 @@ $('btn-rename-territory')?.addEventListener('click', renombrarTerritorio);
 })();
 $('btn-agrupar')?.addEventListener('click', abrirPanelAgrupar);
 $('agrupar-cerrar')?.addEventListener('click', cerrarPanelAgrupar);
+$('agrupar-panel')?.addEventListener('close', () => { $('agrupar-panel').hidden = true; });
+// El tamaño de la vista previa también cambia al girar el celular o ampliar la ventana.
+if(typeof ResizeObserver === 'function'){
+  let marcoPrevia = 0;
+  new ResizeObserver(() => {
+    cancelAnimationFrame(marcoPrevia);
+    marcoPrevia = requestAnimationFrame(() => {
+      if($('agrupar-panel')?.open) pintarPreviaAgrupar();
+    });
+  }).observe($('agrupar-previa'));
+}
 $('agrupar-generar')?.addEventListener('click', () => generarAgrupado('lamina'));
 $('agrupar-uno')?.addEventListener('click', () => generarAgrupado('sueltas'));
 $('agrupar-marcar')?.addEventListener('click', () => {
@@ -11975,6 +12015,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=manual-reference-icons-1"></script>
+<script src="offline-controller.js?v=spacious-pdf-dialog-1"></script>
 </body>
 </html>
