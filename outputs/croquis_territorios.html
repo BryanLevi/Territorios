@@ -283,6 +283,7 @@ select:focus{outline:3px solid rgba(33,113,66,.18);border-color:#217142}
 .destination-preview-marker{width:0!important;height:0!important;background:none;border:0}
 .destination-preview-marker::before{content:"";position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;cursor:grab;touch-action:none}
 .destination-preview-text{position:absolute;left:0;top:0;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;text-align:center;font-family:Arial,sans-serif;font-weight:600;line-height:1.2;color:#17202c;background:rgba(255,255,255,.94);outline:2px dashed #2563eb;outline-offset:2px;cursor:grab;touch-action:none}
+.destination-preview-text.is-editor-size{display:block;border-radius:2px}
 .destination-preview-text.is-overlapping{outline-color:#c2410c;background:rgba(255,241,235,.94)}
 .destination-preview-text:focus-visible{outline-style:solid;outline-width:3px}
 @media screen{.map-wrap.is-destination-previewing .destination-text-label.is-selected{visibility:hidden;pointer-events:none}}
@@ -576,7 +577,7 @@ body.print-preview{overflow:hidden}
 <link rel="stylesheet" href="./toolbar-premium.css?v=offline-selector-1">
 <link rel="stylesheet" href="./welcome-premium.css?v=footer-outside-1">
 <link rel="stylesheet" href="./editor-premium.css?v=spacious-pdf-dialog-1">
-<link rel="stylesheet" href="./workspace-tools.css?v=premium-new-territory-1">
+<link rel="stylesheet" href="./workspace-tools.css?v=area-pointer-arrow-size-1">
 </head>
 <body>
 <section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
@@ -5156,9 +5157,20 @@ function refreshDestinationPlacementPreview(keep = null){
   const marker=keep?.marker||L.marker(unproject(label.anchor),{pane:'destinationPreviewPane',draggable:true,keyboard:true,bubblingMouseEvents:false,zIndexOffset:2000,
     icon:L.divIcon({className:'destination-preview-marker',iconAnchor:[0,0],html:'<div class="destination-preview-text"></div>'})}).addTo(destinationPreviewLayer);
   const element=marker.getElement()?.querySelector('.destination-preview-text');
-  if(element){element.textContent=label.text;element.classList.toggle('is-overlapping',selected.overlaps);Object.assign(element.style,{width:width+'px',height:height+'px',fontSize:(label.sizePt*96/72*factor)+'px',padding:(2*factor)+'px '+(3*factor)+'px'});}
+  if(element){
+    // La guía del PDF puede ocupar más espacio geográfico; el texto que ya
+    // existe conserva su tamaño y sus saltos de línea al entrar en edición.
+    const editorSize=destinationSession?.index != null;
+    const textFactor=editorSize?1:factor;
+    element.textContent=label.text;
+    element.classList.toggle('is-overlapping',selected.overlaps);
+    element.classList.toggle('is-editor-size',editorSize);
+    Object.assign(element.style,{width:editorSize?'max-content':width+'px',height:editorSize?'auto':height+'px',
+      maxWidth:editorSize?(64*96/25.4)+'px':'none',fontSize:(label.sizePt*96/72*textFactor)+'px',
+      padding:(2*textFactor)+'px '+(3*textFactor)+'px'});
+  }
   if(element && destinationSession?.index != null) document.querySelector('.map-wrap')?.classList.add('is-destination-previewing');
-  marker.getElement()?.setAttribute('aria-label','Mover texto del destino. Espacio que ocupará en el PDF.');
+  marker.getElement()?.setAttribute('aria-label','Mover texto del destino.');
   if(!keep){
     const session=destinationSession,namespace=congregacionActivaId,locNum=String(LOCS[currentIndex].num);
     const live=()=>session===destinationSession&&namespace===congregacionActivaId&&locNum===String(LOCS[currentIndex]?.num);
@@ -12118,6 +12130,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=premium-new-territory-1"></script>
+<script src="offline-controller.js?v=area-pointer-arrow-size-1"></script>
 </body>
 </html>

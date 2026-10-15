@@ -108,6 +108,9 @@
 
 /* New territory: a guided map selection followed by one clear form. */
 @media screen {
+  .map-wrap:is(.is-territory-adding,.is-color-drawing) :is(.leaflet-container,.leaflet-interactive,.leaflet-marker-icon) {
+    cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='32'%20height='32'%20viewBox='0%200%2032%2032'%3E%3Cpath%20d='M8%208L24%2024M24%208L8%2024'%20fill='none'%20stroke='white'%20stroke-width='5'%20stroke-linecap='round'/%3E%3Cpath%20d='M8%208L24%2024M24%208L8%2024'%20fill='none'%20stroke='%2315315d'%20stroke-width='2.5'%20stroke-linecap='round'/%3E%3C/svg%3E") 16 16, crosshair!important;
+  }
   .map-wrap.is-territory-adding > #info-card { display: none!important; }
   .territory-add-guide {
     position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 620;

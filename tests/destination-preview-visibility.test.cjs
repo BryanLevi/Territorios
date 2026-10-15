@@ -29,12 +29,13 @@ const clone=value=>JSON.parse(JSON.stringify(value));
 const destination=(text,lat,lng)=>({type:'destino',text,lat,lng,
   points:[[lat-.001,lng-.001],[lat,lng]],sizePt:10,strokePt:1.2,headMm:3});
 
-function harness({draft=false}={}){
-  const labels=[destination('Hacia Providencia los Cedros',19,-97),destination('Hacia Ocotitlán',19.01,-97.01)];
+function harness({draft=false,sizePt=10}={}){
+  const labels=[destination('Hacia Providencia los Cedros',19,-97),destination('Hacia Ocotitlán',19.01,-97.01)]
+    .map(label=>({...label,sizePt}));
   const persisted=JSON.stringify(labels),panes=new Map(),layers=new Set();
   const wrapper={classList:classes(['is-destination-editing'])};
   const elements=new Map([
-    ['destination-text',{value:labels[0].text}],['destination-size',{value:'10'}],
+    ['destination-text',{value:labels[0].text}],['destination-size',{value:String(sizePt)}],
     ['destination-preview',{checked:true}],['destination-panel',{hidden:false,classList:classes()}],
     ['destination-fit-status',{}],['destination-auto-place',{}]
   ]);
@@ -63,12 +64,12 @@ function harness({draft=false}={}){
   }
   const polyline=(positions,config)=>({positions:clone(positions),config:clone(config),handlers:new Map(),
     addTo(layer){layer.members.push(this);return this;},on(name,handler){this.handlers.set(name,handler);return this;}});
-  const map={removeLayer:layer=>layers.delete(layer),
+  const map={_pointScale:10,removeLayer:layer=>layers.delete(layer),
     getContainer:()=>({getBoundingClientRect:()=>({left:0,top:0,width:1000,height:700})}),
     getSize:()=>({x:1000,y:700}),
     getPane:name=>panes.get(name),createPane(name){const pane={style:{}};panes.set(name,pane);return pane;},
-    latLngToContainerPoint(position){const p=point(position);return {x:p.lng*10,y:-p.lat*10};},
-    containerPointToLatLng:p=>({lat:-p.y/10,lng:p.x/10})};
+    latLngToContainerPoint(position){const p=point(position);return {x:p.lng*this._pointScale,y:-p.lat*this._pointScale};},
+    containerPointToLatLng(p){return {lat:-p.y/this._pointScale,lng:p.x/this._pointScale};}};
   const L={Marker,point:(x,y)=>({x,y}),latLng:(lat,lng)=>({lat,lng}),layerGroup:()=>new LayerGroup(),
     marker:(position,config)=>new Marker(position,config),polyline,divIcon:config=>config,
     CRS:{EPSG3857:{project:p=>({x:p.lng,y:p.lat}),unproject:p=>({lat:p.y,lng:p.x})}},
@@ -118,6 +119,57 @@ test('the editor preview replaces only the selected caption and keeps its saved 
   assert.equal(layers.filter(layer=>layer.config?.className==='destination-arrow-head').length,2);
   assert.equal(layers.filter(layer=>layer.config?.icon?.className?.startsWith('destination-handle')).length,2);
   assert(h.savedCaptions()[0].handlers.has('dragend'),'The saved marker preserves its edit event handlers');
+  h.assertUnchanged();
+});
+
+test('editing a saved destination preserves its natural editor font and wrapping at every map zoom',()=>{
+  const h=harness();h.render();
+  for(const zoomScale of [10,2.5,40]){
+    h.map._pointScale=zoomScale;h.refresh();
+    const marker=h.previewCaptions()[0],style=marker.caption.style;
+    assert.equal(parseFloat(style.fontSize),10*96/72,'Opening a PDF guide cannot magnify the saved caption');
+    assert.equal(style.width,'max-content','The edited caption retains its natural text width');
+    assert.equal(style.height,'auto','Line wrapping determines the caption height');
+    assert.equal(parseFloat(style.maxWidth),64*96/25.4,'The editor wrapping limit is independent of the PDF footprint');
+    assert.equal(style.padding,'2px 3px','PDF preview scaling cannot enlarge caption padding');
+    assert.deepEqual(marker.getLatLng(),{lat:19,lng:-97},'Selection cannot move the saved text anchor');
+    const box=h.context.destinationPreviewLayer.getLayers().find(layer=>!(layer instanceof h.context.L.Marker));
+    assert(box,'The separate PDF footprint is retained without resizing the caption');
+    assert.equal(h.visibleSaved().length,1,'Only one selected caption is visible');
+  }
+  h.assertUnchanged();
+});
+
+test('editing uses the selected text size only when the user deliberately changes it',()=>{
+  const h=harness();h.render();h.refresh();
+  h.elements.get('destination-size').value='16';h.refresh();
+  assert.equal(parseFloat(h.previewCaptions()[0].caption.style.fontSize),16*96/72);
+  assert.equal(h.previewCaptions()[0].caption.style.padding,'2px 3px');
+  h.elements.get('destination-text').value='Hacia Providencia los Cedros · por el acceso principal';h.refresh();
+  assert.equal(parseFloat(h.previewCaptions()[0].caption.style.fontSize),16*96/72,'Typing a longer name cannot resize its font');
+  assert.equal(h.previewCaptions()[0].caption.style.height,'auto','Long names wrap naturally');
+  h.assertUnchanged();
+});
+
+test('saved destinations retain custom point sizes while editing without replacing stored values',()=>{
+  for(const sizePt of [7,13.5,18]){
+    const h=harness({sizePt});h.render();h.refresh();
+    assert.equal(parseFloat(h.previewCaptions()[0].caption.style.fontSize),sizePt*96/72);
+    h.assertUnchanged();
+  }
+});
+
+test('a new destination keeps the physical PDF preview scale instead of adopting saved editor sizing',()=>{
+  const h=harness({draft:true});h.render();h.refresh();
+  const first=h.previewCaptions()[0].caption.style;
+  assert.notEqual(parseFloat(first.fontSize),10*96/72,'The new draft still previews its projected PDF footprint');
+  assert.equal(first.width,'120px');assert.equal(first.height,'40px');
+  const initialFont=parseFloat(first.fontSize);
+  h.map._pointScale=20;h.refresh();
+  const zoomed=h.previewCaptions()[0].caption.style;
+  assert.equal(parseFloat(zoomed.fontSize),initialFont*2,'A draft guide continues to track physical PDF size at map zoom');
+  assert.equal(zoomed.width,'240px');assert.equal(zoomed.height,'80px');
+  assert.equal(h.visibleSaved().length,2,'Draft preview does not hide existing destinations');
   h.assertUnchanged();
 });
 
