@@ -105,3 +105,99 @@
   .premium-toolbar .territory-selection-group .territory-actions.grupo-terr{flex-wrap:wrap}
   .premium-toolbar .territory-selection-group .territory-actions .btn{flex:1 1 84px;min-width:84px;padding:0 5px}
 }
+
+/* New territory: a guided map selection followed by one clear form. */
+@media screen {
+  .map-wrap.is-territory-adding > #info-card { display: none!important; }
+  .territory-add-guide {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 620;
+    width: min(520px, calc(100% - 24px)); padding: 16px;
+    border: 1px solid var(--color-rule); border-radius: 20px;
+    background: var(--color-glass-strong); color: var(--color-ink);
+    box-shadow: var(--shadow-panel), var(--shadow-inset);
+  }
+  .territory-add-guide[hidden] { display: none; }
+  .territory-add-guide-head { display: flex; align-items: center; gap: 12px; }
+  .territory-add-guide-head > div { flex: 1; min-width: 0; }
+  .territory-add-symbol, .new-territory-symbol { display: grid; place-items: center; flex-shrink: 0; background: var(--gradient-primary); color: var(--color-accent-ink); box-shadow: var(--shadow-primary), var(--shadow-inset); }
+  .territory-add-symbol { width: 42px; height: 42px; border-radius: 13px; }
+  .territory-add-symbol svg { width: 24px; height: 24px; }
+  .territory-add-guide h3 { margin: 0 0 4px; font-size: 14px; font-weight: 750; line-height: 1.35; }
+  .territory-add-guide p { margin: 0; color: var(--color-muted); font-size: 12px; line-height: 1.4; }
+  .territory-add-guide .btn { flex: 0 0 auto; width: auto; min-width: 44px; min-height: 44px; border: 1px solid var(--color-rule); border-radius: 12px; background: var(--color-paper); color: var(--color-ink-2); }
+  .territory-add-steps { display: flex; gap: 8px; margin-top: 14px; }
+  .territory-add-steps span { flex: 1; padding: 7px 10px; border-radius: 10px; background: var(--color-paper-2); color: var(--color-muted); font-size: 11px; font-weight: 600; text-align: center; }
+  .territory-add-steps .is-current { color: var(--color-accent-deep); background: var(--color-accent-soft); box-shadow: inset 0 0 0 1px var(--color-rule); }
+  .territory-add-steps .is-done { color: var(--color-success); background: var(--color-success-soft); }
+  #btn-add-territory[aria-pressed=true] { box-shadow: 0 0 0 3px var(--color-rule), var(--shadow-primary); }
+  .workspace-dialog.new-territory-dialog {
+    width: min(650px, calc(100vw - 28px)); max-height: calc(100dvh - 32px);
+    border-color: var(--color-rule); border-radius: 28px; color: var(--color-ink);
+    background: var(--color-paper); font-family: var(--font-body);
+    box-shadow: 0 28px 90px var(--color-shadow-float), var(--shadow-inset);
+  }
+  .new-territory-dialog::backdrop { background: var(--color-backdrop); }
+  .new-territory-dialog > form { display: flex; flex-direction: column; max-height: inherit; }
+  .new-territory-dialog .new-territory-head { flex-shrink: 0; padding: 26px; background: var(--gradient-surface); border-color: var(--color-rule); }
+  .new-territory-heading { display: flex; align-items: center; gap: 16px; min-width: 0; }
+  .new-territory-symbol { width: 58px; height: 58px; border-radius: 19px; }
+  .new-territory-symbol svg { width: 31px; height: 31px; }
+  .new-territory-dialog h2 { font-size: 26px; line-height: 1.2; margin: 5px 0 0; }
+  .new-territory-head p { font-size: 13px; line-height: 1.45; color: var(--color-muted); margin: 8px 0 0; }
+  .new-territory-dialog .new-territory-body { min-height: 0; max-height: none; padding: 24px 26px; display: flex; flex-direction: column; gap: 22px; }
+  .new-territory-context { align-self: flex-start; display: flex; align-items: center; gap: 8px; max-width: 100%; padding: 7px 12px; border: 1px solid var(--color-rule); border-radius: var(--radius-pill); background: var(--color-paper-2); color: var(--color-accent-deep); font-size: 12px; font-weight: 600; }
+  .new-territory-context svg { width: 17px; height: 17px; flex-shrink: 0; }
+  .new-territory-context span { overflow-wrap: anywhere; }
+  .new-territory-field { display: flex; flex-direction: column; gap: 8px; }
+  .new-territory-field label { font-size: 13px; font-weight: 650; }
+  .new-territory-field input { width: 100%; min-width: 0; height: 50px; padding: 0 14px; border: 1px solid var(--color-rule-strong); border-radius: 14px; color: var(--color-ink); background: var(--color-paper); font: inherit; font-size: 15px; box-shadow: var(--shadow-inset); }
+  .new-territory-field input::placeholder { color: var(--color-muted); }
+  .new-territory-field input[aria-invalid=true] { border-color: var(--color-error); background: var(--color-error-soft); }
+  .new-territory-field > span { color: var(--color-muted); font-size: 12px; line-height: 1.4; }
+  .new-territory-body .new-territory-field-error, .new-territory-body .new-territory-error { margin: 0; color: var(--color-error); font-size: 12px; line-height: 1.45; }
+  .new-territory-body .new-territory-error { padding: 12px; background: var(--color-error-soft); border-radius: 12px; }
+  .new-territory-area { display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid var(--color-rule); border-radius: 18px; background: var(--color-paper-2); }
+  .new-territory-map { flex: 0 0 100px; }
+  .new-territory-map svg { display: block; width: 100%; height: auto; }
+  .new-territory-area strong { font-size: 13px; color: var(--color-accent-deep); }
+  .new-territory-area p { margin: 5px 0 6px; color: var(--color-muted); font-size: 12px; line-height: 1.45; }
+  .new-territory-area span { color: var(--color-muted); font-size: 11px; line-height: 1.35; }
+  .new-territory-body .new-territory-nota { margin: 0; font-size: 12px; line-height: 1.5; color: var(--color-muted); }
+  .new-territory-dialog .new-territory-foot { flex-shrink: 0; padding: 18px 26px; border-color: var(--color-rule); background: var(--color-paper-2); }
+  .new-territory-foot .btn { flex: 0 0 auto; min-height: 48px; padding: 0 20px; border-radius: 14px; font-size: 14px; font-weight: 650; }
+  .new-territory-foot .btn.primary { background: var(--gradient-primary); color: var(--color-accent-ink); border-color: var(--color-accent); box-shadow: var(--shadow-primary), var(--shadow-inset); }
+  .new-territory-foot .btn.primary svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .new-territory-foot .btn.ghost { background: var(--color-paper); border-color: var(--color-rule); color: var(--color-ink-2); }
+  .new-territory-dialog :is(button,input):focus-visible, .territory-add-guide button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+}
+@media screen and (hover:hover) {
+  .new-territory-foot .btn.primary:hover { background: var(--gradient-primary-hover); }
+  .new-territory-dialog .btn.ghost:hover, .territory-add-guide .btn:hover { background: var(--color-accent-soft); }
+}
+@media screen and (max-width:480px) {
+  .territory-add-guide { top: 12px; padding: 12px; border-radius: 16px; }
+  .territory-add-guide-head { gap: 8px; }
+  .territory-add-symbol { display: none; }
+  .territory-add-guide h3 { font-size: 13px; }
+  .territory-add-guide p { font-size: 11px; }
+  .territory-add-steps { gap: 6px; margin-top: 10px; }
+  .territory-add-steps span { font-size: 10px; padding: 6px; }
+  .new-territory-dialog .new-territory-head { padding: 18px; }
+  .new-territory-heading { gap: 12px; }
+  .new-territory-symbol { width: 44px; height: 44px; border-radius: 14px; }
+  .new-territory-symbol svg { width: 24px; height: 24px; }
+  .new-territory-dialog h2 { font-size: 22px; }
+  .new-territory-head p { font-size: 12px; }
+  .new-territory-dialog .new-territory-body { padding: 18px; gap: 18px; }
+  .new-territory-area { gap: 10px; padding: 12px; }
+  .new-territory-map { flex-basis: 70px; }
+  .new-territory-dialog .new-territory-foot { flex-wrap: nowrap; padding: 14px 18px; gap: 8px; }
+  .new-territory-foot .btn { padding: 0 12px; font-size: 13px; }
+  .new-territory-foot .btn.primary { flex: 1; }
+}
+@media print {
+  .territory-add-guide, .new-territory-dialog::backdrop { display: none!important; }
+}
+@media screen and (max-width:760px), screen and (max-height:600px) {
+  .map-wrap.is-territory-adding { min-height: 100dvh; }
+}

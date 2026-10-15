@@ -576,7 +576,7 @@ body.print-preview{overflow:hidden}
 <link rel="stylesheet" href="./toolbar-premium.css?v=offline-selector-1">
 <link rel="stylesheet" href="./welcome-premium.css?v=footer-outside-1">
 <link rel="stylesheet" href="./editor-premium.css?v=spacious-pdf-dialog-1">
-<link rel="stylesheet" href="./workspace-tools.css?v=locality-order-1">
+<link rel="stylesheet" href="./workspace-tools.css?v=premium-new-territory-1">
 </head>
 <body>
 <section class="welcome-screen premium-welcome" id="welcome-screen" aria-labelledby="welcome-title">
@@ -1183,11 +1183,29 @@ body.print-preview{overflow:hidden}
           </div>
         </div>
   </dialog>
+  <section class="territory-add-guide" id="territory-add-guide" hidden aria-labelledby="territory-add-title">
+    <div class="territory-add-guide-head"><span class="territory-add-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5M8 12h8M12 8v8"/></svg></span><div><h3 id="territory-add-title">Selecciona el área del territorio</h3><p id="territory-add-instruction" role="status" aria-live="polite"></p></div><button class="btn ghost" id="territory-add-cancel" type="button">Cancelar</button></div>
+    <div class="territory-add-steps" aria-hidden="true"><span id="territory-add-step-one">1 · Primera esquina</span><span id="territory-add-step-two">2 · Esquina opuesta</span></div>
+  </section>
   <div class="map-status" id="map-status" role="status" aria-live="polite" aria-atomic="true">Cargando mapa y nombres de calles...</div>
 </div>
 
 <div id="hojas-agrupadas" aria-hidden="true"></div>
 
+<dialog class="workspace-dialog new-territory-dialog" id="new-territory-dialog" aria-labelledby="new-territory-title" aria-describedby="new-territory-description">
+  <form id="new-territory-form" novalidate>
+    <div class="workspace-dialog-head new-territory-head"><div class="new-territory-heading"><span class="new-territory-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/><path d="M12 8v6M9 11h6"/></svg></span><div><span class="workspace-dialog-kicker">Nueva localidad</span><h2 id="new-territory-title">Nuevo territorio</h2><p id="new-territory-description">Ponle un nombre al área que seleccionaste.</p></div></div><button class="dialog-x" id="new-territory-close" type="button" aria-label="Cerrar nuevo territorio">×</button></div>
+    <div class="workspace-dialog-body new-territory-body">
+      <div class="new-territory-context"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7"/></svg><span id="new-territory-congregation"></span></div>
+      <div class="new-territory-field"><label for="new-territory-name">Nombre del territorio</label><input id="new-territory-name" name="territoryName" type="text" placeholder="Ej. Colonia Centro" autocomplete="off" required autofocus aria-describedby="new-territory-name-error"><p class="new-territory-field-error" id="new-territory-name-error" role="alert" hidden></p></div>
+      <div class="new-territory-field"><label for="new-territory-municipio">Municipio</label><input id="new-territory-municipio" name="municipio" type="text" autocomplete="address-level2" aria-describedby="new-territory-municipio-hint"><span id="new-territory-municipio-hint">Puedes cambiarlo si esta localidad pertenece a otro municipio.</span></div>
+      <div class="new-territory-area"><div class="new-territory-map" aria-hidden="true"><svg viewBox="0 0 100 76" fill="none"><path d="M6 18 33 6l34 11L94 7v51L67 71 33 60 6 71Z" fill="var(--color-paper)" stroke="var(--color-rule)" stroke-width="1.5"/><path d="M33 6v54M67 17v54" stroke="var(--color-rule)"/><path d="m12 46 18-12 23 6 32-17M22 17l7 17-6 27M53 40l3 20" stroke="var(--color-bubble-blue)" stroke-width="3"/><rect x="28" y="20" width="45" height="32" rx="5" fill="var(--color-accent-soft)" fill-opacity=".75" stroke="var(--color-accent)" stroke-width="2" stroke-dasharray="4 3"/><path d="m43 36 5 5 10-12" stroke="var(--color-accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><strong>Área seleccionada</strong><p>El recuadro que marcaste será la vista inicial de tu territorio.</p><span id="new-territory-state"></span></div></div>
+      <p class="new-territory-nota">Después podrás pintar las zonas, agregar calles y colocar tus referencias.</p>
+      <p class="new-territory-error" id="new-territory-error" role="alert" hidden></p>
+    </div>
+    <div class="workspace-dialog-foot new-territory-foot"><button class="btn ghost" id="new-territory-cancel" type="button">Cancelar</button><button class="btn primary" id="new-territory-create" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Crear territorio</button></div>
+  </form>
+</dialog>
 <dialog class="workspace-dialog" id="territory-search-dialog" aria-labelledby="territory-search-title">
   <div class="workspace-dialog-head"><div><span class="workspace-dialog-kicker">Congregación activa</span><h2 id="territory-search-title">Buscar territorio</h2></div><button class="dialog-x" id="territory-search-close" type="button" aria-label="Cerrar buscador">×</button></div>
   <div class="workspace-dialog-body"><label for="territory-search-input">Nombre o número del territorio o subterritorio</label><input id="territory-search-input" type="search" placeholder="Ejemplo: Tomatlán o 38" autocomplete="off"><p id="territory-search-status" role="status" aria-live="polite"></p><div id="territory-search-results"></div></div>
@@ -1903,6 +1921,7 @@ let colorDraftSession = null;
 let territoryAddMode = false;
 let territoryAddStart = null;
 let territoryAddPreviewLayer = null;
+let newTerritoryDraft = null;
 let frameMoveMode = false;
 let frameMoveHandle = null;
 let frameMoveSession = null;
@@ -2545,6 +2564,8 @@ function actualizarVistaCongregacion(cambioDeSeleccion){
     if(typeof window !== 'undefined') window.refreshOfflineCard?.();
     return;
   }
+  closeNewTerritoryDialog();
+  if(territoryAddMode) setTerritoryAddMode(false, false);
   recargarAjustesGuardados();
   currentIndex = 0;
   applyCustomTerritories();
@@ -2811,6 +2832,7 @@ function setTerritoryAddMode(active, showMessage = true){
   territoryAddStart = null;
   clearTerritoryAddPreview();
   document.querySelector('.map-wrap')?.classList.toggle('is-color-drawing', territoryAddMode);
+  document.querySelector('.map-wrap')?.classList.toggle('is-territory-adding', territoryAddMode);
   if(territoryAddMode){
     setColorDrawMode(false);
     setRoadPencilMode(false, false);
@@ -2821,44 +2843,106 @@ function setTerritoryAddMode(active, showMessage = true){
     selectedAreaIndex = null;
     selectedTextIndex = null;
     selectedIconIndex = null;
-    if(showMessage) setStatus('Agregar territorio: toca una esquina del recuadro en el mapa.', 'warn');
+    if(showMessage) setStatus('', '');
   }else if(showMessage && statusBox.classList.contains('warn') && statusBox.textContent.includes('Agregar territorio')){
     setStatus('', '');
   }
+  updateTerritoryAddGuide();
   updateButtons();
+  if(territoryAddMode && typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width:760px), (max-height:600px)').matches){
+    document.querySelector('.map-wrap')?.scrollIntoView({block:'start', behavior:'instant'});
+    map?.invalidateSize();
+  }
+}
+
+function updateTerritoryAddGuide(){
+  const guide = $('territory-add-guide');
+  if(!guide) return;
+  guide.hidden = !territoryAddMode;
+  $('territory-add-instruction').textContent = territoryAddStart
+    ? 'Ahora marca la esquina opuesta del recuadro.'
+    : 'Marca la primera esquina del recuadro en el mapa.';
+  $('territory-add-step-one').classList.toggle('is-current', !territoryAddStart);
+  $('territory-add-step-one').classList.toggle('is-done', !!territoryAddStart);
+  $('territory-add-step-two').classList.toggle('is-current', !!territoryAddStart);
+  $('btn-add-territory')?.setAttribute('aria-pressed', String(territoryAddMode));
 }
 
 function addCustomTerritoryFromBounds(bounds){
   const center = centerFromBoundsPlain(bounds);
-  const name = window.prompt('Nombre del nuevo territorio:', '');
-  if(name == null) return;
-  const cleanName = name.trim();
-  if(!cleanName){
-    setStatus('Escribe un nombre para agregar el territorio.', 'warn');
+  const porDefecto = LOCS[currentIndex]?.municipio || municipioActual();
+  newTerritoryDraft = {bounds:{...bounds}, center, municipio:porDefecto,
+    estado:estadoActual(), congregationId:congregacionActivaId};
+  $('new-territory-form').reset();
+  $('new-territory-municipio').value = porDefecto;
+  $('new-territory-congregation').textContent = congregacionActual().nombre;
+  $('new-territory-state').textContent = newTerritoryDraft.estado;
+  $('new-territory-name-error').hidden = true;
+  $('new-territory-name').removeAttribute('aria-invalid');
+  $('new-territory-error').hidden = true;
+  const dialog = $('new-territory-dialog');
+  if(!dialog.open) dialog.showModal();
+  $('new-territory-name').focus();
+}
+
+function closeNewTerritoryDialog(){
+  newTerritoryDraft = null;
+  const dialog = $('new-territory-dialog');
+  if(dialog?.open) dialog.close();
+}
+
+function validateNewTerritoryName(){
+  const name = $('new-territory-name');
+  const error = $('new-territory-name-error');
+  const valid = !!name.value.trim();
+  error.textContent = valid ? '' : 'Escribe el nombre del territorio para continuar.';
+  error.hidden = valid;
+  name.setAttribute('aria-invalid', String(!valid));
+  return valid;
+}
+
+function submitNewTerritory(event){
+  event?.preventDefault();
+  const draft = newTerritoryDraft;
+  if(!draft || !$('new-territory-dialog')?.open) return;
+  const error = $('new-territory-error');
+  error.hidden = true;
+  if(draft.congregationId !== congregacionActivaId
+    || !cargarCongregaciones().some(c => c.id === draft.congregationId)
+    || (window.CroquisAccess && !window.CroquisAccess.canEnter())){
+    error.textContent = 'La congregación cambió o ya no está disponible. Cierra esta ventana y selecciona el área de nuevo.';
+    error.hidden = false;
     return;
   }
-  const porDefecto = LOCS[currentIndex]?.municipio || municipioActual();
-  const municipio = (window.prompt('Municipio:', porDefecto) || porDefecto).trim() || porDefecto;
+  if(!validateNewTerritoryName()){
+    $('new-territory-name').focus();
+    return;
+  }
+  const cleanName = $('new-territory-name').value.trim();
+  const municipio = $('new-territory-municipio').value.trim() || draft.municipio;
   const items = loadCustomTerritorySettings();
   const territory = normalizeCustomTerritory({
     num:'custom-' + Date.now(),
     name:cleanName,
     municipio,
-    estado:estadoActual(),
-    lat:center.lat,
-    lon:center.lng,
+    estado:draft.estado,
+    lat:draft.center.lat,
+    lon:draft.center.lng,
     alt:null,
-    printBounds:bounds
+    printBounds:draft.bounds
   }, items.length);
   if(!territory) return;
   items.push(territory);
   if(!saveCustomTerritorySettings(items)){
-    setStatus('No se pudo guardar el territorio nuevo.', 'error');
+    error.textContent = 'No se pudo guardar el territorio. Tu información sigue aquí; inténtalo de nuevo.';
+    error.hidden = false;
     return;
   }
+  closeNewTerritoryDialog();
   applyCustomTerritories();
   populateSelect();
-  goTo(LOCS.length - 1);
+  goTo(LOCS.findIndex(loc => String(loc.num) === String(territory.num)));
   publicarLista();
   setStatus('Territorio agregado con el recuadro seleccionado. Ya puedes pintar y guardar cambios.', 'warn');
 }
@@ -2868,7 +2952,8 @@ function handleTerritoryAddClick(latlng){
   if(!territoryAddStart){
     territoryAddStart = latlng;
     renderTerritoryAddPreview(latlng);
-    setStatus('Agregar territorio: ahora toca la esquina opuesta del recuadro.', 'warn');
+    updateTerritoryAddGuide();
+    setStatus('', '');
     return;
   }
   const bounds = boundsPlainFromCorners(territoryAddStart, latlng);
@@ -2960,6 +3045,8 @@ function showWelcomeScreen(){
   if(typeof window !== 'undefined'){
     window.CroquisDrafts?.leave();
   }
+  closeNewTerritoryDialog();
+  if(territoryAddMode) setTerritoryAddMode(false, false);
   ['history-dialog', 'territory-search-dialog', 'locality-order-dialog', 'draft-recovery-dialog'].forEach(id => $(id)?.close());
   if(colorDrawMode) setColorDrawMode(false);
   resetDraftArea();
@@ -11846,6 +11933,21 @@ $('btn-next').addEventListener('click', () => navigate(1));
 $('btn-pr')?.addEventListener('click', imprimir);
 $('btn-menu-help')?.addEventListener('click', showWelcomeScreen);
 $('btn-add-territory')?.addEventListener('click', addCustomTerritory);
+$('territory-add-cancel')?.addEventListener('click', () => { setTerritoryAddMode(false); $('btn-add-territory')?.focus(); });
+$('new-territory-form')?.addEventListener('submit', submitNewTerritory);
+['new-territory-cancel', 'new-territory-close'].forEach(id => $(id)?.addEventListener('click', closeNewTerritoryDialog));
+$('new-territory-dialog')?.addEventListener('close', () => {
+  if(!$('new-territory-dialog').open) newTerritoryDraft = null;
+  $('btn-add-territory')?.focus();
+});
+$('new-territory-name')?.addEventListener('blur', validateNewTerritoryName);
+$('new-territory-name')?.addEventListener('input', () => {
+  if(!$('new-territory-name-error').hidden) validateNewTerritoryName();
+});
+if(typeof L !== 'undefined' && $('territory-add-guide')){
+  L.DomEvent.disableClickPropagation($('territory-add-guide'));
+  L.DomEvent.disableScrollPropagation($('territory-add-guide'));
+}
 $('btn-delete-territory')?.addEventListener('click', deleteCurrentTerritory);
 $('welcome-cong-nueva')?.addEventListener('click', crearCongregacion);
 const privacyDialog = $('privacy-dialog');
@@ -11879,6 +11981,7 @@ $('welcome-cong-sel')?.addEventListener('change', event => {
 refrescarCongregacionesEnInicio();
 document.querySelectorAll('.bar, .map-wrap').forEach(elemento => { elemento.inert = true; });
 document.addEventListener('keydown', event => {
+  if($('new-territory-dialog')?.open) return;
   if($('history-dialog')?.open || $('territory-search-dialog')?.open || $('locality-order-dialog')?.open || $('draft-recovery-dialog')?.open) return;
   if($('congregacion-dialog')?.open || $('password-dialog')?.open || privacyDialog?.open) return;
   if(event.key==='Escape' && (destinationAddMode || destinationSession || (!$('destination-panel')?.hidden))){
@@ -12015,6 +12118,6 @@ if(document.readyState === 'loading'){
 <script src="draft-recovery.js?v=paint-resume-1"></script>
 <script src="edit-history.js?v=remove-walk-mode-1"></script>
 <script src="territory-search.js?v=remove-walk-mode-1"></script>
-<script src="offline-controller.js?v=spacious-pdf-dialog-1"></script>
+<script src="offline-controller.js?v=premium-new-territory-1"></script>
 </body>
 </html>

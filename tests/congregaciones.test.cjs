@@ -70,7 +70,7 @@ function entorno(guardadas = {}){
     draftPoints:[], roadDraftPoints:[], riverDraftPoints:[],
     colorDrawMode:false, roadPencilMode:false, riverPencilMode:false, territoryAddMode:false, frameMoveMode:false,
     textAddMode:false, iconAddMode:false, contourEditMode:false,
-    destinationAddMode:false, destinationSession:null, cancelDestinationInteraction:noOp,
+    destinationAddMode:false, destinationSession:null, cancelDestinationInteraction:noOp, closeNewTerritoryDialog:noOp,
     renderTextLabels:noOp, renderDirectionAnnotations:noOp,
     recargarAjustesGuardados(){ vistas.push(vm.runInContext('congregacionActivaId', contexto)); },
     applyCustomTerritories:noOp, populateSelect:noOp, limpiarMapaSinTerritorios:noOp, updateInfo:noOp, goTo:noOp, saveAllChanges:noOp, clearSelectedLine:noOp,
